@@ -1,0 +1,60 @@
+### Local Dependencies ###
+Client/node_modules/
+Client/.pnp
+Client/.pnp.*
+Client/.yarn/*
+!Client/.yarn/patches        # Allow necessary Yarn files
+!Client/.yarn/plugins
+!Client/.yarn/releases
+!Client/.yarn/versions
+
+### Next.js Build Artifacts ###
+Client/.next/                # Next.js build cache
+Client/.next/cache
+Client/.next/static
+Client/.next/server
+Client/.next/build
+Client/out/                  # Static export output
+Client/build/                # Custom build dir (if used)
+Client/.vercel               # Vercel deployment cache
+
+### Testing & Coverage ###
+Client/coverage/             # Test coverage reports
+
+### Environment Variables ###
+Client/.env*                 # All .env files (development/production)
+Client/.env.local            # Local overrides
+Client/.env.development.local
+Client/.env.test.local
+Client/.env.production.local
+
+### Logs ###
+Client/npm-debug.log*        # NPM/Yarn/PNPM debug logs
+Client/yarn-debug.log*
+Client/yarn-error.log*
+Client/.pnpm-debug.log*
+
+### TypeScript ###
+Client/*.tsbuildinfo         # TS incremental compilation cache
+Client/next-env.d.ts         # Next.js TypeScript declarations
+
+### System Files ###
+.DS_Store                     # macOS metadata
+*.pem                         # Certificate files (if any)
+
+
+# Ignore binary files
+bin/
+obj/
+*.bin
+*.onnx
+*.parquet
+
+# IDE
+.vs/
+.idea/
+*.user
+
+# NuGet
+packages/
+*.nupkg

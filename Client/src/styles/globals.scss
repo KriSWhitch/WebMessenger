@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+main {
+  width: 100%;
+  min-height: 100%;
+  z-index: -100;
+  padding-top: 60px;
+}
+
+a {
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+
+  &:hover {
+      text-decoration: none;
+  }
+
+  &:active,
+  &:visited {
+      text-decoration: none;
+  }
+}
