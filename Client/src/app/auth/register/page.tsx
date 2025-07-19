@@ -2,9 +2,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AuthFormContainer } from '../../../components/ui/AuthFormContainer';
-import { InputField } from '../../../components/ui/InputField';
-import { Button } from '../../../components/ui/Button';
+import { AuthFormContainer } from '../../../components/features/auth/AuthFormContainer';
+import { InputField } from '../../../components/ui/Input/Input';
+import { Button } from '../../../components/ui/Button/Button';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -157,6 +157,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         />
 
         <Button
+          variant='primary'
           type="submit"
           isLoading={isLoading}
           className="mt-6"

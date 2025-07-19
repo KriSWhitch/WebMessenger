@@ -11,14 +11,31 @@ export async function checkAuthClient(): Promise<boolean> {
   }
 }
 
-export async function logoutClient(): Promise<void> {
+export async function logoutClient(): Promise<{ success: boolean; error?: string }> {
   try {
-    await fetch('/api/auth/logout', { 
+    const response = await fetch('/api/auth/logout', {
       method: 'POST',
-      credentials: 'include'
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { success: false, error: error.message || 'Logout failed' };
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user');
+      sessionStorage.clear();
+      
+      window.location.href = '/auth/login';
+    }
+
+    return { success: true };
   } catch (error) {
-    console.error('Logout failed:', error);
-    throw error;
+    console.error('Logout error:', error);
+    return { success: false, error: 'Network error' };
   }
 }
