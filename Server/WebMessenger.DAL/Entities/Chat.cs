@@ -8,7 +8,7 @@
         public bool IsGroup { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public virtual ICollection<ChatMember> Members { get; set; } = new List<ChatMember>();
-        public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
+        public virtual ICollection<ChatMember> Members { get; set; } = [];
+        public virtual ICollection<Message> Messages { get; set; } = [];
     }
 }
