@@ -4,49 +4,15 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using WebMessenger.DAL.Entities;
 using WebMessenger.DAL.Interfaces;
-using WebMessenger.Api.Models;
 using BCrypt.Net;
-using Microsoft.EntityFrameworkCore;
 using WebMessenger.Services.Interfaces;
 
 namespace WebMessenger.Services;
 
-public class AuthService : IAuthService
+public class AuthService(IUnitOfWork unitOfWork, IConfiguration config) : IAuthService
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IConfiguration _config;
-
-    public AuthService(IUnitOfWork unitOfWork, IConfiguration config)
-    {
-        _unitOfWork = unitOfWork;
-        _config = config;
-    }
-
-    public async Task<bool> IsUsernameExistsAsync(string username)
-    {
-        return await _unitOfWork.UserRepository.GetAll()
-            .AnyAsync(u => u.Username == username);
-    }
-
-    public async Task<User> RegisterUserAsync(RegisterDto registerDto)
-    {
-        var user = new User
-        {
-            Username = registerDto.Username,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password)
-        };
-
-        _unitOfWork.UserRepository.Insert(user);
-        await _unitOfWork.CommitAsync();
-
-        return user;
-    }
-
-    public async Task<User?> FindUserByUsernameAsync(string username)
-    {
-        return await _unitOfWork.UserRepository.GetAll()
-            .FirstOrDefaultAsync(u => u.Username == username);
-    }
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IConfiguration _config = config;
 
     public bool ValidateUserCredentials(User? user, string password)
     {
@@ -99,6 +65,26 @@ public class AuthService : IAuthService
         catch
         {
             return false;
+        }
+    }
+
+    public string? GetUsernameFromToken(string authHeader)
+    {
+        try
+        {
+            var token = authHeader.Split(' ').Last();
+
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+
+            return jwtToken.Claims
+                .FirstOrDefault(c => c.Type == ClaimTypes.Name ||
+                                   c.Type == JwtRegisteredClaimNames.UniqueName)?
+                .Value;
+        }
+        catch
+        {
+            return null;
         }
     }
 }

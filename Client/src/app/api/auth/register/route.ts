@@ -7,9 +7,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    
-    const apiUrl = `${process.env.PUBLIC_API_URL}/api/auth/register`;
-    const apiRes = await fetch(apiUrl, {
+    const registerUrl = `${process.env.PUBLIC_API_URL}/api/auth/register`;
+
+    const response = await fetch(registerUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -17,15 +17,15 @@ export async function POST(req: Request) {
       body: JSON.stringify(body)
     });
 
-    if (!apiRes.ok) {
-      const error = await apiRes.json();
+    if (!response.ok) {
+      const error = await response.json();
       return NextResponse.json(
         { error: error.message },
-        { status: apiRes.status }
+        { status: response.status }
       );
     }
 
-    const data = await apiRes.json();
+    const data = await response.json();
     return NextResponse.json(data);
     
   } catch (err) {

@@ -7,6 +7,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using WebMessenger.Services.Interfaces;
 using WebMessenger.Services;
+using WebMessenger.Api.Services.Interfaces;
+using WebMessenger.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +27,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     ));
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IContactsService, ContactsService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

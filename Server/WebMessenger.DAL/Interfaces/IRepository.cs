@@ -5,7 +5,7 @@
         void Insert(T entity);
         void Delete(int id);
         void Update(T entity);
-        T Get(int id);
+        T Get(Guid id);
         IQueryable<T> GetAll();
         IQueryable<T> GetAll(params string[] navigationProperties);
         void DeleteRange(IEnumerable<T> items);

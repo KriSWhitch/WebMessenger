@@ -52,7 +52,7 @@ namespace WebMessenger.DAL
             }
         }
 
-        public T Get(int id)
+        public T Get(Guid id)
         {
             return DbSet.Find(id);
         }

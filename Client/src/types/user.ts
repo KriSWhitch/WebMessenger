@@ -13,17 +13,18 @@ export interface User {
   lastLoginAt?: string;
 }
 
-export interface Contact {
-  id: string;
-  ownerUserId: string;
-  contactUserId: string;
-  contactUser: User;
-  nickname?: string;
-  addedAt: string;
-}
-
 export interface UserStatus {
   userId: string;
   isOnline: boolean;
   lastSeenAt?: string;
+}
+
+export interface UserSearchResult {
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl?: string;
+  isOnline: boolean;
+  isContact: boolean;
 }

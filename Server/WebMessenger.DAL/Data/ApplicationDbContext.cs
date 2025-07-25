@@ -17,7 +17,7 @@ namespace WebMessenger.DAL.Data
 
             modelBuilder.Entity<User>(entity =>
             {
-                entity.HasIndex(u => u.Email).IsUnique();
+                entity.HasIndex(u => u.Email);
                 entity.HasIndex(u => u.Username).IsUnique();
 
                 entity.Property(u => u.CreatedAt)
