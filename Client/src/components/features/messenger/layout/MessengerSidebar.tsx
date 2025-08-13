@@ -22,13 +22,13 @@ interface MessengerSidebarProps {
   setIsSearchFocused: (value: boolean) => void;
   chats: Chat[];
   selectedChatId: string | null;
-  onCreateNewChat: () => void;
   onSelectChat: (chatId: string) => void;
   onSearchUserSelect: (userId: string) => void;
   onAddContact: (userId: string) => Promise<void>;
   contacts: Contact[];
   selectedContactId: string | null;
   onSelectContact: (contactId: string) => void;
+  onSettingsClick: () => void;
 }
 
 export const MessengerSidebar = ({
@@ -38,10 +38,10 @@ export const MessengerSidebar = ({
   setIsSearchFocused,
   chats,
   selectedChatId,
-  onCreateNewChat,
   onSelectChat,
   onSearchUserSelect,
-  onAddContact
+  onAddContact,
+  onSettingsClick
 }: MessengerSidebarProps) => {
   const [searchContactResults, setSearchContactResults] = useState<Contact[]>([]);
   const [searchUserResults, setSearchUserResults] = useState<UserSearchResult[]>([]);
@@ -132,16 +132,16 @@ export const MessengerSidebar = ({
             <Button 
               useBaseClasses={false}
               onClick={() => setShowContacts(false)}
-              className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+              className="p-2 h-fit w-fit rounded-full hover:bg-gray-700 transition-colors"
             >
               <LeftArrowIcon className="h-5 w-5 text-white" />
             </Button>
           ) : (
             <BurgerMenu 
-              className="ml-2"
+              className="ml-2 p-2 h-fit w-fit rounded-full hover:bg-gray-700 transition-colors"
               menuItems={[
                 { label: 'Contact List', onClick: () => setShowContacts(true) },
-                { label: 'Settings', onClick: () => console.log('Settings') },
+                { label: 'Settings', onClick: () => onSettingsClick() },
                 { 
                   label: 'Logout', 
                   onClick: async () => {
@@ -159,7 +159,7 @@ export const MessengerSidebar = ({
               placeholder={
                 showContacts 
                   ? "Search contacts" 
-                  : "Search contacts or chats"
+                  : "Search users or chats"
               }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -226,15 +226,6 @@ export const MessengerSidebar = ({
             icon={<ChatIcon className={"animate-bounce"} />}
             title="You don't have any chats yet"
             description="Start communicating now by adding new contacts"
-            action={
-              <Button
-                variant="primary"
-                className="w-full max-w-xs transform hover:scale-105 transition-transform duration-150"
-                onClick={onCreateNewChat}
-              >
-                Start New Chat
-              </Button>
-            }
           />
         )}
       </div>

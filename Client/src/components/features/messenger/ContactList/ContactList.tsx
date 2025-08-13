@@ -44,7 +44,12 @@ export const ContactList = ({
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-medium truncate">
-                    {contact.nickname}
+                    {
+                        [contact?.nickname, 
+                        `${contact?.contactUser?.firstName} ${contact?.contactUser?.lastName}`, 
+                        contact?.contactUser?.username]
+                        .find(str => str && str?.trim().length > 0)
+                    }
                   </h3>
                   {contact.isOnline ? (
                     <span className="text-xs text-green-500">Online</span>
@@ -53,7 +58,7 @@ export const ContactList = ({
                   )}
                 </div>
                 <p className="text-sm text-gray-400 truncate">
-                  @{contact?.contactUser?.username || ""}
+                  @{contact?.contactUser?.username}
                 </p>
               </div>
             </div>

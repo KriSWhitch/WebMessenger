@@ -4,6 +4,8 @@ using WebMessenger.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using WebMessenger.Api.Services.Interfaces;
 using WebMessenger.Services.Interfaces;
+using Dropbox.Api.Files;
+using Dropbox.Api;
 
 namespace WebMessenger.Services;
 
@@ -79,6 +81,44 @@ public class UserService : IUserService
             .Where(u => u.Username == username).FirstOrDefaultAsync();
 
         return user?.Id;
+    }
+
+    public UserProfileDto GetUserProfile(Guid userId)
+    {
+        var user = _unitOfWork.UserRepository.Get(userId);
+        if (user == null)
+            throw new InvalidOperationException("User not found");
+
+        return new UserProfileDto
+        {
+            Id = user.Id,
+            Username = user.Username,
+            Email = user.Email,
+            PhoneNumber = user.PhoneNumber,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Bio = user.Bio,
+            AvatarUrl = user.AvatarUrl,
+            IsOnline = user.IsOnline
+        };
+    }
+
+    public async Task<UserProfileDto> UpdateUserProfileAsync(Guid userId, UpdateProfileDto updateDto)
+    {
+        var user = _unitOfWork.UserRepository.Get(userId);
+        if (user == null)
+            throw new InvalidOperationException("User not found");
+
+        user.Email = updateDto.Email ?? user.Email;
+        user.PhoneNumber = updateDto.PhoneNumber ?? user.PhoneNumber;
+        user.FirstName = updateDto.FirstName ?? user.FirstName;
+        user.LastName = updateDto.LastName ?? user.LastName;
+        user.Bio = updateDto.Bio;
+
+        _unitOfWork.UserRepository.Update(user);
+        await _unitOfWork.CommitAsync();
+
+        return GetUserProfile(userId);
     }
 
     private async Task<IEnumerable<User>> SearchUsersAsync(string query, int limit = 10)

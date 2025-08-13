@@ -13,6 +13,27 @@ export interface User {
   lastLoginAt?: string;
 }
 
+export interface UserProfileDto {
+  id: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  firstName: string;
+  lastName: string;
+  bio?: string;
+  avatarUrl?: string;
+  isOnline: boolean;
+}
+
+export interface UpdateProfileDto {
+  email?: string;
+  phoneNumber?: string;
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  avatarUrl?: string;
+}
+
 export interface UserStatus {
   userId: string;
   isOnline: boolean;

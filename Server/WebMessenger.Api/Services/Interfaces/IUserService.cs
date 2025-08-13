@@ -10,5 +10,7 @@ namespace WebMessenger.Api.Services.Interfaces
         Task<User?> FindUserByUsernameAsync(string username);
         Task<IEnumerable<UserSearchResultDto>> SearchUsersAsync(Guid currentUserId, string query, int limit);
         Task<Guid?> GetUserIdFromAuthHeader(string authHeader);
+        UserProfileDto GetUserProfile(Guid userId);
+        Task<UserProfileDto> UpdateUserProfileAsync(Guid userId, UpdateProfileDto updateDto);
     }
 }

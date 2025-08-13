@@ -1,6 +1,7 @@
 'use client';
 import { MessengerMainArea } from "@/components/features/messenger/layout/MessengerMainArea";
 import { MessengerSidebar } from "@/components/features/messenger/layout/MessengerSidebar";
+import { UserSettings } from '@/components/features/messenger/UserSettings/UserSettings';
 import { Chat } from "@/types/chat";
 import { useState } from "react";
 
@@ -9,27 +10,7 @@ export default function MessengerPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
-
-  const createNewChat = () => {
-    const newChat: Chat = {
-      id: Math.random().toString(36).substring(7),
-      name: `New Chat ${chats.length + 1}`,
-      isGroup: false,
-      createdAt: new Date().toISOString(),
-      lastMessage: {
-        id: 'temp',
-        content: 'Start chatting now!',
-        senderId: 'current-user',
-        chatId: 'temp-chat',
-        sentAt: new Date().toISOString(),
-        isRead: false,
-      },
-      unreadCount: 0,
-      avatarUrl: ''
-    };
-    setChats([...chats, newChat]);
-    setSelectedChat(newChat.id);
-  };
+  const [showSettings, setShowSettings] = useState(false);
 
   const createChatWithUser = (userId: string) => {
     const newChat: Chat = {
@@ -92,20 +73,27 @@ export default function MessengerPage() {
 
   return (
     <div className="flex h-screen bg-gray-900 text-gray-200 overflow-hidden">
-      <MessengerSidebar
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        isSearchFocused={isSearchFocused}
-        setIsSearchFocused={setIsSearchFocused}
-        chats={chats}
-        onCreateNewChat={createNewChat}
-        onSelectChat={setSelectedChat}
-        selectedChatId={selectedChat}
-        onSearchUserSelect={handleUserSelect}
-        onAddContact={handleAddContact} contacts={[]} 
-        selectedContactId={null} 
-        onSelectContact={handleUserSelect}      
-      />
+      {!showSettings ? (
+        <MessengerSidebar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          isSearchFocused={isSearchFocused}
+          setIsSearchFocused={setIsSearchFocused}
+          chats={chats}
+          onSelectChat={setSelectedChat}
+          selectedChatId={selectedChat}
+          onSearchUserSelect={handleUserSelect}
+          onAddContact={handleAddContact} contacts={[]} 
+          selectedContactId={null} 
+          onSelectContact={handleUserSelect}      
+          onSettingsClick={() => setShowSettings(true)}
+        />
+      ) : (
+        <div className="w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-gray-700 flex flex-col">
+          <UserSettings onClose={() => setShowSettings(false)} />
+        </div>
+      )}
+
       
       <MessengerMainArea 
         hasChats={chats.length > 0} 
