@@ -2,6 +2,6 @@
 {
     public interface IAvatarService
     {
-        Task<string> UpdateUserAvatarAsync(Guid value, IFormFile file);
+        Task<string?> UpdateUserAvatarAsync(Guid value, IFormFile file);
     }
 }

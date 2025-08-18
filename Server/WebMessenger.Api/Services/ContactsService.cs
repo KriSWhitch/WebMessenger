@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebMessenger.Api.Models;
 using WebMessenger.Api.Services.Interfaces;
-using WebMessenger.DAL;
 using WebMessenger.DAL.Entities;
 using WebMessenger.DAL.Interfaces;
 
@@ -22,7 +21,9 @@ namespace WebMessenger.Api.Services
             var contact = new Contact
             {
                 OwnerUserId = currentUserId,
+                OwnerUser = _unitOfWork.UserRepository.Get(currentUserId),
                 ContactUserId = request.ContactUserId,
+                ContactUser = _unitOfWork.UserRepository.Get(request.ContactUserId),
                 Nickname = request.Nickname,
                 AddedAt = DateTime.UtcNow
             };
@@ -40,32 +41,49 @@ namespace WebMessenger.Api.Services
         {
             var contacts = await GetUserContactsAsync(currentUserId, query);
 
-            return contacts.Select(c => new ContactDto
+            return contacts.Select(ConvertToContactDto);
+        }
+
+        private ContactDto ConvertToContactDto(Contact contact)
+        {
+            return new ContactDto
             {
-                Id = c.Id,
-                UserId = c.ContactUserId,
-                Nickname = c.Nickname ?? $"{c.ContactUser?.FirstName} {c.ContactUser?.LastName}",
-                AvatarUrl = c.ContactUser?.AvatarUrl,
-                IsOnline = c.ContactUser?.IsOnline ?? false,
-                AddedAt = c.AddedAt,
-                ContactUser = new UserDto
-                {
-                    Id = c.ContactUser.Id,
-                    Username = c.ContactUser.Username,
-                    Email = c.ContactUser.Email,
-                    PhoneNumber = c.ContactUser.PhoneNumber,
-                    FirstName = c.ContactUser.FirstName,
-                    LastName = c.ContactUser.LastName,
-                    Bio = c.ContactUser.Bio,
-                    AvatarUrl = c.ContactUser.AvatarUrl,
-                    IsOnline = c.ContactUser.IsOnline,
-                    LastSeenAt = c.ContactUser.LastSeenAt,
-                    CreatedAt = c.ContactUser.CreatedAt,
-                    LastLoginAt = c.ContactUser.LastLoginAt
-                },
-                ContactUserId = c.ContactUserId,
-                OwnerUserId = c.OwnerUserId
-            });
+                Id = contact.Id,
+                UserId = contact.ContactUserId,
+                Nickname = GetDisplayNickname(contact),
+                AvatarUrl = contact.ContactUser?.AvatarUrl,
+                IsOnline = contact.ContactUser?.IsOnline ?? false,
+                AddedAt = contact.AddedAt,
+                ContactUser = contact.ContactUser != null ? ConvertToUserDto(contact.ContactUser) : null,
+                ContactUserId = contact.ContactUserId,
+                OwnerUserId = contact.OwnerUserId
+            };
+        }
+
+        private static UserDto ConvertToUserDto(User user)
+        {
+            return new UserDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Bio = user.Bio,
+                AvatarUrl = user.AvatarUrl,
+                IsOnline = user.IsOnline,
+                LastSeenAt = user.LastSeenAt,
+                CreatedAt = user.CreatedAt,
+                LastLoginAt = user.LastLoginAt
+            };
+        }
+
+        private static string GetDisplayNickname(Contact contact)
+        {
+            return !string.IsNullOrWhiteSpace(contact.Nickname)
+                ? contact.Nickname
+                : $"{contact.ContactUser?.FirstName} {contact.ContactUser?.LastName}";
         }
 
         private async Task<IEnumerable<Contact>> GetUserContactsAsync(Guid currentUserId, string query = "")

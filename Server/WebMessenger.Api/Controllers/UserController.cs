@@ -1,19 +1,16 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using WebMessenger.Api.Models;
 using WebMessenger.Api.Services.Interfaces;
-using WebMessenger.Services.Interfaces;
 
 namespace WebMessenger.Api.Controllers
 {
     [ApiController]
     [Route("api/users")]
-    public class UserController(ILogger<ContactController> logger,
+    public class UserController(ILogger<UserController> logger,
                           IUserService userService,
                           IAvatarService avatarService) : ControllerBase
     {
-        private readonly ILogger<ContactController> _logger = logger;
+        private readonly ILogger<UserController> _logger = logger;
         private readonly IUserService _userService = userService;
         private readonly IAvatarService _avatarService = avatarService;
 

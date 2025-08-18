@@ -16,8 +16,8 @@
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? LastLoginAt { get; set; }
 
-        public virtual ICollection<Contact> Contacts { get; set; } = new List<Contact>();
-        public virtual ICollection<ChatMember> ChatMemberships { get; set; } = new List<ChatMember>();
-        public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
+        public virtual ICollection<Contact> Contacts { get; set; } = [];
+        public virtual ICollection<ChatMember> ChatMemberships { get; set; } = [];
+        public virtual ICollection<Message> Messages { get; set; } = [];
     }
 }

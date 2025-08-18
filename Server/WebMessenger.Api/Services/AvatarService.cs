@@ -1,104 +1,114 @@
-﻿using WebMessenger.DAL.Entities;
-using WebMessenger.DAL.Interfaces;
-using WebMessenger.Api.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using WebMessenger.DAL.Interfaces;
 using WebMessenger.Api.Services.Interfaces;
-using WebMessenger.Services.Interfaces;
 using Dropbox.Api.Files;
 using Dropbox.Api;
 using Dropbox.Api.Sharing;
 
-namespace WebMessenger.Services;
+namespace WebMessenger.Api.Services;
 
 public class AvatarService : IAvatarService
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IConfiguration _config;
-    private readonly DropboxClient _dropboxClient;
     private const string DropboxFolder = "/avatars";
+    private const string UserNotFoundTemplate = "User {UserId} not found";
+    private const string UploadFailedTemplate = "Failed to upload new avatar";
+    private const string UpdateAvatarErrorTemplate = "Error updating avatar for user {UserId}";
+    private const string UploadAvatarErrorTemplate = "Error uploading avatar to Dropbox: {DropboxPath}";
+    private const string DeleteSuccessTemplate = "Successfully deleted file: {FilePath}";
+    private const string DeleteErrorTemplate = "Error deleting file. URL: {FileUrl}";
 
-    public AvatarService(IUnitOfWork unitOfWork, IConfiguration config)
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly DropboxClient _dropboxClient;
+    private readonly ILogger<AvatarService> _logger;
+
+    public AvatarService(
+        ILogger<AvatarService> logger,
+        IUnitOfWork unitOfWork,
+        IConfiguration config)
     {
-        _unitOfWork = unitOfWork;
-        _config = config;
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        var accessToken = _config["Dropbox:AccessToken"];
+        var accessToken = config["Dropbox:AccessToken"]
+            ?? throw new ArgumentException("Dropbox access token not configured");
         _dropboxClient = new DropboxClient(accessToken);
     }
 
     public async Task<string?> UpdateUserAvatarAsync(Guid userId, IFormFile file)
     {
+        if (file == null || file.Length == 0)
+        {
+            _logger.LogWarning("Attempt to upload empty file for user {UserId}", userId);
+            return null;
+        }
+
+        var user = _unitOfWork.UserRepository.Get(userId);
+        if (user == null)
+        {
+            _logger.LogWarning(UserNotFoundTemplate, userId);
+            return null;
+        }
+
         try
         {
-            var user = _unitOfWork.UserRepository.Get(userId);
-            if (user == null)
-            {
-                // _logger.LogWarning($"User {userId} not found");
-                return null;
-            }
+            await DeleteOldAvatarIfExists(user.AvatarUrl);
 
-            if (!string.IsNullOrEmpty(user.AvatarUrl))
-            {
-                await DeleteOldAvatar(user.AvatarUrl);
-            }
-
-            var newAvatarUrl = await UploadToDropbox(file, userId);
+            var newAvatarUrl = await UploadAvatarAsync(file, userId);
             if (newAvatarUrl == null)
             {
-                // _logger.LogError("Failed to upload new avatar");
+                _logger.LogError(UploadFailedTemplate);
                 return null;
             }
 
             user.AvatarUrl = newAvatarUrl;
-            _unitOfWork.UserRepository.Update(user);
             await _unitOfWork.CommitAsync();
 
             return newAvatarUrl;
         }
         catch (Exception ex)
         {
-            // _logger.LogError(ex, $"Error updating avatar for user {userId}");
+            _logger.LogError(ex, UpdateAvatarErrorTemplate, userId);
             return null;
         }
     }
 
-    private async Task<string?> UploadToDropbox(IFormFile file, Guid userId)
+    private async Task<string?> UploadAvatarAsync(IFormFile file, Guid userId)
     {
-        var uniqueFileName = $"{userId}_{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+        var uniqueFileName = GenerateUniqueFileName(file, userId);
         var dropboxPath = $"{DropboxFolder}/{uniqueFileName}";
 
         try
         {
-            using (var stream = file.OpenReadStream())
-            {
-                await _dropboxClient.Files.UploadAsync(
-                    dropboxPath,
-                    WriteMode.Overwrite.Instance,
-                    body: stream);
+            await using var stream = file.OpenReadStream();
+            await _dropboxClient.Files.UploadAsync(
+                dropboxPath,
+                WriteMode.Overwrite.Instance,
+                body: stream);
 
-                SharedLinkMetadata sharedLink;
-                try
-                {
-                    sharedLink = await _dropboxClient.Sharing.CreateSharedLinkWithSettingsAsync(dropboxPath);
-                }
-                catch (ApiException<CreateSharedLinkWithSettingsError> ex)
-                    when (ex.ErrorResponse.IsSharedLinkAlreadyExists)
-                {
-                    var links = await _dropboxClient.Sharing.ListSharedLinksAsync(dropboxPath);
-                    sharedLink = links.Links.First();
-                }
-
-                return ConvertToDirectLink(sharedLink.Url);
-            }
+            var sharedLink = await GetOrCreateSharedLink(dropboxPath);
+            return ConvertToDirectLink(sharedLink.Url);
         }
         catch (Exception ex)
         {
-            // _logger.LogError(ex, $"Error uploading avatar to Dropbox: {dropboxPath}");
+            _logger.LogError(ex, UploadAvatarErrorTemplate, dropboxPath);
             return null;
         }
     }
 
-    private async Task DeleteOldAvatar(string avatarUrl)
+    private async Task<SharedLinkMetadata> GetOrCreateSharedLink(string dropboxPath)
+    {
+        try
+        {
+            return await _dropboxClient.Sharing.CreateSharedLinkWithSettingsAsync(dropboxPath);
+        }
+        catch (ApiException<CreateSharedLinkWithSettingsError> ex)
+            when (ex.ErrorResponse.IsSharedLinkAlreadyExists)
+        {
+            var links = await _dropboxClient.Sharing.ListSharedLinksAsync(dropboxPath);
+            return links.Links.First();
+        }
+    }
+
+    private async Task DeleteOldAvatarIfExists(string? avatarUrl)
     {
         if (string.IsNullOrEmpty(avatarUrl)) return;
 
@@ -108,24 +118,29 @@ public class AvatarService : IAvatarService
             if (sharedLinkUrl == null) return;
 
             var linkMetadata = await _dropboxClient.Sharing.GetSharedLinkMetadataAsync(sharedLinkUrl);
-
             await _dropboxClient.Files.DeleteV2Async(linkMetadata.PathLower);
-            // _logger.LogInformation($"Successfully deleted file: {linkMetadata.PathLower}");
+
+            _logger.LogInformation(DeleteSuccessTemplate, linkMetadata.PathLower);
         }
         catch (Exception ex)
         {
-            // _logger.LogError(ex, $"Error deleting file. URL: {avatarUrl}");
+            _logger.LogError(ex, DeleteErrorTemplate, avatarUrl);
         }
     }
 
-    private string ConvertToDirectLink(string sharedLink)
+    private static string GenerateUniqueFileName(IFormFile file, Guid userId)
+    {
+        return $"{userId}_{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+    }
+
+    private static string ConvertToDirectLink(string sharedLink)
     {
         return sharedLink
             .Replace("www.dropbox.com", "dl.dropboxusercontent.com")
             .Replace("?dl=0", "");
     }
 
-    private string? ConvertToSharedLink(string directLink)
+    private static string? ConvertToSharedLink(string directLink)
     {
         try
         {

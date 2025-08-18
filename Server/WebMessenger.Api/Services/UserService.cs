@@ -4,25 +4,14 @@ using WebMessenger.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using WebMessenger.Api.Services.Interfaces;
 using WebMessenger.Services.Interfaces;
-using Dropbox.Api.Files;
-using Dropbox.Api;
 
-namespace WebMessenger.Services;
+namespace WebMessenger.Api.Services;
 
-public class UserService : IUserService
+public class UserService(IUnitOfWork unitOfWork, IContactsService contactsService, IAuthService authService) : IUserService
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IConfiguration _config;
-    private readonly IContactsService _contactsService;
-    private readonly IAuthService _authService;
-
-    public UserService(IUnitOfWork unitOfWork, IConfiguration config, IContactsService contactsService, IAuthService authService)
-    {
-        _unitOfWork = unitOfWork;
-        _config = config;
-        _contactsService = contactsService;
-        _authService = authService;
-    }
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IContactsService _contactsService = contactsService;
+    private readonly IAuthService _authService = authService;
 
     public async Task<bool> IsUsernameExistsAsync(string username)
     {
@@ -85,10 +74,7 @@ public class UserService : IUserService
 
     public UserProfileDto GetUserProfile(Guid userId)
     {
-        var user = _unitOfWork.UserRepository.Get(userId);
-        if (user == null)
-            throw new InvalidOperationException("User not found");
-
+        var user = _unitOfWork.UserRepository.Get(userId) ?? throw new InvalidOperationException("User not found");
         return new UserProfileDto
         {
             Id = user.Id,
@@ -105,10 +91,7 @@ public class UserService : IUserService
 
     public async Task<UserProfileDto> UpdateUserProfileAsync(Guid userId, UpdateProfileDto updateDto)
     {
-        var user = _unitOfWork.UserRepository.Get(userId);
-        if (user == null)
-            throw new InvalidOperationException("User not found");
-
+        var user = _unitOfWork.UserRepository.Get(userId) ?? throw new InvalidOperationException("User not found");
         user.Email = updateDto.Email ?? user.Email;
         user.PhoneNumber = updateDto.PhoneNumber ?? user.PhoneNumber;
         user.FirstName = updateDto.FirstName ?? user.FirstName;
