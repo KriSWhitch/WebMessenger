@@ -196,7 +196,7 @@ export const UserSettings = ({ onClose }: UserSettingsProps) => {
         <div className="relative group mb-4">
           <Avatar 
             src={avatarPreview || profile.avatarUrl} 
-            name={profile.username} 
+            name={profile.username ?? "User"} 
             className="h-32 w-32 text-4xl"
           />
           {isEditing && (

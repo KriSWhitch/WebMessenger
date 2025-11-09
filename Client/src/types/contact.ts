@@ -1,6 +1,6 @@
 import { User } from "./user";
 
-export interface Contact {
+export type Contact = {
   id: string;
   userId: string;
   nickname?: string;
@@ -10,4 +10,4 @@ export interface Contact {
   ownerUserId: string;
   contactUserId: string;
   contactUser?: User;
-}
+};

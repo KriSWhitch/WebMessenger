@@ -8,7 +8,7 @@ const env = dotenv.config({ path: resolve(process.cwd(), `.env.${process.env.NOD
 const nextConfig: NextConfig = {
   env,
   images: {
-    domains: ['localhost', 'www.dropbox.com', '']
+    domains: ['localhost', 'www.dropbox.com', 'dl.dropboxusercontent.com', '']
   }
 };
 

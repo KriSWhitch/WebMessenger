@@ -1,20 +1,29 @@
 import { User } from './user';
 
-export interface Chat {
+
+export type Chat = {
   id: string;
-  name?: string;
-  avatarUrl?: string;
+  name: string;
   isGroup: boolean;
   createdAt: string;
-  lastMessage?: Message;
-  unreadCount?: number;
-  
-  description?: string;
-  creatorId?: string;
-  membersCount?: number;
-}
+  lastMessage?: {
+    id: string;
+    content: string;
+    senderId: string;
+    chatId: string;
+    sentAt: string;
+    isRead: boolean;
+  };
+  unreadCount: number;
+  avatarUrl?: string;
+  members?: { userId: string }[];
 
-export interface ChatMember {
+  serverChatId?: string | null;
+  peerUserId?: string;
+};
+
+
+export type ChatMember = {
   id: string;
   userId: string;
   chatId: string;
@@ -22,13 +31,13 @@ export interface ChatMember {
   joinedAt: string;
   lastReadAt?: string;
   role?: 'member' | 'admin' | 'creator';
-}
+};
 
 export interface ChatWithMembers extends Chat {
   members: ChatMember[];
-}
+};
 
-export interface Message {
+export type Message = {
   id: string;
   content: string;
   senderId: string;
@@ -45,9 +54,9 @@ export interface Message {
   attachments?: Attachment[];
   replyToMessage?: Message;
   reactions?: Reaction[];
-}
+};
 
-export interface Attachment {
+export type Attachment = {
   id: string;
   messageId: string;
   url: string;
@@ -57,27 +66,35 @@ export interface Attachment {
   width?: number;
   height?: number;
   duration?: number;
-}
+};
 
-export interface Reaction {
+export type Reaction = {
   id: string;
   messageId: string;
   userId: string;
   emoji: string;
   createdAt: string;
   user?: User;
-}
+};
 
-export interface CreateChatRequest {
+export type CreateChatRequest = {
   name?: string;
   isGroup: boolean;
   memberIds: string[];
   avatar?: File;
-}
+};
 
-export interface SendMessageRequest {
+export type SendMessageRequest = {
   chatId: string;
   content: string;
   replyToId?: string;
   attachments?: File[];
-}
+};
+
+export type DirectChatHeaderDto = {
+  otherUserId: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+  isOnline: boolean;
+  chatId?: string | null;
+};

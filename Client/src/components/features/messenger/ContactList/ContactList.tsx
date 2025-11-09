@@ -1,4 +1,3 @@
-// components/features/messenger/ContactList/ContactList.tsx
 import { Contact } from "@/types/contact";
 import { Avatar } from "@/components/ui/Avatar/Avatar";
 import clsx from "clsx";

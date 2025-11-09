@@ -56,6 +56,21 @@ namespace WebMessenger.Api.Controllers
             }
         }
 
+        [HttpGet("profile/{id:guid}")]
+        public IActionResult GetUserProfileById(Guid id)
+        {
+            try
+            {
+                var profile = _userService.GetUserProfile(id);
+                return Ok(profile);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user profile by id");
+                return StatusCode(500, "An error occurred while getting user profile");
+            }
+        }
+
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateUserProfile(
             [FromHeader(Name = "Authorization")] string authHeader,

@@ -1,4 +1,3 @@
-// components/features/messenger/SearchResults.tsx
 import { UserSearchResult } from "@/types";
 import { Avatar } from "@/components/ui/Avatar/Avatar";
 import { Button } from "@/components/ui/Button/Button";
