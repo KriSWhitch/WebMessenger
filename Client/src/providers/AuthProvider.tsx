@@ -1,7 +1,7 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { checkAuthClient } from '@/lib/client-auth';
+import { checkAuthClient } from '@/lib/auth/client-auth';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();

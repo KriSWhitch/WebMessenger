@@ -13,10 +13,9 @@ export default function MessengerPage() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const openDirectChatWithUser = useCallback(async (userId: string): Promise<Chat> => {
@@ -99,35 +98,55 @@ export default function MessengerPage() {
 
   return (
     <div className="relative flex h-screen bg-gray-900 text-gray-200 overflow-hidden">
-      {!showSettings ? (
-        <div
-          className={clsx(
-            "flex-shrink-0 border-r border-gray-700 flex flex-col z-[20]",
-            "w-full md:w-80 lg:w-96",
-            selectedChat ? "hidden md:flex" : "flex"
-          )}
-        >
-          <MessengerSidebar
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            isSearchFocused={isSearchFocused}
-            setIsSearchFocused={setIsSearchFocused}
-            chats={chats}
-            onSelectChat={setSelectedChat}
-            selectedChatId={selectedChat}
-            onSearchUserSelect={handleUserSelect}
-            onAddContact={handleAddContact}
-            contacts={[]}
-            selectedContactId={null}
-            onSelectContact={handleUserSelect}
-            onSettingsClick={() => setShowSettings(true)}
-          />
-        </div>
-      ) : (
-        <div className="w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-gray-700 flex flex-col z-[40]">
-          <UserSettings onClose={() => setShowSettings(false)} />
-        </div>
+
+    <div
+      className={clsx(
+        "relative flex-shrink-0 border-r border-gray-700 z-[20]",
+        (selectedChat && !showSettings) ? "w-0" : "w-full",
+        "md:w-80 lg:w-96",
+        "transition-[width] duration-0"
       )}
+    >
+
+
+      <div
+        className={clsx(
+          "h-full flex flex-col",
+          selectedChat ? "hidden md:flex" : "flex"
+        )}
+      >
+        <MessengerSidebar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          isSearchFocused={isSearchFocused}
+          setIsSearchFocused={setIsSearchFocused}
+          chats={chats}
+          onSelectChat={setSelectedChat}
+          selectedChatId={selectedChat}
+          onSearchUserSelect={handleUserSelect}
+          onAddContact={handleAddContact}
+          contacts={[]}
+          selectedContactId={null}
+          onSelectContact={handleUserSelect}
+          onSettingsClick={() => setShowSettings(true)}
+        />
+      </div>
+
+      <aside
+        className={clsx(
+          "absolute inset-0 z-[40]",
+          "bg-gray-900 border-r border-gray-700",
+          "will-change-transform transform transition-transform duration-300 ease-out",
+          "transition-opacity duration-300",
+          showSettings
+            ? "translate-x-0 opacity-100 pointer-events-auto"
+            : "-translate-x-full opacity-0 pointer-events-none"
+        )}
+      >
+        <UserSettings onClose={() => setShowSettings(false)} />
+      </aside>
+    </div>
+
 
       <MessengerMainArea
         hasChats={chats.length > 0}

@@ -17,11 +17,11 @@ namespace WebMessenger.Api.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> Index([FromHeader(Name = "Authorization")] string authHeader, string query = "")
+        public async Task<IActionResult> Index([FromHeader(Name = "Authorization")] string auth, string query = "")
         {
             try
             {
-                var currentUserId = await _userService.GetUserIdFromAuthHeader(authHeader);
+                var currentUserId = await _userService.GetUserIdFromAuthHeader(auth);
 
                 if (!currentUserId.HasValue)
                     return BadRequest("Authentication problems occurred");
@@ -40,11 +40,11 @@ namespace WebMessenger.Api.Controllers
         }
 
         [HttpPost("add")]
-        public async Task<IActionResult> AddContact([FromHeader(Name = "Authorization")] string authHeader, [FromBody] AddContactRequest request)
+        public async Task<IActionResult> AddContact([FromHeader(Name = "Authorization")] string auth, [FromBody] AddContactRequest request)
         {
             try
             {
-                var currentUserId = await _userService.GetUserIdFromAuthHeader(authHeader);
+                var currentUserId = await _userService.GetUserIdFromAuthHeader(auth);
                 var contactUserId = request.ContactUserId;
 
                 if (!currentUserId.HasValue)

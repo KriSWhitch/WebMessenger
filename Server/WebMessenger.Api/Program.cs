@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using WebMessenger.Services.Interfaces;
-using WebMessenger.Services;
 using WebMessenger.Api.Services.Interfaces;
 using WebMessenger.Api.Services;
+using WebMessenger.Api.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,10 +20,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         new MySqlServerVersion(new Version(8, 0, 42)),
-        mysqlOptions =>
-        {
-            mysqlOptions.EnableRetryOnFailure();
-        }
+        mysqlOptions => { mysqlOptions.EnableRetryOnFailure(); }
     ));
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -33,7 +30,26 @@ builder.Services.AddScoped<IContactsService, ContactsService>();
 builder.Services.AddScoped<IAvatarService, AvatarService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddSignalR();
+
+const string FrontCors = "Front";
+builder.Services.AddCors(opts =>
+{
+    opts.AddPolicy(name: FrontCors, policy =>
+    {
+        policy
+            .WithOrigins(
+                "http://localhost:3000",
+                "https://localhost:3000"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -44,7 +60,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
+            )
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var path = context.HttpContext.Request.Path;
+                if (path.StartsWithSegments("/hubs/chat"))
+                {
+                    if (context.Request.Query.TryGetValue("access_token", out var tokenFromQuery))
+                    {
+                        context.Token = tokenFromQuery;
+                        return Task.CompletedTask;
+                    }
+                    if (context.Request.Cookies.TryGetValue("auth-token", out var tokenFromCookie))
+                    {
+                        context.Token = tokenFromCookie;
+                        return Task.CompletedTask;
+                    }
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -56,17 +96,18 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsDevelopment())
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
+app.UseCors(FrontCors);
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<ChatHub>("/hubs/chat").RequireCors(FrontCors);
 
 app.Run();

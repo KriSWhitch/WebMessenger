@@ -35,9 +35,9 @@ namespace WebMessenger.Api.Controllers
         }
 
         [HttpGet("verify")]
-        public IActionResult VerifyToken([FromHeader(Name = "Authorization")] string authHeader)
+        public IActionResult VerifyToken([FromHeader(Name = "Authorization")] string auth)
         {
-            return _authService.ValidateJwtToken(authHeader)
+            return _authService.ValidateJwtToken(auth)
                 ? Ok(new { valid = true })
                 : Unauthorized(new { valid = false });
         }

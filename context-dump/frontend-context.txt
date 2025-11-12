@@ -1,3 +1,79 @@
+﻿# Context dump generated: 2025-11-09 13:03:54Z (UTC)
+# Root: D:\Programming\WebMessenger\Client
+
+================================================================
+FILE: next.config.ts
+----------------------------------------------------------------
+import type { NextConfig } from "next";
+
+import dotenv from 'dotenv';
+import { resolve } from 'path';
+
+const env = dotenv.config({ path: resolve(process.cwd(), `.env.${process.env.NODE_ENV || 'development'}`) }).parsed;
+
+const nextConfig: NextConfig = {
+  env,
+  images: {
+    domains: ['localhost', 'www.dropbox.com', 'dl.dropboxusercontent.com', '']
+  }
+};
+
+export default nextConfig;
+
+
+================================================================
+FILE: next-env.d.ts
+----------------------------------------------------------------
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+
+
+================================================================
+FILE: package.json
+----------------------------------------------------------------
+{
+  "name": "pokedex",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "classnames": "^2.5.1",
+    "clsx": "^2.1.1",
+    "dotenv": "^16.4.7",
+    "jsonwebtoken": "^9.0.2",
+    "next": "^15.2.4",
+    "pokedex": "file:",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sass": "^1.85.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.7",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
+
+
+================================================================
+FILE: package-lock.json
+----------------------------------------------------------------
 {
   "name": "pokedex",
   "version": "0.1.0",
@@ -8,7 +84,6 @@
       "name": "pokedex",
       "version": "0.1.0",
       "dependencies": {
-        "@microsoft/signalr": "^9.0.6",
         "bcryptjs": "^3.0.2",
         "classnames": "^2.5.1",
         "clsx": "^2.1.1",
@@ -46,10 +121,9 @@
       }
     },
     "node_modules/@emnapi/runtime": {
-      "version": "1.7.0",
-      "resolved": "https://registry.npmjs.org/@emnapi/runtime/-/runtime-1.7.0.tgz",
-      "integrity": "sha512-oAYoQnCYaQZKVS53Fq23ceWMRxq5EhQsE0x0RdQ55jT7wagMu5k+fS39v1fiSLrtrLQlXwVINenqhLMtTrV/1Q==",
-      "license": "MIT",
+      "version": "1.3.1",
+      "resolved": "https://registry.npmjs.org/@emnapi/runtime/-/runtime-1.3.1.tgz",
+      "integrity": "sha512-kEBmG8KyqtxJZv+ygbEim+KCGtIq1fC22Ms3S4ziXmYKm8uyoLX0MHONVKwp+9opg390VaKRNt4a7A9NwmpNhw==",
       "optional": true,
       "dependencies": {
         "tslib": "^2.4.0"
@@ -254,24 +328,13 @@
         "url": "https://github.com/sponsors/nzakas"
       }
     },
-    "node_modules/@img/colour": {
-      "version": "1.0.0",
-      "resolved": "https://registry.npmjs.org/@img/colour/-/colour-1.0.0.tgz",
-      "integrity": "sha512-A5P/LfWGFSl6nsckYtjw9da+19jB8hkJ6ACTGcDfEJ0aE+l2n2El7dsVM7UVHZQ9s2lmYMWlrS21YLy2IR1LUw==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">=18"
-      }
-    },
     "node_modules/@img/sharp-darwin-arm64": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-arm64/-/sharp-darwin-arm64-0.34.5.tgz",
-      "integrity": "sha512-imtQ3WMJXbMY4fxb/Ndp6HBTNVtWCUI0WdobyheGf5+ad6xX8VIDO8u2xE4qc/fr08CKG/7dDseFtn6M6g/r3w==",
+      "version": "0.33.5",
+      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-arm64/-/sharp-darwin-arm64-0.33.5.tgz",
+      "integrity": "sha512-UT4p+iz/2H4twwAoLCqfA9UH5pI6DggwKEGuaPy7nCVQ8ZsiY5PIcrRvD1DzuY3qYL07NtIQcWnBSY/heikIFQ==",
       "cpu": [
         "arm64"
       ],
-      "license": "Apache-2.0",
       "optional": true,
       "os": [
         "darwin"
@@ -283,17 +346,16 @@
         "url": "https://opencollective.com/libvips"
       },
       "optionalDependencies": {
-        "@img/sharp-libvips-darwin-arm64": "1.2.4"
+        "@img/sharp-libvips-darwin-arm64": "1.0.4"
       }
     },
     "node_modules/@img/sharp-darwin-x64": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-x64/-/sharp-darwin-x64-0.34.5.tgz",
-      "integrity": "sha512-YNEFAF/4KQ/PeW0N+r+aVVsoIY0/qxxikF2SWdp+NRkmMB7y9LBZAVqQ4yhGCm/H3H270OSykqmQMKLBhBJDEw==",
+      "version": "0.33.5",
+      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-x64/-/sharp-darwin-x64-0.33.5.tgz",
+      "integrity": "sha512-fyHac4jIc1ANYGRDxtiqelIbdWkIuQaI84Mv45KvGRRxSAa7o7d1ZKAOBaYbnepLC1WqxfpimdeWfvqqSGwR2Q==",
       "cpu": [
         "x64"
       ],
-      "license": "Apache-2.0",
       "optional": true,
       "os": [
         "darwin"
@@ -305,17 +367,16 @@
         "url": "https://opencollective.com/libvips"
       },
       "optionalDependencies": {
-        "@img/sharp-libvips-darwin-x64": "1.2.4"
+        "@img/sharp-libvips-darwin-x64": "1.0.4"
       }
     },
     "node_modules/@img/sharp-libvips-darwin-arm64": {
-      "version": "1.2.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-arm64/-/sharp-libvips-darwin-arm64-1.2.4.tgz",
-      "integrity": "sha512-zqjjo7RatFfFoP0MkQ51jfuFZBnVE2pRiaydKJ1G/rHZvnsrHAOcQALIi9sA5co5xenQdTugCvtb1cuf78Vf4g==",
+      "version": "1.0.4",
+      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-arm64/-/sharp-libvips-darwin-arm64-1.0.4.tgz",
+      "integrity": "sha512-XblONe153h0O2zuFfTAbQYAX2JhYmDHeWikp1LM9Hul9gVPjFY427k6dFEcOL72O01QxQsWi761svJ/ev9xEDg==",
       "cpu": [
         "arm64"
       ],
-      "license": "LGPL-3.0-or-later",
       "optional": true,
       "os": [
         "darwin"
@@ -325,13 +386,12 @@
       }
     },
     "node_modules/@img/sharp-libvips-darwin-x64": {
-      "version": "1.2.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-x64/-/sharp-libvips-darwin-x64-1.2.4.tgz",
-      "integrity": "sha512-1IOd5xfVhlGwX+zXv2N93k0yMONvUlANylbJw1eTah8K/Jtpi15KC+WSiaX/nBmbm2HxRM1gZ0nSdjSsrZbGKg==",
+      "version": "1.0.4",
+      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-x64/-/sharp-libvips-darwin-x64-1.0.4.tgz",
+      "integrity": "sha512-xnGR8YuZYfJGmWPvmlunFaWJsb9T/AO2ykoP3Fz/0X5XV2aoYBPkX6xqCQvUTKKiLddarLaxpzNe+b1hjeWHAQ==",
       "cpu": [
         "x64"
       ],
-      "license": "LGPL-3.0-or-later",
       "optional": true,
       "os": [
         "darwin"
@@ -341,13 +401,12 @@
       }
     },
     "node_modules/@img/sharp-libvips-linux-arm": {
-      "version": "1.2.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm/-/sharp-libvips-linux-arm-1.2.4.tgz",
-      "integrity": "sha512-bFI7xcKFELdiNCVov8e44Ia4u2byA+l3XtsAj+Q8tfCwO6BQ8iDojYdvoPMqsKDkuoOo+X6HZA0s0q11ANMQ8A==",
+      "version": "1.0.5",
+      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm/-/sharp-libvips-linux-arm-1.0.5.tgz",
+      "integrity": "sha512-gvcC4ACAOPRNATg/ov8/MnbxFDJqf/pDePbBnuBDcjsI8PssmjoKMAz4LtLaVi+OnSb5FK/yIOamqDwGmXW32g==",
       "cpu": [
         "arm"
       ],
-      "license": "LGPL-3.0-or-later",
       "optional": true,
       "os": [
         "linux"
@@ -357,45 +416,12 @@
       }
     },
     "node_modules/@img/sharp-libvips-linux-arm64": {
-      "version": "1.2.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm64/-/sharp-libvips-linux-arm64-1.2.4.tgz",
-      "integrity": "sha512-excjX8DfsIcJ10x1Kzr4RcWe1edC9PquDRRPx3YVCvQv+U5p7Yin2s32ftzikXojb1PIFc/9Mt28/y+iRklkrw==",
+      "version": "1.0.4",
+      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm64/-/sharp-libvips-linux-arm64-1.0.4.tgz",
+      "integrity": "sha512-9B+taZ8DlyyqzZQnoeIvDVR/2F4EbMepXMc/NdVbkzsJbzkUjhXv/70GQJ7tdLA4YJgNP25zukcxpX2/SueNrA==",
       "cpu": [
         "arm64"
       ],
-      "license": "LGPL-3.0-or-later",
-      "optional": true,
-      "os": [
-        "linux"
-      ],
-      "funding": {
-        "url": "https://opencollective.com/libvips"
-      }
-    },
-    "node_modules/@img/sharp-libvips-linux-ppc64": {
-      "version": "1.2.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-ppc64/-/sharp-libvips-linux-ppc64-1.2.4.tgz",
-      "integrity": "sha512-FMuvGijLDYG6lW+b/UvyilUWu5Ayu+3r2d1S8notiGCIyYU/76eig1UfMmkZ7vwgOrzKzlQbFSuQfgm7GYUPpA==",
-      "cpu": [
-        "ppc64"
-      ],
-      "license": "LGPL-3.0-or-later",
-      "optional": true,
-      "os": [
-        "linux"
-      ],
-      "funding": {
-        "url": "https://opencollective.com/libvips"
-      }
-    },
-    "node_modules/@img/sharp-libvips-linux-riscv64": {
-      "version": "1.2.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-riscv64/-/sharp-libvips-linux-riscv64-1.2.4.tgz",
-      "integrity": "sha512-oVDbcR4zUC0ce82teubSm+x6ETixtKZBh/qbREIOcI3cULzDyb18Sr/Wcyx7NRQeQzOiHTNbZFF1UwPS2scyGA==",
-      "cpu": [
-        "riscv64"
-      ],
-      "license": "LGPL-3.0-or-later",
       "optional": true,
       "os": [
         "linux"
@@ -405,13 +431,12 @@
       }
     },
     "node_modules/@img/sharp-libvips-linux-s390x": {
-      "version": "1.2.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-s390x/-/sharp-libvips-linux-s390x-1.2.4.tgz",
-      "integrity": "sha512-qmp9VrzgPgMoGZyPvrQHqk02uyjA0/QrTO26Tqk6l4ZV0MPWIW6LTkqOIov+J1yEu7MbFQaDpwdwJKhbJvuRxQ==",
+      "version": "1.0.4",
+      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-s390x/-/sharp-libvips-linux-s390x-1.0.4.tgz",
+      "integrity": "sha512-u7Wz6ntiSSgGSGcjZ55im6uvTrOxSIS8/dgoVMoiGE9I6JAfU50yH5BoDlYA1tcuGS7g/QNtetJnxA6QEsCVTA==",
       "cpu": [
         "s390x"
       ],
-      "license": "LGPL-3.0-or-later",
       "optional": true,
       "os": [
         "linux"
@@ -421,13 +446,12 @@
       }
     },
     "node_modules/@img/sharp-libvips-linux-x64": {
-      "version": "1.2.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-x64/-/sharp-libvips-linux-x64-1.2.4.tgz",
-      "integrity": "sha512-tJxiiLsmHc9Ax1bz3oaOYBURTXGIRDODBqhveVHonrHJ9/+k89qbLl0bcJns+e4t4rvaNBxaEZsFtSfAdquPrw==",
+      "version": "1.0.4",
+      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-x64/-/sharp-libvips-linux-x64-1.0.4.tgz",
+      "integrity": "sha512-MmWmQ3iPFZr0Iev+BAgVMb3ZyC4KeFc3jFxnNbEPas60e1cIfevbtuyf9nDGIzOaW9PdnDciJm+wFFaTlj5xYw==",
       "cpu": [
         "x64"
       ],
-      "license": "LGPL-3.0-or-later",
       "optional": true,
       "os": [
         "linux"
@@ -437,13 +461,12 @@
       }
     },
     "node_modules/@img/sharp-libvips-linuxmusl-arm64": {
-      "version": "1.2.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-arm64/-/sharp-libvips-linuxmusl-arm64-1.2.4.tgz",
-      "integrity": "sha512-FVQHuwx1IIuNow9QAbYUzJ+En8KcVm9Lk5+uGUQJHaZmMECZmOlix9HnH7n1TRkXMS0pGxIJokIVB9SuqZGGXw==",
+      "version": "1.0.4",
+      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-arm64/-/sharp-libvips-linuxmusl-arm64-1.0.4.tgz",
+      "integrity": "sha512-9Ti+BbTYDcsbp4wfYib8Ctm1ilkugkA/uscUn6UXK1ldpC1JjiXbLfFZtRlBhjPZ5o1NCLiDbg8fhUPKStHoTA==",
       "cpu": [
         "arm64"
       ],
-      "license": "LGPL-3.0-or-later",
       "optional": true,
       "os": [
         "linux"
@@ -453,13 +476,12 @@
       }
     },
     "node_modules/@img/sharp-libvips-linuxmusl-x64": {
-      "version": "1.2.4",
-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64/-/sharp-libvips-linuxmusl-x64-1.2.4.tgz",
-      "integrity": "sha512-+LpyBk7L44ZIXwz/VYfglaX/okxezESc6UxDSoyo2Ks6Jxc4Y7sGjpgU9s4PMgqgjj1gZCylTieNamqA1MF7Dg==",
+      "version": "1.0.4",
+      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64/-/sharp-libvips-linuxmusl-x64-1.0.4.tgz",
+      "integrity": "sha512-viYN1KX9m+/hGkJtvYYp+CCLgnJXwiQB39damAO7WMdKWlIhmYTfHjwSbQeUK/20vY154mwezd9HflVFM1wVSw==",
       "cpu": [
         "x64"
       ],
-      "license": "LGPL-3.0-or-later",
       "optional": true,
       "os": [
         "linux"
@@ -469,13 +491,12 @@
       }
     },
     "node_modules/@img/sharp-linux-arm": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm/-/sharp-linux-arm-0.34.5.tgz",
-      "integrity": "sha512-9dLqsvwtg1uuXBGZKsxem9595+ujv0sJ6Vi8wcTANSFpwV/GONat5eCkzQo/1O6zRIkh0m/8+5BjrRr7jDUSZw==",
+      "version": "0.33.5",
+      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm/-/sharp-linux-arm-0.33.5.tgz",
+      "integrity": "sha512-JTS1eldqZbJxjvKaAkxhZmBqPRGmxgu+qFKSInv8moZ2AmT5Yib3EQ1c6gp493HvrvV8QgdOXdyaIBrhvFhBMQ==",
       "cpu": [
         "arm"
       ],
-      "license": "Apache-2.0",
       "optional": true,
       "os": [
         "linux"
@@ -487,17 +508,16 @@
         "url": "https://opencollective.com/libvips"
       },
       "optionalDependencies": {
-        "@img/sharp-libvips-linux-arm": "1.2.4"
+        "@img/sharp-libvips-linux-arm": "1.0.5"
       }
     },
     "node_modules/@img/sharp-linux-arm64": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm64/-/sharp-linux-arm64-0.34.5.tgz",
-      "integrity": "sha512-bKQzaJRY/bkPOXyKx5EVup7qkaojECG6NLYswgktOZjaXecSAeCWiZwwiFf3/Y+O1HrauiE3FVsGxFg8c24rZg==",
+      "version": "0.33.5",
+      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm64/-/sharp-linux-arm64-0.33.5.tgz",
+      "integrity": "sha512-JMVv+AMRyGOHtO1RFBiJy/MBsgz0x4AWrT6QoEVVTyh1E39TrCUpTRI7mx9VksGX4awWASxqCYLCV4wBZHAYxA==",
       "cpu": [
         "arm64"
       ],
-      "license": "Apache-2.0",
       "optional": true,
       "os": [
         "linux"
@@ -509,61 +529,16 @@
         "url": "https://opencollective.com/libvips"
       },
       "optionalDependencies": {
-        "@img/sharp-libvips-linux-arm64": "1.2.4"
-      }
-    },
-    "node_modules/@img/sharp-linux-ppc64": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-ppc64/-/sharp-linux-ppc64-0.34.5.tgz",
-      "integrity": "sha512-7zznwNaqW6YtsfrGGDA6BRkISKAAE1Jo0QdpNYXNMHu2+0dTrPflTLNkpc8l7MUP5M16ZJcUvysVWWrMefZquA==",
-      "cpu": [
-        "ppc64"
-      ],
-      "license": "Apache-2.0",
-      "optional": true,
-      "os": [
-        "linux"
-      ],
-      "engines": {
-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
-      },
-      "funding": {
-        "url": "https://opencollective.com/libvips"
-      },
-      "optionalDependencies": {
-        "@img/sharp-libvips-linux-ppc64": "1.2.4"
-      }
-    },
-    "node_modules/@img/sharp-linux-riscv64": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-riscv64/-/sharp-linux-riscv64-0.34.5.tgz",
-      "integrity": "sha512-51gJuLPTKa7piYPaVs8GmByo7/U7/7TZOq+cnXJIHZKavIRHAP77e3N2HEl3dgiqdD/w0yUfiJnII77PuDDFdw==",
-      "cpu": [
-        "riscv64"
-      ],
-      "license": "Apache-2.0",
-      "optional": true,
-      "os": [
-        "linux"
-      ],
-      "engines": {
-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
-      },
-      "funding": {
-        "url": "https://opencollective.com/libvips"
-      },
-      "optionalDependencies": {
-        "@img/sharp-libvips-linux-riscv64": "1.2.4"
+        "@img/sharp-libvips-linux-arm64": "1.0.4"
       }
     },
     "node_modules/@img/sharp-linux-s390x": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-s390x/-/sharp-linux-s390x-0.34.5.tgz",
-      "integrity": "sha512-nQtCk0PdKfho3eC5MrbQoigJ2gd1CgddUMkabUj+rBevs8tZ2cULOx46E7oyX+04WGfABgIwmMC0VqieTiR4jg==",
+      "version": "0.33.5",
+      "resolved": "https://registry.npmjs.org/@img/sharp-linux-s390x/-/sharp-linux-s390x-0.33.5.tgz",
+      "integrity": "sha512-y/5PCd+mP4CA/sPDKl2961b+C9d+vPAveS33s6Z3zfASk2j5upL6fXVPZi7ztePZ5CuH+1kW8JtvxgbuXHRa4Q==",
       "cpu": [
         "s390x"
       ],
-      "license": "Apache-2.0",
       "optional": true,
       "os": [
         "linux"
@@ -575,17 +550,16 @@
         "url": "https://opencollective.com/libvips"
       },
       "optionalDependencies": {
-        "@img/sharp-libvips-linux-s390x": "1.2.4"
+        "@img/sharp-libvips-linux-s390x": "1.0.4"
       }
     },
     "node_modules/@img/sharp-linux-x64": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-x64/-/sharp-linux-x64-0.34.5.tgz",
-      "integrity": "sha512-MEzd8HPKxVxVenwAa+JRPwEC7QFjoPWuS5NZnBt6B3pu7EG2Ge0id1oLHZpPJdn3OQK+BQDiw9zStiHBTJQQQQ==",
+      "version": "0.33.5",
+      "resolved": "https://registry.npmjs.org/@img/sharp-linux-x64/-/sharp-linux-x64-0.33.5.tgz",
+      "integrity": "sha512-opC+Ok5pRNAzuvq1AG0ar+1owsu842/Ab+4qvU879ippJBHvyY5n2mxF1izXqkPYlGuP/M556uh53jRLJmzTWA==",
       "cpu": [
         "x64"
       ],
-      "license": "Apache-2.0",
       "optional": true,
       "os": [
         "linux"
@@ -597,17 +571,16 @@
         "url": "https://opencollective.com/libvips"
       },
       "optionalDependencies": {
-        "@img/sharp-libvips-linux-x64": "1.2.4"
+        "@img/sharp-libvips-linux-x64": "1.0.4"
       }
     },
     "node_modules/@img/sharp-linuxmusl-arm64": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-arm64/-/sharp-linuxmusl-arm64-0.34.5.tgz",
-      "integrity": "sha512-fprJR6GtRsMt6Kyfq44IsChVZeGN97gTD331weR1ex1c1rypDEABN6Tm2xa1wE6lYb5DdEnk03NZPqA7Id21yg==",
+      "version": "0.33.5",
+      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-arm64/-/sharp-linuxmusl-arm64-0.33.5.tgz",
+      "integrity": "sha512-XrHMZwGQGvJg2V/oRSUfSAfjfPxO+4DkiRh6p2AFjLQztWUuY/o8Mq0eMQVIY7HJ1CDQUJlxGGZRw1a5bqmd1g==",
       "cpu": [
         "arm64"
       ],
-      "license": "Apache-2.0",
       "optional": true,
       "os": [
         "linux"
@@ -619,17 +592,16 @@
         "url": "https://opencollective.com/libvips"
       },
       "optionalDependencies": {
-        "@img/sharp-libvips-linuxmusl-arm64": "1.2.4"
+        "@img/sharp-libvips-linuxmusl-arm64": "1.0.4"
       }
     },
     "node_modules/@img/sharp-linuxmusl-x64": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-x64/-/sharp-linuxmusl-x64-0.34.5.tgz",
-      "integrity": "sha512-Jg8wNT1MUzIvhBFxViqrEhWDGzqymo3sV7z7ZsaWbZNDLXRJZoRGrjulp60YYtV4wfY8VIKcWidjojlLcWrd8Q==",
+      "version": "0.33.5",
+      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-x64/-/sharp-linuxmusl-x64-0.33.5.tgz",
+      "integrity": "sha512-WT+d/cgqKkkKySYmqoZ8y3pxx7lx9vVejxW/W4DOFMYVSkErR+w7mf2u8m/y4+xHe7yY9DAXQMWQhpnMuFfScw==",
       "cpu": [
         "x64"
       ],
-      "license": "Apache-2.0",
       "optional": true,
       "os": [
         "linux"
@@ -641,40 +613,20 @@
         "url": "https://opencollective.com/libvips"
       },
       "optionalDependencies": {
-        "@img/sharp-libvips-linuxmusl-x64": "1.2.4"
+        "@img/sharp-libvips-linuxmusl-x64": "1.0.4"
       }
     },
     "node_modules/@img/sharp-wasm32": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-wasm32/-/sharp-wasm32-0.34.5.tgz",
-      "integrity": "sha512-OdWTEiVkY2PHwqkbBI8frFxQQFekHaSSkUIJkwzclWZe64O1X4UlUjqqqLaPbUpMOQk6FBu/HtlGXNblIs0huw==",
+      "version": "0.33.5",
+      "resolved": "https://registry.npmjs.org/@img/sharp-wasm32/-/sharp-wasm32-0.33.5.tgz",
+      "integrity": "sha512-ykUW4LVGaMcU9lu9thv85CbRMAwfeadCJHRsg2GmeRa/cJxsVY9Rbd57JcMxBkKHag5U/x7TSBpScF4U8ElVzg==",
       "cpu": [
         "wasm32"
       ],
-      "license": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
       "optional": true,
       "dependencies": {
-        "@emnapi/runtime": "^1.7.0"
+        "@emnapi/runtime": "^1.2.0"
       },
-      "engines": {
-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
-      },
-      "funding": {
-        "url": "https://opencollective.com/libvips"
-      }
-    },
-    "node_modules/@img/sharp-win32-arm64": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-win32-arm64/-/sharp-win32-arm64-0.34.5.tgz",
-      "integrity": "sha512-WQ3AgWCWYSb2yt+IG8mnC6Jdk9Whs7O0gxphblsLvdhSpSTtmu69ZG1Gkb6NuvxsNACwiPV6cNSZNzt0KPsw7g==",
-      "cpu": [
-        "arm64"
-      ],
-      "license": "Apache-2.0 AND LGPL-3.0-or-later",
-      "optional": true,
-      "os": [
-        "win32"
-      ],
       "engines": {
         "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
       },
@@ -683,13 +635,12 @@
       }
     },
     "node_modules/@img/sharp-win32-ia32": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-win32-ia32/-/sharp-win32-ia32-0.34.5.tgz",
-      "integrity": "sha512-FV9m/7NmeCmSHDD5j4+4pNI8Cp3aW+JvLoXcTUo0IqyjSfAZJ8dIUmijx1qaJsIiU+Hosw6xM5KijAWRJCSgNg==",
+      "version": "0.33.5",
+      "resolved": "https://registry.npmjs.org/@img/sharp-win32-ia32/-/sharp-win32-ia32-0.33.5.tgz",
+      "integrity": "sha512-T36PblLaTwuVJ/zw/LaH0PdZkRz5rd3SmMHX8GSmR7vtNSP5Z6bQkExdSK7xGWyxLw4sUknBuugTelgw2faBbQ==",
       "cpu": [
         "ia32"
       ],
-      "license": "Apache-2.0 AND LGPL-3.0-or-later",
       "optional": true,
       "os": [
         "win32"
@@ -702,13 +653,12 @@
       }
     },
     "node_modules/@img/sharp-win32-x64": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.34.5.tgz",
-      "integrity": "sha512-+29YMsqY2/9eFEiW93eqWnuLcWcufowXewwSNIT6UwZdUUCrM3oFjMWH/Z6/TMmb4hlFenmfAVbpWeup2jryCw==",
+      "version": "0.33.5",
+      "resolved": "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.33.5.tgz",
+      "integrity": "sha512-MpY/o8/8kj+EcnxwvrP4aTJSWw/aZ7JIGR4aBeZkZw5B7/Jn+tY9/VNwtcoGmdT7GfggGIU4kygOMSbYnOrAbg==",
       "cpu": [
         "x64"
       ],
-      "license": "Apache-2.0 AND LGPL-3.0-or-later",
       "optional": true,
       "os": [
         "win32"
@@ -785,23 +735,10 @@
         "@jridgewell/sourcemap-codec": "^1.4.14"
       }
     },
-    "node_modules/@microsoft/signalr": {
-      "version": "9.0.6",
-      "resolved": "https://registry.npmjs.org/@microsoft/signalr/-/signalr-9.0.6.tgz",
-      "integrity": "sha512-DrhgzFWI9JE4RPTsHYRxh4yr+OhnwKz8bnJe7eIi7mLLjqhJpEb62CiUy/YbFvLqLzcGzlzz1QWgVAW0zyipMQ==",
-      "license": "MIT",
-      "dependencies": {
-        "abort-controller": "^3.0.0",
-        "eventsource": "^2.0.2",
-        "fetch-cookie": "^2.0.3",
-        "node-fetch": "^2.6.7",
-        "ws": "^7.5.10"
-      }
-    },
     "node_modules/@next/env": {
-      "version": "15.5.6",
-      "resolved": "https://registry.npmjs.org/@next/env/-/env-15.5.6.tgz",
-      "integrity": "sha512-3qBGRW+sCGzgbpc5TS1a0p7eNxnOarGVQhZxfvTdnV0gFI61lX7QNtQ4V1TSREctXzYn5NetbUsLvyqwLFJM6Q==",
+      "version": "15.2.4",
+      "resolved": "https://registry.npmjs.org/@next/env/-/env-15.2.4.tgz",
+      "integrity": "sha512-+SFtMgoiYP3WoSswuNmxJOCwi06TdWE733D+WPjpXIe4LXGULwEaofiiAy6kbS0+XjM5xF5n3lKuBwN2SnqD9g==",
       "license": "MIT"
     },
     "node_modules/@next/eslint-plugin-next": {
@@ -814,9 +751,9 @@
       }
     },
     "node_modules/@next/swc-darwin-arm64": {
-      "version": "15.5.6",
-      "resolved": "https://registry.npmjs.org/@next/swc-darwin-arm64/-/swc-darwin-arm64-15.5.6.tgz",
-      "integrity": "sha512-ES3nRz7N+L5Umz4KoGfZ4XX6gwHplwPhioVRc25+QNsDa7RtUF/z8wJcbuQ2Tffm5RZwuN2A063eapoJ1u4nPg==",
+      "version": "15.2.4",
+      "resolved": "https://registry.npmjs.org/@next/swc-darwin-arm64/-/swc-darwin-arm64-15.2.4.tgz",
+      "integrity": "sha512-1AnMfs655ipJEDC/FHkSr0r3lXBgpqKo4K1kiwfUf3iE68rDFXZ1TtHdMvf7D0hMItgDZ7Vuq3JgNMbt/+3bYw==",
       "cpu": [
         "arm64"
       ],
@@ -830,9 +767,9 @@
       }
     },
     "node_modules/@next/swc-darwin-x64": {
-      "version": "15.5.6",
-      "resolved": "https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-15.5.6.tgz",
-      "integrity": "sha512-JIGcytAyk9LQp2/nuVZPAtj8uaJ/zZhsKOASTjxDug0SPU9LAM3wy6nPU735M1OqacR4U20LHVF5v5Wnl9ptTA==",
+      "version": "15.2.4",
+      "resolved": "https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-15.2.4.tgz",
+      "integrity": "sha512-3qK2zb5EwCwxnO2HeO+TRqCubeI/NgCe+kL5dTJlPldV/uwCnUgC7VbEzgmxbfrkbjehL4H9BPztWOEtsoMwew==",
       "cpu": [
         "x64"
       ],
@@ -846,9 +783,9 @@
       }
     },
     "node_modules/@next/swc-linux-arm64-gnu": {
-      "version": "15.5.6",
-      "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-gnu/-/swc-linux-arm64-gnu-15.5.6.tgz",
-      "integrity": "sha512-qvz4SVKQ0P3/Im9zcS2RmfFL/UCQnsJKJwQSkissbngnB/12c6bZTCB0gHTexz1s6d/mD0+egPKXAIRFVS7hQg==",
+      "version": "15.2.4",
+      "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-gnu/-/swc-linux-arm64-gnu-15.2.4.tgz",
+      "integrity": "sha512-HFN6GKUcrTWvem8AZN7tT95zPb0GUGv9v0d0iyuTb303vbXkkbHDp/DxufB04jNVD+IN9yHy7y/6Mqq0h0YVaQ==",
       "cpu": [
         "arm64"
       ],
@@ -862,9 +799,9 @@
       }
     },
     "node_modules/@next/swc-linux-arm64-musl": {
-      "version": "15.5.6",
-      "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-musl/-/swc-linux-arm64-musl-15.5.6.tgz",
-      "integrity": "sha512-FsbGVw3SJz1hZlvnWD+T6GFgV9/NYDeLTNQB2MXoPN5u9VA9OEDy6fJEfePfsUKAhJufFbZLgp0cPxMuV6SV0w==",
+      "version": "15.2.4",
+      "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-musl/-/swc-linux-arm64-musl-15.2.4.tgz",
+      "integrity": "sha512-Oioa0SORWLwi35/kVB8aCk5Uq+5/ZIumMK1kJV+jSdazFm2NzPDztsefzdmzzpx5oGCJ6FkUC7vkaUseNTStNA==",
       "cpu": [
         "arm64"
       ],
@@ -878,9 +815,9 @@
       }
     },
     "node_modules/@next/swc-linux-x64-gnu": {
-      "version": "15.5.6",
-      "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-15.5.6.tgz",
-      "integrity": "sha512-3QnHGFWlnvAgyxFxt2Ny8PTpXtQD7kVEeaFat5oPAHHI192WKYB+VIKZijtHLGdBBvc16tiAkPTDmQNOQ0dyrA==",
+      "version": "15.2.4",
+      "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-15.2.4.tgz",
+      "integrity": "sha512-yb5WTRaHdkgOqFOZiu6rHV1fAEK0flVpaIN2HB6kxHVSy/dIajWbThS7qON3W9/SNOH2JWkVCyulgGYekMePuw==",
       "cpu": [
         "x64"
       ],
@@ -894,9 +831,9 @@
       }
     },
     "node_modules/@next/swc-linux-x64-musl": {
-      "version": "15.5.6",
-      "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-15.5.6.tgz",
-      "integrity": "sha512-OsGX148sL+TqMK9YFaPFPoIaJKbFJJxFzkXZljIgA9hjMjdruKht6xDCEv1HLtlLNfkx3c5w2GLKhj7veBQizQ==",
+      "version": "15.2.4",
+      "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-15.2.4.tgz",
+      "integrity": "sha512-Dcdv/ix6srhkM25fgXiyOieFUkz+fOYkHlydWCtB0xMST6X9XYI3yPDKBZt1xuhOytONsIFJFB08xXYsxUwJLw==",
       "cpu": [
         "x64"
       ],
@@ -910,9 +847,9 @@
       }
     },
     "node_modules/@next/swc-win32-arm64-msvc": {
-      "version": "15.5.6",
-      "resolved": "https://registry.npmjs.org/@next/swc-win32-arm64-msvc/-/swc-win32-arm64-msvc-15.5.6.tgz",
-      "integrity": "sha512-ONOMrqWxdzXDJNh2n60H6gGyKed42Ieu6UTVPZteXpuKbLZTH4G4eBMsr5qWgOBA+s7F+uB4OJbZnrkEDnZ5Fg==",
+      "version": "15.2.4",
+      "resolved": "https://registry.npmjs.org/@next/swc-win32-arm64-msvc/-/swc-win32-arm64-msvc-15.2.4.tgz",
+      "integrity": "sha512-dW0i7eukvDxtIhCYkMrZNQfNicPDExt2jPb9AZPpL7cfyUo7QSNl1DjsHjmmKp6qNAqUESyT8YFl/Aw91cNJJg==",
       "cpu": [
         "arm64"
       ],
@@ -926,9 +863,9 @@
       }
     },
     "node_modules/@next/swc-win32-x64-msvc": {
-      "version": "15.5.6",
-      "resolved": "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-15.5.6.tgz",
-      "integrity": "sha512-pxK4VIjFRx1MY92UycLOOw7dTdvccWsNETQ0kDHkBlcFH1GrTLUjSiHU1ohrznnux6TqRHgv5oflhfIWZwVROQ==",
+      "version": "15.2.4",
+      "resolved": "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-15.2.4.tgz",
+      "integrity": "sha512-SbnWkJmkS7Xl3kre8SdMF6F/XDh1DTFEhp0jRTj/uB8iPKoU2bb2NDfcu+iifv1+mxQEd1g2vvSxcZbXSKyWiQ==",
       "cpu": [
         "x64"
       ],
@@ -1316,6 +1253,11 @@
       "integrity": "sha512-kkKUDVlII2DQiKy7UstOR1ErJP8kUKAQ4oa+SQtM0K+lPdmmjj0YnnxBgtTVYH7mUKtbsxeFC9y0AmK7Yb78/A==",
       "dev": true
     },
+    "node_modules/@swc/counter": {
+      "version": "0.1.3",
+      "resolved": "https://registry.npmjs.org/@swc/counter/-/counter-0.1.3.tgz",
+      "integrity": "sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ=="
+    },
     "node_modules/@swc/helpers": {
       "version": "0.5.15",
       "resolved": "https://registry.npmjs.org/@swc/helpers/-/helpers-0.5.15.tgz",
@@ -1611,18 +1553,6 @@
       "funding": {
         "type": "opencollective",
         "url": "https://opencollective.com/typescript-eslint"
-      }
-    },
-    "node_modules/abort-controller": {
-      "version": "3.0.0",
-      "resolved": "https://registry.npmjs.org/abort-controller/-/abort-controller-3.0.0.tgz",
-      "integrity": "sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==",
-      "license": "MIT",
-      "dependencies": {
-        "event-target-shim": "^5.0.0"
-      },
-      "engines": {
-        "node": ">=6.5"
       }
     },
     "node_modules/acorn": {
@@ -1983,6 +1913,17 @@
       "integrity": "sha512-zRpUiDwd/xk6ADqPMATG8vc9VPrkck7T07OIx0gnjmJAnHnTVXNQG3vfvWNuiZIkwu9KrKdA1iJKfsfTVxE6NA==",
       "license": "BSD-3-Clause"
     },
+    "node_modules/busboy": {
+      "version": "1.6.0",
+      "resolved": "https://registry.npmjs.org/busboy/-/busboy-1.6.0.tgz",
+      "integrity": "sha512-8SFQbg/0hQ9xy3UNTB0YEnsNBbWfhf7RtnzpL7TkBiTBRfrQ9Fxcnz7VJsleJpyp6rVLvXiuORqjlHi5q+PYuA==",
+      "dependencies": {
+        "streamsearch": "^1.1.0"
+      },
+      "engines": {
+        "node": ">=10.16.0"
+      }
+    },
     "node_modules/call-bind": {
       "version": "1.0.8",
       "resolved": "https://registry.npmjs.org/call-bind/-/call-bind-1.0.8.tgz",
@@ -2139,11 +2080,24 @@
         "node": ">=6"
       }
     },
+    "node_modules/color": {
+      "version": "4.2.3",
+      "resolved": "https://registry.npmjs.org/color/-/color-4.2.3.tgz",
+      "integrity": "sha512-1rXeuUUiGGrykh+CeBdu5Ie7OJwinCgQY0bc7GCRxy5xVHy+moaqkpL/jqQq0MtQOeYcrqEz4abc5f0KtU7W4A==",
+      "optional": true,
+      "dependencies": {
+        "color-convert": "^2.0.1",
+        "color-string": "^1.9.0"
+      },
+      "engines": {
+        "node": ">=12.5.0"
+      }
+    },
     "node_modules/color-convert": {
       "version": "2.0.1",
       "resolved": "https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz",
       "integrity": "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==",
-      "dev": true,
+      "devOptional": true,
       "dependencies": {
         "color-name": "~1.1.4"
       },
@@ -2155,7 +2109,17 @@
       "version": "1.1.4",
       "resolved": "https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz",
       "integrity": "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==",
-      "dev": true
+      "devOptional": true
+    },
+    "node_modules/color-string": {
+      "version": "1.9.1",
+      "resolved": "https://registry.npmjs.org/color-string/-/color-string-1.9.1.tgz",
+      "integrity": "sha512-shrVawQFojnZv6xM40anx4CkoDP+fZsw/ZerEMsW/pyzsRbElpsL/DBVW7q3ExxwusdNXI3lXpuhEZkzs8p5Eg==",
+      "optional": true,
+      "dependencies": {
+        "color-name": "^1.0.0",
+        "simple-swizzle": "^0.2.2"
+      }
     },
     "node_modules/commander": {
       "version": "4.1.1",
@@ -2319,10 +2283,9 @@
       }
     },
     "node_modules/detect-libc": {
-      "version": "2.1.2",
-      "resolved": "https://registry.npmjs.org/detect-libc/-/detect-libc-2.1.2.tgz",
-      "integrity": "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==",
-      "license": "Apache-2.0",
+      "version": "2.0.3",
+      "resolved": "https://registry.npmjs.org/detect-libc/-/detect-libc-2.0.3.tgz",
+      "integrity": "sha512-bwy0MGW55bG41VqxxypOsdSdGqLwXPI/focwgTYCFMbdUiBAxLg9CFzG08sz2aqzknwiX7Hkl0bQENjg8iLByw==",
       "optional": true,
       "engines": {
         "node": ">=8"
@@ -2998,24 +2961,6 @@
         "node": ">=0.10.0"
       }
     },
-    "node_modules/event-target-shim": {
-      "version": "5.0.1",
-      "resolved": "https://registry.npmjs.org/event-target-shim/-/event-target-shim-5.0.1.tgz",
-      "integrity": "sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==",
-      "license": "MIT",
-      "engines": {
-        "node": ">=6"
-      }
-    },
-    "node_modules/eventsource": {
-      "version": "2.0.2",
-      "resolved": "https://registry.npmjs.org/eventsource/-/eventsource-2.0.2.tgz",
-      "integrity": "sha512-IzUmBGPR3+oUG9dUeXynyNmf91/3zUSJg1lCktzKw47OXuhco54U3r9B7O4XX+Rb1Itm9OZ2b0RkTs10bICOxA==",
-      "license": "MIT",
-      "engines": {
-        "node": ">=12.0.0"
-      }
-    },
     "node_modules/fast-deep-equal": {
       "version": "3.1.3",
       "resolved": "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz",
@@ -3069,16 +3014,6 @@
       "dev": true,
       "dependencies": {
         "reusify": "^1.0.4"
-      }
-    },
-    "node_modules/fetch-cookie": {
-      "version": "2.2.0",
-      "resolved": "https://registry.npmjs.org/fetch-cookie/-/fetch-cookie-2.2.0.tgz",
-      "integrity": "sha512-h9AgfjURuCgA2+2ISl8GbavpUdR+WGAM2McW/ovn4tVccegp8ZqCKWSBR8uRdM8dDNlx5WdKRWxBYUwteLDCNQ==",
-      "license": "Unlicense",
-      "dependencies": {
-        "set-cookie-parser": "^2.4.8",
-        "tough-cookie": "^4.0.0"
       }
     },
     "node_modules/file-entry-cache": {
@@ -3555,6 +3490,12 @@
       "funding": {
         "url": "https://github.com/sponsors/ljharb"
       }
+    },
+    "node_modules/is-arrayish": {
+      "version": "0.3.2",
+      "resolved": "https://registry.npmjs.org/is-arrayish/-/is-arrayish-0.3.2.tgz",
+      "integrity": "sha512-eVRqCvVlZbuw3GrM63ovNSNAeA1K16kaR/LRY/92w0zxQ5/1YzwblUX652i4Xs9RwAGjW9d9y6X88t8OaAJfWQ==",
+      "optional": true
     },
     "node_modules/is-async-function": {
       "version": "2.1.1",
@@ -4322,13 +4263,15 @@
       "dev": true
     },
     "node_modules/next": {
-      "version": "15.5.6",
-      "resolved": "https://registry.npmjs.org/next/-/next-15.5.6.tgz",
-      "integrity": "sha512-zTxsnI3LQo3c9HSdSf91O1jMNsEzIXDShXd4wVdg9y5shwLqBXi4ZtUUJyB86KGVSJLZx0PFONvO54aheGX8QQ==",
+      "version": "15.2.4",
+      "resolved": "https://registry.npmjs.org/next/-/next-15.2.4.tgz",
+      "integrity": "sha512-VwL+LAaPSxEkd3lU2xWbgEOtrM8oedmyhBqaVNmgKB+GvZlCy9rgaEc+y2on0wv+l0oSFqLtYD6dcC1eAedUaQ==",
       "license": "MIT",
       "dependencies": {
-        "@next/env": "15.5.6",
+        "@next/env": "15.2.4",
+        "@swc/counter": "0.1.3",
         "@swc/helpers": "0.5.15",
+        "busboy": "1.6.0",
         "caniuse-lite": "^1.0.30001579",
         "postcss": "8.4.31",
         "styled-jsx": "5.1.6"
@@ -4340,19 +4283,19 @@
         "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
       },
       "optionalDependencies": {
-        "@next/swc-darwin-arm64": "15.5.6",
-        "@next/swc-darwin-x64": "15.5.6",
-        "@next/swc-linux-arm64-gnu": "15.5.6",
-        "@next/swc-linux-arm64-musl": "15.5.6",
-        "@next/swc-linux-x64-gnu": "15.5.6",
-        "@next/swc-linux-x64-musl": "15.5.6",
-        "@next/swc-win32-arm64-msvc": "15.5.6",
-        "@next/swc-win32-x64-msvc": "15.5.6",
-        "sharp": "^0.34.3"
+        "@next/swc-darwin-arm64": "15.2.4",
+        "@next/swc-darwin-x64": "15.2.4",
+        "@next/swc-linux-arm64-gnu": "15.2.4",
+        "@next/swc-linux-arm64-musl": "15.2.4",
+        "@next/swc-linux-x64-gnu": "15.2.4",
+        "@next/swc-linux-x64-musl": "15.2.4",
+        "@next/swc-win32-arm64-msvc": "15.2.4",
+        "@next/swc-win32-x64-msvc": "15.2.4",
+        "sharp": "^0.33.5"
       },
       "peerDependencies": {
         "@opentelemetry/api": "^1.1.0",
-        "@playwright/test": "^1.51.1",
+        "@playwright/test": "^1.41.2",
         "babel-plugin-react-compiler": "*",
         "react": "^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0",
         "react-dom": "^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0",
@@ -4406,26 +4349,6 @@
       "integrity": "sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==",
       "license": "MIT",
       "optional": true
-    },
-    "node_modules/node-fetch": {
-      "version": "2.7.0",
-      "resolved": "https://registry.npmjs.org/node-fetch/-/node-fetch-2.7.0.tgz",
-      "integrity": "sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==",
-      "license": "MIT",
-      "dependencies": {
-        "whatwg-url": "^5.0.0"
-      },
-      "engines": {
-        "node": "4.x || >=6.0.0"
-      },
-      "peerDependencies": {
-        "encoding": "^0.1.0"
-      },
-      "peerDependenciesMeta": {
-        "encoding": {
-          "optional": true
-        }
-      }
     },
     "node_modules/normalize-path": {
       "version": "3.0.0",
@@ -4892,31 +4815,14 @@
         "react-is": "^16.13.1"
       }
     },
-    "node_modules/psl": {
-      "version": "1.15.0",
-      "resolved": "https://registry.npmjs.org/psl/-/psl-1.15.0.tgz",
-      "integrity": "sha512-JZd3gMVBAVQkSs6HdNZo9Sdo0LNcQeMNP3CozBJb3JYC/QUYZTnKxP+f8oWRX4rHP5EurWxqAHTSwUCjlNKa1w==",
-      "license": "MIT",
-      "dependencies": {
-        "punycode": "^2.3.1"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/lupomontero"
-      }
-    },
     "node_modules/punycode": {
       "version": "2.3.1",
       "resolved": "https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz",
       "integrity": "sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==",
+      "dev": true,
       "engines": {
         "node": ">=6"
       }
-    },
-    "node_modules/querystringify": {
-      "version": "2.2.0",
-      "resolved": "https://registry.npmjs.org/querystringify/-/querystringify-2.2.0.tgz",
-      "integrity": "sha512-FIqgj2EUvTa7R50u0rGsyTftzjYmv/a3hO345bZNrqabNqjtgiDMgmo4mkUjd+nzU5oF3dClKqFIPUKybUyqoQ==",
-      "license": "MIT"
     },
     "node_modules/queue-microtask": {
       "version": "1.2.3",
@@ -5025,12 +4931,6 @@
       "funding": {
         "url": "https://github.com/sponsors/ljharb"
       }
-    },
-    "node_modules/requires-port": {
-      "version": "1.0.0",
-      "resolved": "https://registry.npmjs.org/requires-port/-/requires-port-1.0.0.tgz",
-      "integrity": "sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ==",
-      "license": "MIT"
     },
     "node_modules/resolve": {
       "version": "1.22.10",
@@ -5229,22 +5129,15 @@
       "integrity": "sha512-xFVuu11jh+xcO7JOAGJNOXld8/TcEHK/4CituBUeUb5hqxJLj9YuemAEuvm9gQ/+pgXYfbQuqAkiYu+u7YEsNA=="
     },
     "node_modules/semver": {
-      "version": "7.7.3",
-      "resolved": "https://registry.npmjs.org/semver/-/semver-7.7.3.tgz",
-      "integrity": "sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==",
-      "license": "ISC",
+      "version": "7.7.1",
+      "resolved": "https://registry.npmjs.org/semver/-/semver-7.7.1.tgz",
+      "integrity": "sha512-hlq8tAfn0m/61p4BVRcPzIGr6LKiMwo4VM6dGi6pt4qcRkmNzTcWq6eCEjEh+qXjkMDvPlOFFSGwQjoEa6gyMA==",
       "bin": {
         "semver": "bin/semver.js"
       },
       "engines": {
         "node": ">=10"
       }
-    },
-    "node_modules/set-cookie-parser": {
-      "version": "2.7.2",
-      "resolved": "https://registry.npmjs.org/set-cookie-parser/-/set-cookie-parser-2.7.2.tgz",
-      "integrity": "sha512-oeM1lpU/UvhTxw+g3cIfxXHyJRc/uidd3yK1P242gzHds0udQBYzs3y8j4gCCW+ZJ7ad0yctld8RYO+bdurlvw==",
-      "license": "MIT"
     },
     "node_modules/set-function-length": {
       "version": "1.2.2",
@@ -5293,16 +5186,15 @@
       }
     },
     "node_modules/sharp": {
-      "version": "0.34.5",
-      "resolved": "https://registry.npmjs.org/sharp/-/sharp-0.34.5.tgz",
-      "integrity": "sha512-Ou9I5Ft9WNcCbXrU9cMgPBcCK8LiwLqcbywW3t4oDV37n1pzpuNLsYiAV8eODnjbtQlSDwZ2cUEeQz4E54Hltg==",
+      "version": "0.33.5",
+      "resolved": "https://registry.npmjs.org/sharp/-/sharp-0.33.5.tgz",
+      "integrity": "sha512-haPVm1EkS9pgvHrQ/F3Xy+hgcuMV0Wm9vfIBSiwZ05k+xgb0PkBQpGsAA/oWdDobNaZTH5ppvHtzCFbnSEwHVw==",
       "hasInstallScript": true,
-      "license": "Apache-2.0",
       "optional": true,
       "dependencies": {
-        "@img/colour": "^1.0.0",
-        "detect-libc": "^2.1.2",
-        "semver": "^7.7.3"
+        "color": "^4.2.3",
+        "detect-libc": "^2.0.3",
+        "semver": "^7.6.3"
       },
       "engines": {
         "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
@@ -5311,30 +5203,25 @@
         "url": "https://opencollective.com/libvips"
       },
       "optionalDependencies": {
-        "@img/sharp-darwin-arm64": "0.34.5",
-        "@img/sharp-darwin-x64": "0.34.5",
-        "@img/sharp-libvips-darwin-arm64": "1.2.4",
-        "@img/sharp-libvips-darwin-x64": "1.2.4",
-        "@img/sharp-libvips-linux-arm": "1.2.4",
-        "@img/sharp-libvips-linux-arm64": "1.2.4",
-        "@img/sharp-libvips-linux-ppc64": "1.2.4",
-        "@img/sharp-libvips-linux-riscv64": "1.2.4",
-        "@img/sharp-libvips-linux-s390x": "1.2.4",
-        "@img/sharp-libvips-linux-x64": "1.2.4",
-        "@img/sharp-libvips-linuxmusl-arm64": "1.2.4",
-        "@img/sharp-libvips-linuxmusl-x64": "1.2.4",
-        "@img/sharp-linux-arm": "0.34.5",
-        "@img/sharp-linux-arm64": "0.34.5",
-        "@img/sharp-linux-ppc64": "0.34.5",
-        "@img/sharp-linux-riscv64": "0.34.5",
-        "@img/sharp-linux-s390x": "0.34.5",
-        "@img/sharp-linux-x64": "0.34.5",
-        "@img/sharp-linuxmusl-arm64": "0.34.5",
-        "@img/sharp-linuxmusl-x64": "0.34.5",
-        "@img/sharp-wasm32": "0.34.5",
-        "@img/sharp-win32-arm64": "0.34.5",
-        "@img/sharp-win32-ia32": "0.34.5",
-        "@img/sharp-win32-x64": "0.34.5"
+        "@img/sharp-darwin-arm64": "0.33.5",
+        "@img/sharp-darwin-x64": "0.33.5",
+        "@img/sharp-libvips-darwin-arm64": "1.0.4",
+        "@img/sharp-libvips-darwin-x64": "1.0.4",
+        "@img/sharp-libvips-linux-arm": "1.0.5",
+        "@img/sharp-libvips-linux-arm64": "1.0.4",
+        "@img/sharp-libvips-linux-s390x": "1.0.4",
+        "@img/sharp-libvips-linux-x64": "1.0.4",
+        "@img/sharp-libvips-linuxmusl-arm64": "1.0.4",
+        "@img/sharp-libvips-linuxmusl-x64": "1.0.4",
+        "@img/sharp-linux-arm": "0.33.5",
+        "@img/sharp-linux-arm64": "0.33.5",
+        "@img/sharp-linux-s390x": "0.33.5",
+        "@img/sharp-linux-x64": "0.33.5",
+        "@img/sharp-linuxmusl-arm64": "0.33.5",
+        "@img/sharp-linuxmusl-x64": "0.33.5",
+        "@img/sharp-wasm32": "0.33.5",
+        "@img/sharp-win32-ia32": "0.33.5",
+        "@img/sharp-win32-x64": "0.33.5"
       }
     },
     "node_modules/shebang-command": {
@@ -5442,6 +5329,15 @@
         "url": "https://github.com/sponsors/isaacs"
       }
     },
+    "node_modules/simple-swizzle": {
+      "version": "0.2.2",
+      "resolved": "https://registry.npmjs.org/simple-swizzle/-/simple-swizzle-0.2.2.tgz",
+      "integrity": "sha512-JA//kQgZtbuY83m+xT+tXJkmJncGMTFT+C+g2h2R9uxkYIrE2yy9sgmcLhCnw57/WSD+Eh3J97FPEDFnbXnDUg==",
+      "optional": true,
+      "dependencies": {
+        "is-arrayish": "^0.3.1"
+      }
+    },
     "node_modules/source-map-js": {
       "version": "1.2.1",
       "resolved": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.1.tgz",
@@ -5455,6 +5351,14 @@
       "resolved": "https://registry.npmjs.org/stable-hash/-/stable-hash-0.0.4.tgz",
       "integrity": "sha512-LjdcbuBeLcdETCrPn9i8AYAZ1eCtu4ECAWtP7UleOiZ9LzVxRzzUZEoZ8zB24nhkQnDWyET0I+3sWokSDS3E7g==",
       "dev": true
+    },
+    "node_modules/streamsearch": {
+      "version": "1.1.0",
+      "resolved": "https://registry.npmjs.org/streamsearch/-/streamsearch-1.1.0.tgz",
+      "integrity": "sha512-Mcc5wHehp9aXz1ax6bZUyY5afg9u2rv5cqQI3mRrYkGC8rW2hM02jWuwjtL++LS5qinSyhj2QfLyNsuc+VsExg==",
+      "engines": {
+        "node": ">=10.0.0"
+      }
     },
     "node_modules/string-width": {
       "version": "5.1.2",
@@ -5897,27 +5801,6 @@
         "node": ">=8.0"
       }
     },
-    "node_modules/tough-cookie": {
-      "version": "4.1.4",
-      "resolved": "https://registry.npmjs.org/tough-cookie/-/tough-cookie-4.1.4.tgz",
-      "integrity": "sha512-Loo5UUvLD9ScZ6jh8beX1T6sO1w2/MpCRpEP7V280GKMVUQ0Jzar2U3UJPsrdbziLEMMhu3Ujnq//rhiFuIeag==",
-      "license": "BSD-3-Clause",
-      "dependencies": {
-        "psl": "^1.1.33",
-        "punycode": "^2.1.1",
-        "universalify": "^0.2.0",
-        "url-parse": "^1.5.3"
-      },
-      "engines": {
-        "node": ">=6"
-      }
-    },
-    "node_modules/tr46": {
-      "version": "0.0.3",
-      "resolved": "https://registry.npmjs.org/tr46/-/tr46-0.0.3.tgz",
-      "integrity": "sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==",
-      "license": "MIT"
-    },
     "node_modules/ts-api-utils": {
       "version": "2.0.1",
       "resolved": "https://registry.npmjs.org/ts-api-utils/-/ts-api-utils-2.0.1.tgz",
@@ -6076,15 +5959,6 @@
       "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw==",
       "dev": true
     },
-    "node_modules/universalify": {
-      "version": "0.2.0",
-      "resolved": "https://registry.npmjs.org/universalify/-/universalify-0.2.0.tgz",
-      "integrity": "sha512-CJ1QgKmNg3CwvAv/kOFmtnEN05f0D/cn9QntgNOQlQF9dgvVTHj3t+8JPdjqawCHk7V/KA+fbUqzZ9XWhcqPUg==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 4.0.0"
-      }
-    },
     "node_modules/uri-js": {
       "version": "4.4.1",
       "resolved": "https://registry.npmjs.org/uri-js/-/uri-js-4.4.1.tgz",
@@ -6094,37 +5968,11 @@
         "punycode": "^2.1.0"
       }
     },
-    "node_modules/url-parse": {
-      "version": "1.5.10",
-      "resolved": "https://registry.npmjs.org/url-parse/-/url-parse-1.5.10.tgz",
-      "integrity": "sha512-WypcfiRhfeUP9vvF0j6rw0J3hrWrw6iZv3+22h6iRMJ/8z1Tj6XfLP4DsUix5MhMPnXpiHDoKyoZ/bdCkwBCiQ==",
-      "license": "MIT",
-      "dependencies": {
-        "querystringify": "^2.1.1",
-        "requires-port": "^1.0.0"
-      }
-    },
     "node_modules/util-deprecate": {
       "version": "1.0.2",
       "resolved": "https://registry.npmjs.org/util-deprecate/-/util-deprecate-1.0.2.tgz",
       "integrity": "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==",
       "dev": true
-    },
-    "node_modules/webidl-conversions": {
-      "version": "3.0.1",
-      "resolved": "https://registry.npmjs.org/webidl-conversions/-/webidl-conversions-3.0.1.tgz",
-      "integrity": "sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==",
-      "license": "BSD-2-Clause"
-    },
-    "node_modules/whatwg-url": {
-      "version": "5.0.0",
-      "resolved": "https://registry.npmjs.org/whatwg-url/-/whatwg-url-5.0.0.tgz",
-      "integrity": "sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==",
-      "license": "MIT",
-      "dependencies": {
-        "tr46": "~0.0.3",
-        "webidl-conversions": "^3.0.0"
-      }
     },
     "node_modules/which": {
       "version": "2.0.2",
@@ -6322,27 +6170,6 @@
         "url": "https://github.com/chalk/ansi-styles?sponsor=1"
       }
     },
-    "node_modules/ws": {
-      "version": "7.5.10",
-      "resolved": "https://registry.npmjs.org/ws/-/ws-7.5.10.tgz",
-      "integrity": "sha512-+dbF1tHwZpXcbOJdVOkzLDxZP1ailvSxM6ZweXTegylPny803bFhA+vqBYw4s31NSAk4S2Qz+AKXK9a4wkdjcQ==",
-      "license": "MIT",
-      "engines": {
-        "node": ">=8.3.0"
-      },
-      "peerDependencies": {
-        "bufferutil": "^4.0.1",
-        "utf-8-validate": "^5.0.2"
-      },
-      "peerDependenciesMeta": {
-        "bufferutil": {
-          "optional": true
-        },
-        "utf-8-validate": {
-          "optional": true
-        }
-      }
-    },
     "node_modules/yaml": {
       "version": "2.7.0",
       "resolved": "https://registry.npmjs.org/yaml/-/yaml-2.7.0.tgz",
@@ -6369,3 +6196,2989 @@
     }
   }
 }
+
+
+================================================================
+FILE: src\app\api\auth\login\route.ts
+----------------------------------------------------------------
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => ({}));
+  const upstreamResp = await fetch(`${process.env.API_BASE_URL ?? process.env.PUBLIC_API_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  const status = upstreamResp.status;
+  const contentType = upstreamResp.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+  const payload = isJson ? await upstreamResp.json().catch(() => ({})) : await upstreamResp.text();
+
+  if (!upstreamResp.ok) {
+    return NextResponse.json(
+      typeof payload === 'string' ? { message: payload } : payload,
+      { status }
+    );
+  }
+
+  const token = typeof payload === 'string' ? undefined : payload?.token;
+  const res = NextResponse.json({ message: 'Login successful' }, { status });
+
+  if (token) {
+    res.cookies.set('auth-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 60 * 60 * 24, // 1 day
+    });
+  }
+
+  return res;
+}
+
+================================================================
+FILE: src\app\api\auth\logout\route.ts
+----------------------------------------------------------------
+import { NextResponse } from 'next/server';
+
+export async function POST() {
+  try {
+    const response = NextResponse.json({ message: 'Logout successful' });
+    response.cookies.delete('auth-token');
+    return response;
+  } catch (error) {
+    return NextResponse.json(
+      { message: `Logout failed: ${error}` },
+      { status: 500 }
+    );
+  }
+}
+
+================================================================
+FILE: src\app\api\auth\register\route.ts
+----------------------------------------------------------------
+import { NextRequest } from 'next/server';
+import { proxyPost } from '@/app/api/utils/proxy';
+
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => ({}));
+  return proxyPost('/api/auth/register', body, false);
+}
+
+================================================================
+FILE: src\app\api\auth\verify\route.ts
+----------------------------------------------------------------
+import { proxyGet } from '@/app/api/utils/proxy';
+
+export async function GET() {
+  return proxyGet('/api/auth/verify');
+}
+
+
+================================================================
+FILE: src\app\api\chats\[chatId]\messages\route.ts
+----------------------------------------------------------------
+!! [SKIPPED: cannot read file due to encoding]
+
+================================================================
+FILE: src\app\api\chats\direct\[userId]\header\route.ts
+----------------------------------------------------------------
+!! [SKIPPED: cannot read file due to encoding]
+
+================================================================
+FILE: src\app\api\chats\direct\[userId]\messages\route.ts
+----------------------------------------------------------------
+!! [SKIPPED: cannot read file due to encoding]
+
+================================================================
+FILE: src\app\api\contacts\add\route.ts
+----------------------------------------------------------------
+import { NextRequest } from 'next/server';
+import { proxyPost } from '@/app/api/utils/proxy';
+
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => ({}));
+  return proxyPost('/api/contacts/add', body);
+}
+
+================================================================
+FILE: src\app\api\contacts\route.ts
+----------------------------------------------------------------
+import { NextRequest } from 'next/server';
+import { proxyGet } from '@/app/api/utils/proxy';
+
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const search = new URLSearchParams(url.search);
+  return proxyGet('/api/contacts', search);
+}
+
+
+================================================================
+FILE: src\app\api\users\avatar\route.ts
+----------------------------------------------------------------
+import { NextRequest } from 'next/server';
+import { proxyPost } from '@/app/api/utils/proxy';
+
+export async function POST(req: NextRequest) {
+  const form = await req.formData();
+  return proxyPost('/api/users/avatar', form);
+}
+
+================================================================
+FILE: src\app\api\users\profile\[id]\route.ts
+----------------------------------------------------------------
+!! [SKIPPED: cannot read file due to encoding]
+
+================================================================
+FILE: src\app\api\users\profile\route.ts
+----------------------------------------------------------------
+import { NextRequest } from 'next/server';
+import { proxyGet, proxyPut } from '@/app/api/utils/proxy';
+
+export async function GET() {
+  return proxyGet('/api/users/profile');
+}
+
+export async function PUT(req: NextRequest) {
+  const body = await req.json().catch(() => ({}));
+  return proxyPut('/api/users/profile', body);
+}
+
+================================================================
+FILE: src\app\api\users\route.ts
+----------------------------------------------------------------
+import { NextRequest } from 'next/server';
+import { proxyGet } from '@/app/api/utils/proxy';
+
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const search = new URLSearchParams(url.search);
+  return proxyGet('/api/users', search);
+}
+
+================================================================
+FILE: src\app\api\utils\proxy.ts
+----------------------------------------------------------------
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+
+const API_BASE_URL = process.env.PUBLIC_API_URL;
+if (!API_BASE_URL) {
+  throw new Error('API_BASE_URL is not found in .env.*');
+}
+
+async function getTokenFromCookies() {
+  const cookieStore = await cookies();
+  return cookieStore.get('auth-token')?.value;
+}
+
+type ProxyOptions = {
+  searchParams?: URLSearchParams;
+  body?: unknown;
+  headers?: Record<string, string>;
+  requireAuth?: boolean;
+};
+
+async function proxyRequest(method: string, path: string, opts: ProxyOptions = {}) {
+  const url = new URL(path, API_BASE_URL);
+  if (opts.searchParams) {
+    opts.searchParams.forEach((v, k) => url.searchParams.set(k, v));
+  }
+
+  const headers: Record<string, string> = { ...(opts.headers ?? {}) };
+
+  if (opts.requireAuth !== false) {
+    const token = await getTokenFromCookies();
+    if (!token) {
+      return NextResponse.json({ valid: false, error: 'No auth token found' }, { status: 401 });
+    }
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const isFormData = typeof FormData !== 'undefined' && opts.body instanceof FormData;
+  const hasJsonBody = opts.body !== undefined && !isFormData;
+
+  if (hasJsonBody && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  try {
+    const resp = await fetch(url.toString(), {
+      method,
+      headers,
+      body: opts.body
+        ? isFormData
+          ? (opts.body as FormData)
+          : JSON.stringify(opts.body)
+        : undefined,
+    });
+
+    const status = resp.status;
+    const contentType = resp.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
+      const data = await resp.json().catch(() => ({}));
+      return NextResponse.json(data, { status });
+    }
+
+    const arrayBuffer = await resp.arrayBuffer();
+    return new NextResponse(arrayBuffer, {
+      status,
+      headers: { 'content-type': contentType || 'application/octet-stream' },
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: `Upstream ${method} failed: ${String(err)}` },
+      { status: 500 }
+    );
+  }
+}
+
+export function proxyGet(path: string, searchParams?: URLSearchParams, requireAuth = true) {
+  return proxyRequest('GET', path, { searchParams, requireAuth });
+}
+export function proxyPost(path: string, body?: unknown, requireAuth = true, searchParams?: URLSearchParams) {
+  return proxyRequest('POST', path, { body, searchParams, requireAuth });
+}
+export function proxyPut(path: string, body?: unknown, requireAuth = true, searchParams?: URLSearchParams) {
+  return proxyRequest('PUT', path, { body, searchParams, requireAuth });
+}
+export function proxyDelete(path: string, searchParams?: URLSearchParams, requireAuth = true) {
+  return proxyRequest('DELETE', path, { searchParams, requireAuth });
+}
+
+export default { proxyGet, proxyPost, proxyPut, proxyDelete };
+
+================================================================
+FILE: src\app\auth\layout.tsx
+----------------------------------------------------------------
+import '../../styles/globals.scss';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Auth Page'
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div>{children}</div>
+  );
+}
+
+================================================================
+FILE: src\app\auth\login\page.tsx
+----------------------------------------------------------------
+'use client';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { AuthFormContainer } from '../../../components/features/auth/AuthFormContainer';
+import { InputField } from '../../../components/ui/Input/Input';
+import { Button } from '../../../components/ui/Button/Button';
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    username: '',
+    password: ''
+  });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [validationErrors, setValidationErrors] = useState({
+    username: '',
+    password: '',
+  });
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/verify');
+        if (res.ok) {
+          router.replace('/');
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkAuth();
+  }, [router]);
+
+  const validateForm = () => {
+    const errors = {
+      username: '',
+      password: '',
+    };
+    let isValid = true;
+
+    if (!formData.username.trim()) {
+      errors.username = 'Username is required';
+      isValid = false;
+    }
+
+    if (!formData.password) {
+      errors.password = 'Password is required';
+      isValid = false;
+    }
+
+    setValidationErrors(errors);
+    return isValid;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  
+    if (validationErrors[name as keyof typeof validationErrors]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          username: formData.username, 
+          password: formData.password 
+        }),
+      });
+
+      if (res.ok) {
+        router.replace('/');
+      } else {
+        const { message } = await res.json();
+        setError(message || 'Login failed');
+      }
+    } catch (err) {
+      setError(`Connection error: ${err}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-green-600 animate-pulse">Checking your session...</div>
+      </div>
+    );
+  }
+
+  const formFooter = (
+    <>
+      Don&apos;t have an account?{' '}
+      <Link
+        href="/auth/register"
+        className="text-green-600 hover:text-green-500 font-medium underline underline-offset-4"
+      >
+        Register here
+      </Link>
+    </>
+  );
+
+  return (
+    <AuthFormContainer
+      title="Welcome Back"
+      subtitle="Sign in to your account"
+      error={error}
+      footer={formFooter}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <InputField
+          name="username"
+          label="Username"
+          type="text"
+          placeholder="username"
+          value={formData.username}
+          onChange={handleChange}
+          error={validationErrors.username}
+          required
+        />
+
+        <InputField
+          name="password"
+          label="Password"
+          type="password"
+          placeholder="••••••••"
+          value={formData.password}
+          onChange={handleChange}
+          error={validationErrors.password}
+          required
+        />
+
+        <Button
+          variant='primary'
+          type="submit"
+          isLoading={isLoading}
+          className="mt-6"
+        >
+          Sign In
+        </Button>
+      </form>
+    </AuthFormContainer>
+  );
+}
+
+================================================================
+FILE: src\app\auth\register\page.tsx
+----------------------------------------------------------------
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { AuthFormContainer } from '../../../components/features/auth/AuthFormContainer';
+import { InputField } from '../../../components/ui/Input/Input';
+import { Button } from '../../../components/ui/Button/Button';
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({
+    username: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    if (validationErrors[name as keyof typeof validationErrors]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {
+      username: '',
+      password: '',
+      confirmPassword: ''
+    };
+    let isValid = true;
+
+    if (!formData.username.trim()) {
+      errors.username = 'Username is required';
+      isValid = false;
+    } else if (formData.username.length < 3) {
+      errors.username = 'Username must be at least 3 characters';
+      isValid = false;
+    }
+
+    if (!formData.password) {
+      errors.password = 'Password is required';
+      isValid = false;
+    } else if (formData.password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+      isValid = false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+      isValid = false;
+    }
+
+    setValidationErrors(errors);
+    return isValid;
+  };
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  
+  if (!validateForm()) {
+    return;
+  }
+
+  setIsLoading(true);
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    
+    if (!res.ok) {
+      try {
+        const errorData = await res.json();
+        setError(errorData.error || 'Registration failed');
+      } catch {
+        setError(`Registration failed with status ${res.status}`);
+      }
+      return;
+    }
+
+    router.push('/auth/login');
+  } catch (err) {
+    setError(`Connection error: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  const formFooter = (
+    <>
+      Already have an account?{' '}
+      <Link
+        href="/auth/login"
+        className="text-green-600 hover:text-green-500 font-medium underline underline-offset-4"
+      >
+        Sign in
+      </Link>
+    </>
+  );
+
+  return (
+    <AuthFormContainer
+      title="Create Account"
+      subtitle="Join our community"
+      error={error}
+      footer={formFooter}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <InputField
+          name="username"
+          label="Username"
+          type="text"
+          placeholder="username"
+          value={formData.username}
+          onChange={handleChange}
+          error={validationErrors.username}
+          required
+        />
+
+        <InputField
+          name="password"
+          label="Password"
+          type="password"
+          placeholder="••••••••"
+          value={formData.password}
+          onChange={handleChange}
+          error={validationErrors.password}
+          required
+        />
+
+        <InputField
+          name="confirmPassword"
+          label="Confirm Password"
+          type="password"
+          placeholder="••••••••"
+          value={formData.confirmPassword}
+          onChange={handleChange}
+          error={validationErrors.confirmPassword}
+          required
+        />
+
+        <Button
+          variant='primary'
+          type="submit"
+          isLoading={isLoading}
+          className="mt-6"
+        >
+          Create Account
+        </Button>
+      </form>
+    </AuthFormContainer>
+  );
+}
+
+================================================================
+FILE: src\app\layout.tsx
+----------------------------------------------------------------
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import { AuthProvider } from '@/providers/AuthProvider';
+import '../styles/globals.scss';
+
+const inter = Inter({ subsets: ['latin'] });
+
+export const metadata: Metadata = {
+  title: 'Web Messenger'
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en" className="bg-gray-900">
+      <body className={`${inter.className} bg-gray-900 text-gray-200`} suppressHydrationWarning>
+        <AuthProvider>
+          <main className="min-h-screen">
+            {children}
+          </main>
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}
+
+================================================================
+FILE: src\app\page.tsx
+----------------------------------------------------------------
+'use client';
+
+import { MessengerMainArea } from "@/components/features/messenger/layout/MessengerMainArea";
+import { MessengerSidebar } from "@/components/features/messenger/layout/MessengerSidebar";
+import { UserSettings } from '@/components/features/messenger/UserSettings/UserSettings';
+import { Chat } from "@/types/chat";
+import { useCallback, useMemo, useState } from "react";
+import type { DirectChatHeaderDto } from "@/types";
+import clsx from "clsx";
+import { UserProfilePanel } from "@/components/features/messenger/chat/UserProfilePanel";
+
+export default function MessengerPage() {
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [selectedChat, setSelectedChat] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+
+  const openDirectChatWithUser = useCallback(async (userId: string): Promise<Chat> => {
+    const existing = chats.find(c => c.peerUserId === userId);
+    if (existing) return existing;
+
+    const headerResp = await fetch(`/api/chats/direct/${userId}/header`, {
+      method: 'GET',
+      cache: 'no-store',
+      credentials: 'include',
+    });
+    if (!headerResp.ok) {
+      throw new Error(await headerResp.text());
+    }
+    const header = (await headerResp.json()) as DirectChatHeaderDto;
+
+    const newChat: Chat = {
+      id: `dm-${userId}`,
+      name: header.username ?? userId,
+      isGroup: false,
+      createdAt: new Date().toISOString(),
+      lastMessage: undefined,
+      unreadCount: 0,
+      avatarUrl: header.avatarUrl ?? undefined,
+      members: [{ userId }, { userId: 'current-user' }],
+      serverChatId: header.chatId ?? null,
+      peerUserId: userId,
+    };
+
+    setChats(prev => [...prev, newChat]);
+    return newChat;
+  }, [chats]);
+
+  const handleUserSelect = useCallback(async (userId: string) => {
+    try {
+      const chat = await openDirectChatWithUser(userId);
+      setSelectedChat(chat.id);
+      setSearchQuery('');
+      setShowSettings(false);
+    } catch (e) {
+      console.error('Failed to open direct chat:', e);
+    }
+  }, [openDirectChatWithUser]);
+
+  const handleAddContact = useCallback(async (userId: string) => {
+    try {
+      const resp = await fetch(`/api/contacts/add`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactUserId: userId })
+      });
+      if (!resp.ok) {
+        console.error('Failed to add contact:', await resp.text());
+      }
+    } catch (error) {
+      console.error('Failed to add contact:', error);
+    }
+  }, []);
+
+  const selectedChatObj = useMemo(
+    () => chats.find(chat => chat.id === selectedChat),
+    [chats, selectedChat]
+  );
+
+  const openProfilePanel = useCallback((userId: string) => {
+    setProfileUserId(userId);
+    setIsProfileOpen(true);
+  }, []);
+
+  const closeProfilePanel = useCallback(() => {
+    setIsProfileOpen(false);
+  }, []);
+
+  const handleCloseChat = useCallback(() => {
+    setIsProfileOpen(false);
+    setShowSettings(false);
+    setSelectedChat(null);
+  }, []);
+
+  return (
+    <div className="relative flex h-screen bg-gray-900 text-gray-200 overflow-hidden">
+      {!showSettings ? (
+        <div
+          className={clsx(
+            "flex-shrink-0 border-r border-gray-700 flex flex-col z-[20]",
+            "w-full md:w-80 lg:w-96",
+            selectedChat ? "hidden md:flex" : "flex"
+          )}
+        >
+          <MessengerSidebar
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            isSearchFocused={isSearchFocused}
+            setIsSearchFocused={setIsSearchFocused}
+            chats={chats}
+            onSelectChat={setSelectedChat}
+            selectedChatId={selectedChat}
+            onSearchUserSelect={handleUserSelect}
+            onAddContact={handleAddContact}
+            contacts={[]}
+            selectedContactId={null}
+            onSelectContact={handleUserSelect}
+            onSettingsClick={() => setShowSettings(true)}
+          />
+        </div>
+      ) : (
+        <div className="w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-gray-700 flex flex-col z-[40]">
+          <UserSettings onClose={() => setShowSettings(false)} />
+        </div>
+      )}
+
+      <MessengerMainArea
+        hasChats={chats.length > 0}
+        selectedChat={selectedChatObj}
+        onOpenProfile={openProfilePanel}
+        onCloseChat={handleCloseChat}
+      />
+
+      {profileUserId && (
+        <UserProfilePanel
+          userId={profileUserId}
+          open={isProfileOpen}
+          onClose={closeProfilePanel}
+        />
+      )}
+    </div>
+  );
+}
+
+================================================================
+FILE: src\components\features\auth\AuthFormContainer.tsx
+----------------------------------------------------------------
+import { clsx } from 'clsx';
+import React from 'react';
+import { Card } from '../../ui/Card/Card';
+
+interface AuthFormContainerProps {
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+  error?: string;
+  className?: string;
+}
+
+export const AuthFormContainer = ({
+  title,
+  subtitle,
+  children,
+  footer,
+  error,
+  className,
+}: AuthFormContainerProps) => {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">
+      <div className="w-full max-w-md">
+        <Card className={clsx('p-8', className)}>
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-green-600">{title}</h1>
+            <p className="text-gray-400 mt-2">{subtitle}</p>
+          </div>
+
+          {error && (
+            <div className="mb-6 p-3 bg-red-900/20 border border-red-800 rounded-lg text-red-400 text-center">
+              {error}
+            </div>
+          )}
+
+          {children}
+
+          {footer && <div className="mt-8 text-center text-gray-400">{footer}</div>}
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+================================================================
+FILE: src\components\features\messenger\chat\ChatHeader.tsx
+----------------------------------------------------------------
+'use client';
+
+import Image from 'next/image';
+import { LeftArrowIcon } from '@/components/icons/LeftArrowIcon';
+
+type Props = {
+  peerUserId: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+  onOpenProfile?: () => void;
+  onBack?: () => void;
+  showBackButton?: boolean;
+};
+
+export function ChatHeader({
+  peerUserId,
+  username,
+  avatarUrl,
+  onOpenProfile,
+  onBack,
+  showBackButton,
+}: Props) {
+  const title = username ?? peerUserId;
+
+  return (
+    <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700 bg-gray-900">
+      <div className="flex items-center gap-3">
+        {(showBackButton ?? false) && (
+          <button
+            onClick={onBack}
+            aria-label="Back"
+            className="mr-1 p-2 rounded-full hover:bg-gray-800 transition-colors md:hidden"
+          >
+            <LeftArrowIcon className="w-5 h-5 text-gray-200" />
+          </button>
+        )}
+
+        <button
+          className="flex items-center gap-3"
+          onClick={onOpenProfile}
+          aria-label="Open profile"
+        >
+          <div className="h-9 w-9 rounded-full overflow-hidden bg-gray-700">
+            {avatarUrl ? <Image src={avatarUrl} alt="avatar" width={36} height={36} /> : null}
+          </div>
+          <div className="text-left">
+            <div className="text-sm font-semibold leading-tight">{title}</div>
+          </div>
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2" />
+    </div>
+  );
+}
+
+
+================================================================
+FILE: src\components\features\messenger\chat\UserProfilePanel.tsx
+----------------------------------------------------------------
+'use client';
+
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import type { UserProfileDto } from '@/types';
+import clsx from 'clsx';
+
+type Props = {
+  userId: string;
+  open: boolean;
+  onClose: () => void;
+};
+
+export function UserProfilePanel({ userId, open, onClose }: Props) {
+  const [data, setData] = useState<UserProfileDto | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setError(null);
+    setData(null);
+    fetch(`/api/users/profile/${userId}`, { cache: 'no-store', credentials: 'include' })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(await r.text());
+        return r.json() as Promise<UserProfileDto>;
+      })
+      .then(setData)
+      .catch((e) => setError(e.message));
+  }, [userId, open]);
+
+  return (
+    <>
+      <div
+        className={clsx(
+          'fixed inset-0 bg-black/40 transition-opacity duration-200',
+          open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
+          'z-[60]'
+        )}
+        onClick={onClose}
+      />
+
+      <aside
+        className={clsx(
+          'fixed top-0 right-0 h-dvh w-full md:w-[28rem] max-w-[100vw] bg-gray-900 border-l border-gray-700',
+          'transform transition-transform duration-300 ease-out z-[61]',
+          open ? 'translate-x-0' : 'translate-x-full'
+        )}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+          <h2 className="text-sm font-semibold">User Profile</h2>
+          <button
+            onClick={onClose}
+            className="p-2 h-fit w-fit rounded-full hover:bg-gray-800 transition-colors text-gray-300"
+            aria-label="Close"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="p-4 w-full mx-auto">
+          <div className="flex flex-col items-center mb-8">
+            <div className="relative mb-4">
+              {data?.avatarUrl ? (
+                <Image
+                  src={data.avatarUrl}
+                  alt="avatar"
+                  width={128}
+                  height={128}
+                  className="h-32 w-32 rounded-full object-cover"
+                />
+              ) : (
+                <div className="h-32 w-32 rounded-full bg-gray-700" />
+              )}
+            </div>
+            <h3 className="text-xl font-medium text-gray-200">@{data?.username ?? '—'}</h3>
+          </div>
+
+          <div className="space-y-6 px-2 md:px-4">
+            <div className="space-y-1">
+              <h3 className="text-lg font-medium text-gray-300">Personal Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div>
+                  <p className="text-sm text-gray-400">First Name</p>
+                  <p className="truncate">{data?.firstName || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Last Name</p>
+                  <p className="truncate">{data?.lastName || '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-400">Email</p>
+                <p className="truncate">{data?.email || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Phone Number</p>
+                <p className="truncate">{data?.phoneNumber || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Bio</p>
+                <p className="whitespace-pre-line break-words">
+                  {data?.bio || 'No bio provided'}
+                </p>
+              </div>
+            </div>
+
+            {!!error && (
+              <div className="text-xs text-red-400">Error loading profile: {error}</div>
+            )}
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+================================================================
+FILE: src\components\features\messenger\ChatList\ChatList.tsx
+----------------------------------------------------------------
+import { Chat } from "@/types/chat";
+import { ChatListItem } from "./ChatListItem";
+
+interface ChatListProps {
+  chats: Chat[];
+  selectedChatId: string | null;
+  onSelectChat: (chatId: string) => void;
+}
+
+export const ChatList = ({ 
+  chats, 
+  selectedChatId, 
+  onSelectChat 
+}: ChatListProps) => (
+  <div className="divide-y divide-gray-700">
+    {chats.map((chat) => (
+      <ChatListItem
+        key={chat.id}
+        chat={chat}
+        isSelected={chat.id === selectedChatId}
+        onSelect={() => onSelectChat(chat.id)}
+      />
+    ))}
+  </div>
+);
+
+================================================================
+FILE: src\components\features\messenger\ChatList\ChatListItem.tsx
+----------------------------------------------------------------
+import { Chat } from "@/types/chat";
+import { Avatar } from "@/components/ui/Avatar/Avatar";
+import clsx from "clsx";
+import { Badge } from "@/components/ui/Badge/Badge";
+
+interface ChatListItemProps {
+  chat: Chat;
+  isSelected: boolean;
+  onSelect: () => void;
+}
+
+export const ChatListItem = ({ 
+  chat, 
+  isSelected, 
+  onSelect 
+}: ChatListItemProps) => {
+  const lastMessage = chat.lastMessage?.content || "No messages yet";
+  const time = new Date(chat.lastMessage?.sentAt || chat.createdAt)
+    .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  return (
+    <div
+      onClick={onSelect}
+      className={clsx(
+        "block hover:bg-gray-800/50 transition-colors duration-150 cursor-pointer",
+        isSelected && "bg-gray-800/70"
+      )}
+    >
+      <div className="p-3">
+        <div className="flex items-center gap-3">
+          <Avatar 
+            src={chat.avatarUrl} 
+            name={chat.name || "Chat"} 
+            className="h-11 w-11"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-medium truncate">
+                {chat.name || "New Chat"}
+              </h3>
+              <span className="text-xs text-gray-400">{time}</span>
+            </div>
+            <div className="flex justify-between items-center gap-2">
+              <p className="text-sm text-gray-400 truncate">{lastMessage}</p>
+              {(chat.unreadCount && chat.unreadCount > 0) ? (
+                <Badge count={chat.unreadCount} />
+              ) : <></>}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+================================================================
+FILE: src\components\features\messenger\ChatList\ChatPreview.tsx
+----------------------------------------------------------------
+import { Badge } from '../../../ui/Badge/Badge';
+
+interface ChatPreviewProps {
+  name: string;
+  lastMessage: string;
+  time: string;
+  unread?: number;
+}
+
+export const ChatPreview = ({ name, lastMessage, time, unread }: ChatPreviewProps) => (
+  <div className="flex-1 min-w-0">
+    <div className="flex justify-between items-center">
+      <h3 className="text-sm font-medium truncate">{name}</h3>
+      <span className="text-xs text-gray-400">{time}</span>
+    </div>
+    <div className="flex justify-between items-center gap-2">
+      <p className="text-sm text-gray-400 truncate">{lastMessage}</p>
+      {(unread && unread > 0) ? <Badge count={unread} /> : <></>}
+    </div>
+  </div>
+);
+
+================================================================
+FILE: src\components\features\messenger\ContactList\ContactList.tsx
+----------------------------------------------------------------
+import { Contact } from "@/types/contact";
+import { Avatar } from "@/components/ui/Avatar/Avatar";
+import clsx from "clsx";
+import { EmptyState } from "@/components/features/messenger/EmptyState/EmptyState";
+import { ChatIcon } from "@/components/icons/ChatIcon";
+
+interface ContactListProps {
+  contacts: Contact[];
+  onSelectContact: (contactId: string) => void;
+}
+
+export const ContactList = ({ 
+  contacts, 
+  onSelectContact
+}: ContactListProps) => {
+  if (!contacts || contacts.length === 0) {
+    return (
+      <EmptyState
+        icon={<ChatIcon className="text-gray-400" />}
+        title="You don't have any contacts yet"
+        description="Start by searching and adding new contacts"
+      />
+    );
+  }
+
+  return (
+    <div className="divide-y divide-gray-700">
+      {contacts.map((contact) => (
+        <div
+          key={contact.id}
+          onClick={() => onSelectContact(contact.userId)}
+          className={clsx(
+            "block hover:bg-gray-800/50 transition-colors duration-150 cursor-pointer"
+          )}
+        >
+          <div className="p-3">
+            <div className="flex items-center gap-3">
+              <Avatar 
+                src={contact.avatarUrl} 
+                name={contact?.contactUser?.username || ""} 
+                className="h-11 w-11"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-medium truncate">
+                    {
+                        [contact?.nickname, 
+                        `${contact?.contactUser?.firstName} ${contact?.contactUser?.lastName}`, 
+                        contact?.contactUser?.username]
+                        .find(str => str && str?.trim().length > 0)
+                    }
+                  </h3>
+                  {contact.isOnline ? (
+                    <span className="text-xs text-green-500">Online</span>
+                  ) : (
+                    <span className="text-xs text-gray-400">Offline</span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-400 truncate">
+                  @{contact?.contactUser?.username}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+================================================================
+FILE: src\components\features\messenger\EmptyState\EmptyState.tsx
+----------------------------------------------------------------
+interface EmptyStateProps {
+  icon?: React.ReactNode;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}
+
+export const EmptyState = ({ icon, title, description, action }: EmptyStateProps) => (
+  <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+    {icon && <div className="mb-6">
+      {icon}
+    </div>}
+    <h3 className="text-lg font-medium mb-2">{title}</h3>
+    <p className="text-gray-400 mb-6">{description}</p>
+    {action}
+  </div>
+);
+
+================================================================
+FILE: src\components\features\messenger\layout\MessengerMainArea.tsx
+----------------------------------------------------------------
+'use client';
+
+import { Chat } from "@/types/chat";
+import { EmptyState } from "../EmptyState/EmptyState";
+import { ChatIconSecondary } from "@/components/icons/ChatIconSecondary";
+import { ChatHeader } from "../chat/ChatHeader";
+
+interface MessengerMainAreaProps {
+  hasChats: boolean;
+  selectedChat?: Chat;
+  onOpenProfile?: (userId: string) => void;
+  onCloseChat?: () => void;
+}
+
+export const MessengerMainArea = ({
+  hasChats,
+  selectedChat,
+  onOpenProfile,
+  onCloseChat,
+}: MessengerMainAreaProps) => {
+  if (!selectedChat) {
+    return (
+      <div className="flex-1 flex flex-col relative z-[30]">
+        <div className="flex-1 overflow-y-auto bg-gray-800/50">
+          <EmptyState
+            icon={<ChatIconSecondary />}
+            title={hasChats ? "Select a chat" : "Welcome to your messenger"}
+            description={
+              hasChats
+                ? "Choose a conversation from the list to start messaging"
+                : "Get started by creating your first chat"
+            }
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const peerUserId =
+    selectedChat.peerUserId ??
+    selectedChat.members?.find(m => m.userId !== 'current-user')?.userId ??
+    '';
+
+  return (
+    <div className="flex-1 flex flex-col relative z-[30]">
+      <ChatHeader
+        peerUserId={peerUserId}
+        username={selectedChat.name}
+        avatarUrl={selectedChat.avatarUrl}
+        onOpenProfile={() => onOpenProfile?.(peerUserId)}
+        onBack={onCloseChat}
+        showBackButton={true}
+      />
+
+      <div className="flex-1 overflow-y-auto bg-gray-800/50">
+        <div className="h-full flex items-center justify-center text-gray-400 text-sm px-4">
+          Messages will be here
+        </div>
+      </div>
+
+      <div className="p-4 border-t border-gray-700 bg-gray-900/60 backdrop-blur">
+        <div className="bg-gray-900 border border-gray-700 rounded-2xl px-3 py-2 text-sm text-gray-400">
+          Enter a message... (not currently active)
+        </div>
+      </div>
+    </div>
+  );
+};
+
+================================================================
+FILE: src\components\features\messenger\layout\MessengerSidebar.tsx
+----------------------------------------------------------------
+import clsx from "clsx";
+import { EmptyState } from "@/components/features/messenger/EmptyState/EmptyState";
+import { ChatList } from "@/components/features/messenger/ChatList/ChatList";
+import { SearchIcon } from "@/components/icons/SearchIcon";
+import { ChatIcon } from "@/components/icons/ChatIcon";
+import { Button } from "@/components/ui/Button/Button";
+import { InputField } from "@/components/ui/Input/Input";
+import { BurgerMenu } from "@/components/navigation/dropdown/BurgerMenu";
+import { Chat } from "@/types/chat";
+import { logoutClient } from "@/lib/client-auth";
+import { useCallback, useEffect, useState } from "react";
+import { Contact, UserSearchResult } from "@/types";
+import { SearchResults } from "@/components/features/messenger/SearchResults/SearchResults";
+import { useDebounce } from "@/hooks/useDebounce";
+import { ContactList } from "../ContactList/ContactList";
+import { LeftArrowIcon } from "@/components/icons/LeftArrowIcon";
+
+interface MessengerSidebarProps {
+  searchQuery: string;
+  setSearchQuery: (value: string) => void;
+  isSearchFocused: boolean;
+  setIsSearchFocused: (value: boolean) => void;
+  chats: Chat[];
+  selectedChatId: string | null;
+  onSelectChat: (chatId: string) => void;
+  onSearchUserSelect: (userId: string) => void;
+  onAddContact: (userId: string) => Promise<void>;
+  contacts: Contact[];
+  selectedContactId: string | null;
+  onSelectContact: (contactId: string) => void;
+  onSettingsClick: () => void;
+}
+
+export const MessengerSidebar = ({
+  searchQuery,
+  setSearchQuery,
+  isSearchFocused,
+  setIsSearchFocused,
+  chats,
+  selectedChatId,
+  onSelectChat,
+  onSearchUserSelect,
+  onAddContact,
+  onSettingsClick
+}: MessengerSidebarProps) => {
+  const [searchContactResults, setSearchContactResults] = useState<Contact[]>([]);
+  const [searchUserResults, setSearchUserResults] = useState<UserSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showContacts, setShowContacts] = useState(false);
+
+  const debouncedSearchQuery = useDebounce(searchQuery, 1000);
+
+  const searchUsers = useCallback(async (query: string, validateQuery:(query: string) => boolean = () => { return true }) => {
+    const isQueryValid = validateQuery(query);
+
+    if (!isQueryValid)
+      return;
+
+    setIsSearching(true);
+
+    try {
+      const response = await fetch(`/api/users?query=${encodeURIComponent(query)}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchUserResults(data);
+      }
+    } catch (error) {
+      console.error('Search failed:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  const searchContacts = useCallback(async (query: string, validateQuery:(query: string) => boolean = () => { return true }) => {
+    const isQueryValid = validateQuery(query);
+
+    if (!isQueryValid)
+      return;
+
+    setIsSearching(true);
+
+    try {
+      const response = await fetch(`/api/contacts?query=${encodeURIComponent(query)}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchContactResults(data);
+      }
+    } catch (error) {
+      console.error('Search failed:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    setSearchQuery("");
+
+    if (showContacts) {
+      searchContacts("");
+    }
+  }, [showContacts])
+
+  useEffect(() => {
+    if (debouncedSearchQuery) {
+      if (showContacts) {
+        searchContacts(debouncedSearchQuery, (debouncedSearchQuery) => {
+          if (debouncedSearchQuery.length < 3) 
+            return false;
+          return true;
+        });
+      } else {
+        searchUsers(debouncedSearchQuery, (debouncedSearchQuery) => {
+          if (debouncedSearchQuery.length < 3) 
+            return false;
+          return true;
+        });
+      }
+    } else if (debouncedSearchQuery.length == 0) {
+      if (showContacts) {
+        searchContacts("");
+      }
+    }
+  }, [debouncedSearchQuery]);
+  
+  return (
+    <div className="w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-gray-700 flex flex-col">
+      <div className="p-3 border-b border-gray-700 relative">
+        <div className="flex items-center gap-2">
+          {showContacts ? (
+            <Button 
+              useBaseClasses={false}
+              onClick={() => setShowContacts(false)}
+              className="p-2 h-fit w-fit rounded-full hover:bg-gray-700 transition-colors"
+            >
+              <LeftArrowIcon className="h-5 w-5 text-white" />
+            </Button>
+          ) : (
+            <BurgerMenu 
+              className="ml-2 p-2 h-fit w-fit rounded-full hover:bg-gray-700 transition-colors"
+              menuItems={[
+                { label: 'Contact List', onClick: () => setShowContacts(true) },
+                { label: 'Settings', onClick: () => onSettingsClick() },
+                { 
+                  label: 'Logout', 
+                  onClick: async () => {
+                    await logoutClient();
+                  },
+                  danger: true 
+                }
+              ]}
+            />
+          )}
+
+          <div className="flex-1 min-w-0 relative">
+            <InputField
+              type="text"
+              placeholder={
+                showContacts 
+                  ? "Search contacts" 
+                  : "Search users or chats"
+              }
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              containerClass="mb-0"
+              showError={false}
+              useBaseClasses={false}
+              className={clsx(
+                "w-full pl-10 pr-4 py-2 bg-gray-800 rounded-lg border",
+                "text-gray-200 placeholder-gray-500 transition-all duration-200",
+                "focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent",
+                "hover:border-gray-500 border-gray-700"
+              )}
+              icon={
+                <SearchIcon 
+                  hasQuery={!!searchQuery} 
+                  isFocused={isSearchFocused} 
+                />
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {searchQuery ? (
+          <>
+            {isSearching ? (
+              <div className="p-4 text-center text-gray-400">Searching...</div>
+            ) : (showContacts && searchQuery.length >= 3) ? (<>
+              <ContactList 
+                contacts={searchContactResults}
+                onSelectContact={onSearchUserSelect}
+              />
+            </>) 
+            : ((searchUserResults.length > 0 && searchQuery.length >= 3) ? (
+              <SearchResults 
+                results={searchUserResults}
+                onSelectUser={onSearchUserSelect}
+                onAddContact={onAddContact}
+              />
+            ) : (
+              <EmptyState
+                title="No users found"
+                description={searchQuery.length < 3 ? 
+                  "Enter at least 3 characters to search" : 
+                  "Try a different search query"}
+              />
+            ))}
+          </>
+        ) : (showContacts && searchContactResults.length > 0) ? 
+          <ContactList 
+            contacts={searchContactResults}
+            onSelectContact={onSearchUserSelect}
+          /> : chats.length > 0 ? (
+          <ChatList 
+            chats={chats} 
+            selectedChatId={selectedChatId}
+            onSelectChat={onSelectChat}
+          />
+          ) : (
+          <EmptyState
+            icon={<ChatIcon className={"animate-bounce"} />}
+            title="You don't have any chats yet"
+            description="Start communicating now by adding new contacts"
+          />
+        )}
+      </div>
+    </div>
+  )
+};
+
+================================================================
+FILE: src\components\features\messenger\SearchResults\SearchResults.tsx
+----------------------------------------------------------------
+import { UserSearchResult } from "@/types";
+import { Avatar } from "@/components/ui/Avatar/Avatar";
+import { Button } from "@/components/ui/Button/Button";
+import { SendMessageIcon } from "@/components/icons/SendMessageIcon";
+import { AddContactIcon } from "@/components/icons/AddContactIcon";
+
+interface SearchResultsProps {
+  results: UserSearchResult[];
+  onSelectUser: (userId: string) => void;
+  onAddContact: (userId: string) => Promise<void>;
+}
+
+export const SearchResults = ({ 
+  results, 
+  onSelectUser,
+  onAddContact
+}: SearchResultsProps) => (
+  <div className="divide-y divide-gray-700">
+    {results.map((user) => (
+      <div 
+        key={user.id} 
+        className="p-3 hover:bg-gray-800/50 transition-colors duration-150"
+      >
+        <div className="flex items-center gap-3">
+          <Avatar 
+            src={user.avatarUrl} 
+            name={`${user?.username}`} 
+            className="h-11 w-11"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-medium truncate">
+                {user.firstName} {user.lastName}
+              </h3>
+              {user.isOnline && (
+                <span className="text-xs text-green-500">Online</span>
+              )}
+            </div>
+            <p className="text-sm text-gray-400 truncate">@{user.username}</p>
+          </div>
+          {user.isContact ? (
+            <Button
+              variant="none"
+              className="flex-end w-4 h-4 bg-transparent text-white hover:text-green-500"
+              useBaseClasses={false}
+              onClick={() => onSelectUser(user.id)}
+            >
+              <SendMessageIcon className="w-4 h-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="none"
+              className="flex-end w-4 h-4 text-white hover:text-green-500"
+              useBaseClasses={false}
+              onClick={() => onAddContact(user.id)}
+            >
+              <AddContactIcon className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+================================================================
+FILE: src\components\features\messenger\UserSettings\UserSettings.tsx
+----------------------------------------------------------------
+import { useEffect, useState, useRef } from 'react';
+import { Avatar } from '@/components/ui/Avatar/Avatar';
+import { Button } from '@/components/ui/Button/Button';
+import { InputField } from '@/components/ui/Input/Input';
+import { TextArea } from '@/components/ui/TextArea/TextArea';
+import { EditIcon } from '@/components/icons/EditIcon';
+import { SaveIcon } from '@/components/icons/SaveIcon';
+import { CancelIcon } from '@/components/icons/CancelIcon';
+import { UserProfileDto } from '@/types';
+import { LeftArrowIcon } from '@/components/icons/LeftArrowIcon';
+
+interface UserSettingsProps {
+  onClose: () => void;
+}
+
+export const UserSettings = ({ onClose }: UserSettingsProps) => {
+  const [profile, setProfile] = useState<UserProfileDto | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Partial<UserProfileDto>>({});
+  const [bioLength, setBioLength] = useState(0);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch('/api/users/profile', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setProfile(data);
+          setFormData(data);
+          setBioLength(data.bio?.length || 0);
+        } else {
+          setError('Failed to load profile');
+        }
+      } catch (err) {
+        setError(`Network error occurred: ${err}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size should be less than 5MB');
+      return;
+    }
+
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAvatarPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    if (name === 'bio' && value.length > 70) return;
+    
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'bio') {
+      setBioLength(value.length);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsLoading(true);
+      
+      const profileResponse = await fetch('/api/users/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (!profileResponse.ok) {
+        throw new Error('Failed to update profile');
+      }
+
+      const updatedProfile = await profileResponse.json();
+      setProfile(updatedProfile);
+
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append('avatar', avatarFile);
+
+        const avatarResponse = await fetch('/api/users/avatar', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: formData
+        });
+
+        if (!avatarResponse.ok) {
+          throw new Error('Profile saved but avatar upload failed');
+        }
+
+        const { avatarUrl } = await avatarResponse.json();
+        setProfile(prev => prev ? { ...prev, avatarUrl } : null);
+      }
+
+      setIsEditing(false);
+      setAvatarFile(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save changes');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  if (isLoading) return <div className="p-4 text-center">Loading...</div>;
+  if (error) return <div className="p-4 text-red-500">{error}</div>;
+  if (!profile) return <div className="p-4">Profile not found</div>;
+
+  return (
+    <div className="p-4 w-full mx-auto">
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-2xl font-semibold">User Profile</h2>
+        <div className="flex gap-2">
+          {isEditing ? (
+            <>
+              <Button 
+                useBaseClasses={false}
+                onClick={handleSave}
+                disabled={isLoading}
+                className="p-2 h-fit w-fit rounded-full hover:bg-gray-700 transition-colors"
+              >
+                <SaveIcon className="w-4 h-4" />
+              </Button>
+              <Button 
+                useBaseClasses={false}
+                onClick={handleCancel}
+                className="p-2 h-fit w-fit rounded-full hover:bg-gray-700 transition-colors"
+              >
+                <CancelIcon className="w-5 h-5" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                useBaseClasses={false}
+                onClick={() => setIsEditing(true)}
+                className="p-2 h-fit w-fit rounded-full hover:bg-gray-700 transition-colors"
+              >
+                <EditIcon className="w-5 h-5" />
+              </Button>
+              <Button 
+                useBaseClasses={false}
+                onClick={onClose}
+                className="p-2 h-fit w-fit rounded-full hover:bg-gray-700 transition-colors"
+              >
+                <LeftArrowIcon className="w-5 h-5" />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Avatar Section */}
+      <div className="flex flex-col items-center mb-8">
+        <div className="relative group mb-4">
+          <Avatar 
+            src={avatarPreview || profile.avatarUrl} 
+            name={profile.username ?? "User"} 
+            className="h-32 w-32 text-4xl"
+          />
+          {isEditing && (
+            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <label className="cursor-pointer p-2 bg-gray-700 rounded-full">
+                <input 
+                  ref={fileInputRef}
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                />
+                <EditIcon className="w-5 h-5 text-white" />
+              </label>
+            </div>
+          )}
+        </div>
+        <h3 className="text-xl font-medium text-gray-200">@{profile.username}</h3>
+      </div>
+
+      {/* Profile Info Section */}
+      <div className="space-y-6 px-4">
+        {isEditing ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <InputField
+                label="First Name"
+                name="firstName"
+                value={formData.firstName || ''}
+                onChange={handleInputChange}
+                className="w-full"
+              />
+              <InputField
+                label="Last Name"
+                name="lastName"
+                value={formData.lastName || ''}
+                onChange={handleInputChange}
+                className="w-full"
+              />
+            </div>
+            <InputField
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email || ''}
+              onChange={handleInputChange}
+              className="w-full"
+            />
+            <InputField
+              label="Phone Number"
+              name="phoneNumber"
+              value={formData.phoneNumber || ''}
+              onChange={handleInputChange}
+              className="w-full"
+            />
+            <div className="w-full">
+              <TextArea
+                label={`Bio (${bioLength}/70)`}
+                name="bio"
+                value={formData.bio || ''}
+                onChange={handleInputChange}
+                rows={3}
+                className="w-full"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Maximum 70 characters allowed
+              </p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="space-y-1">
+              <h3 className="text-lg font-medium text-gray-300">Personal Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div>
+                  <p className="text-sm text-gray-400">First Name</p>
+                  <p className="truncate">{profile.firstName || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Last Name</p>
+                  <p className="truncate">{profile.lastName || '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-400">Email</p>
+                <p className="truncate">{profile.email || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Phone Number</p>
+                <p className="truncate">{profile.phoneNumber || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Bio</p>
+                <p className="whitespace-pre-line break-words">
+                  {profile.bio || 'No bio provided'}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+================================================================
+FILE: src\components\icons\AddContactIcon.tsx
+----------------------------------------------------------------
+import React from "react";
+
+interface AddContactIconProps extends React.SVGProps<SVGSVGElement> {
+  className?: string;
+}
+
+export const AddContactIcon = ({ className, ...props }: AddContactIconProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="8.5" cy="7" r="4" />
+    <line x1="20" y1="8" x2="20" y2="14" />
+    <line x1="23" y1="11" x2="17" y2="11" />
+  </svg>
+);
+
+================================================================
+FILE: src\components\icons\BurgerMenuIcon.tsx
+----------------------------------------------------------------
+export function BurgerMenuIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-5 w-5 transition-transform duration-200"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+    >
+      <path
+        fillRule="evenodd"
+        d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+================================================================
+FILE: src\components\icons\CancelIcon.tsx
+----------------------------------------------------------------
+import React from 'react';
+
+export const CancelIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+  >
+    <path
+      fillRule="evenodd"
+      d="M5.47 5.47a.75.75 0 011.06 0L12 10.94l5.47-5.47a.75.75 0 111.06 1.06L13.06 12l5.47 5.47a.75.75 0 11-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 01-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 010-1.06z"
+      clipRule="evenodd"
+    />
+  </svg>
+);
+
+================================================================
+FILE: src\components\icons\ChatIcon.tsx
+----------------------------------------------------------------
+import clsx from "clsx"
+
+type ChatIconProps = React.SVGProps<SVGSVGElement>
+
+export const ChatIcon = ({
+  className
+} : ChatIconProps) => {
+  return (
+    <svg
+      className={clsx(
+        "w-20 h-20 text-gray-600",
+        className
+      )}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1}
+        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+      />
+    </svg>
+  );
+}
+
+================================================================
+FILE: src\components\icons\ChatIconSecondary.tsx
+----------------------------------------------------------------
+export function ChatIconSecondary() {
+  return (
+    <svg
+      className="w-16 h-16 text-gray-600 mb-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1}
+        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+      />
+    </svg>
+  );
+}
+
+================================================================
+FILE: src\components\icons\EditIcon.tsx
+----------------------------------------------------------------
+import React from 'react';
+
+export const EditIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+  >
+    <path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.933.933l2.685-.8a5.25 5.25 0 002.214-1.32l8.4-8.4z" />
+    <path d="M5.25 5.25a3 3 0 00-3 3v10.5a3 3 0 003 3h10.5a3 3 0 003-3V13.5a.75.75 0 00-1.5 0v5.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5V8.25a1.5 1.5 0 011.5-1.5h5.25a.75.75 0 000-1.5H5.25z" />
+  </svg>
+);
+
+================================================================
+FILE: src\components\icons\LeftArrowIcon.tsx
+----------------------------------------------------------------
+import React from "react";
+
+interface LeftArrowIconProps extends React.SVGProps<SVGSVGElement> {
+  className?: string;
+}
+
+export const LeftArrowIcon = ({ className, ...props }: LeftArrowIconProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M19 12H5" />
+    <path d="M12 19l-7-7 7-7" />
+  </svg>
+);
+
+================================================================
+FILE: src\components\icons\SaveIcon.tsx
+----------------------------------------------------------------
+import React from 'react';
+
+export const SaveIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+  >
+    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+  </svg>
+);
+
+================================================================
+FILE: src\components\icons\SearchIcon.tsx
+----------------------------------------------------------------
+import clsx from "clsx";
+
+interface SearchIconProps extends React.SVGProps<SVGSVGElement> {
+  hasQuery?: boolean;
+  isFocused?: boolean;
+}
+
+export const SearchIcon = ({
+  hasQuery,
+  isFocused,
+  className,
+  ...props
+}: SearchIconProps) => {
+  return (
+    <svg
+      className={clsx(
+        "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors duration-200",
+        hasQuery ? 
+          isFocused ? "text-green-400" : "text-gray-200"
+          : "text-gray-500",
+        className
+      )}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      {...props}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      />
+    </svg>
+  );
+};
+
+================================================================
+FILE: src\components\icons\SendMessageIcon.tsx
+----------------------------------------------------------------
+import React from "react";
+
+interface SendMessageIconProps extends React.SVGProps<SVGSVGElement> {
+  className?: string;
+}
+
+export const SendMessageIcon = ({ className, ...props }: SendMessageIconProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+================================================================
+FILE: src\components\navigation\dropdown\BurgerMenu.tsx
+----------------------------------------------------------------
+'use client';
+import { useState, useRef, useEffect } from 'react';
+import { DropdownMenu } from './DropdownMenu';
+import { DropdownMenuItem } from './DropdownMenuItem';
+import { BurgerMenuIcon } from '@/components/icons/BurgerMenuIcon';
+import { Button } from '@/components/ui/Button/Button';
+
+interface BurgerMenuProps {
+  className?: string;
+  menuItems?: {
+    label: string;
+    onClick: () => void;
+    danger?: boolean;
+  }[];
+}
+
+export const BurgerMenu = ({ className = '', menuItems = [] }: BurgerMenuProps) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const toggleMenu = () => {
+    setIsMenuOpen(prev => !prev);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        buttonRef.current?.contains(event.target as Node) ||
+        menuRef.current?.contains(event.target as Node)
+      ) {
+        return;
+      }
+      setIsMenuOpen(false);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMenuOpen(false);
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  return (
+    <div className={`relative ${className}`}>
+      <Button
+        ref={buttonRef}
+        className="flex items-center justify-center"
+        onClick={toggleMenu}
+        aria-label="Menu"
+        aria-expanded={isMenuOpen}
+        useBaseClasses={false}
+      >
+        <BurgerMenuIcon />
+      </Button>
+
+      <DropdownMenu isOpen={isMenuOpen} ref={menuRef}>
+        <div className="p-2 space-y-1">
+          {menuItems.map((item, index) => (
+            <DropdownMenuItem 
+              key={index}
+              onClick={(e) => {
+                e.stopPropagation();
+                item.onClick();
+                setIsMenuOpen(false);
+              }}
+              danger={item.danger}
+            >
+              {item.label}
+            </DropdownMenuItem>
+          ))}
+        </div>
+      </DropdownMenu>
+    </div>
+  );
+};
+
+================================================================
+FILE: src\components\navigation\dropdown\DropdownMenu.tsx
+----------------------------------------------------------------
+'use client';
+import { ReactNode, forwardRef } from 'react';
+import { Card } from '@/components/ui/Card/Card';
+
+interface DropdownMenuProps {
+  isOpen: boolean;
+  children: ReactNode;
+  className?: string;
+}
+
+export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
+  ({ isOpen, children, className = '' }, ref) => {
+    if (!isOpen) return null;
+
+    return (
+      <Card 
+        ref={ref}
+        className={`absolute left-0 top-6 z-50 w-48 shadow-lg ${className}`}
+      >
+        {children}
+      </Card>
+    );
+  }
+);
+
+DropdownMenu.displayName = 'DropdownMenu';
+
+================================================================
+FILE: src\components\navigation\dropdown\DropdownMenuItem.tsx
+----------------------------------------------------------------
+'use client';
+import { ReactNode, MouseEvent } from 'react';
+
+interface DropdownMenuItemProps {
+  children: ReactNode;
+  onClick: (e: MouseEvent) => void;
+  className?: string;
+  danger?: boolean;
+}
+
+export const DropdownMenuItem = ({
+  children,
+  onClick,
+  className = '',
+  danger = false
+}: DropdownMenuItemProps) => {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-700 rounded transition-colors duration-150 ${
+        danger ? 'text-red-400' : ''
+      } ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
+
+================================================================
+FILE: src\components\ui\Avatar\Avatar.tsx
+----------------------------------------------------------------
+import { clsx } from 'clsx';
+
+interface AvatarProps {
+  src?: string;
+  name: string;
+  className?: string;
+}
+
+export const Avatar = ({ src, name, className }: AvatarProps) => (
+  <div className={clsx(
+    "h-11 w-11 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center overflow-hidden",
+    className
+  )}>
+    {src ? (
+      <img
+        src={src}
+        alt={name}
+        className="h-full w-full object-cover"
+      />
+    ) : (
+      <span className="text-lg font-medium">
+        {name.charAt(0).toUpperCase()}
+      </span>
+    )}
+  </div>
+);
+
+================================================================
+FILE: src\components\ui\Badge\Badge.tsx
+----------------------------------------------------------------
+interface BadgeProps {
+  count: number;
+}
+
+export const Badge = ({ count }: BadgeProps) => (
+  <span className="bg-green-600 text-white text-xs h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0">
+    {count}
+  </span>
+);
+
+================================================================
+FILE: src\components\ui\Button\Button.tsx
+----------------------------------------------------------------
+import { clsx } from 'clsx';
+import React, { forwardRef } from 'react';
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  isLoading?: boolean;
+  variant?: 'primary' | 'secondary' | 'danger' | 'none';
+  useBaseClasses?: boolean;
+}
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({
+    children,
+    isLoading,
+    variant = 'none',
+    className,
+    useBaseClasses = true,
+    ...props
+  }, ref) => {
+    const baseClasses =
+      'w-full font-medium py-3 px-4 rounded-lg transition duration-200 flex justify-center items-center';
+
+    const variantClasses = {
+      primary: 'bg-green-600 hover:bg-green-500 text-white',
+      secondary: 'bg-gray-600 hover:bg-gray-500 text-white',
+      danger: 'bg-red-600 hover:bg-red-500 text-white',
+      none: ''
+    };
+
+    return (
+      <button
+        ref={ref}
+        className={clsx(
+          useBaseClasses ? baseClasses : '',
+          variantClasses[variant],
+          { 'opacity-75 cursor-not-allowed': isLoading },
+          className
+        )}
+        disabled={isLoading}
+        {...props}
+      >
+        {isLoading ? <span className="animate-spin">🌀</span> : children}
+      </button>
+    );
+  }
+);
+
+Button.displayName = 'Button';
+
+================================================================
+FILE: src\components\ui\Card\Card.tsx
+----------------------------------------------------------------
+import { clsx } from 'clsx';
+import React, { forwardRef } from 'react';
+
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export const Card = forwardRef<HTMLDivElement, CardProps>(
+  ({ children, className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={clsx(
+          'bg-gray-800 rounded-xl shadow-lg border border-gray-700',
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
+);
+
+Card.displayName = 'Card';
+
+================================================================
+FILE: src\components\ui\Input\Input.tsx
+----------------------------------------------------------------
+import { clsx } from 'clsx';
+import React from 'react';
+
+interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+  containerClass?: string;
+  showError?: boolean;
+  useBaseClasses?: boolean;
+  icon?: React.ReactNode;
+}
+
+export const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
+  ({ label = null, error, className, containerClass, showError = true, useBaseClasses = true, icon, ...props }, ref) => {
+    return (
+      <div className={clsx('space-y-1 relative', containerClass)}>
+        {label && <label className="block text-gray-300 text-sm font-medium">{label}</label>}
+        {icon && icon}
+        <input
+          ref={ref}
+          className={clsx(
+            useBaseClasses 
+              ? 'w-full p-3 bg-gray-700 border rounded-lg focus:ring-1 focus:ring-green-500 focus:border-green-500 text-gray-200 placeholder-gray-500'
+              : '',
+            error ? 'border-red-500' : 'border-gray-600',
+            icon ? 'pl-10 flex items-center' : '',
+            className
+          )}
+          {...props}
+        />
+        {showError && error && <p className="text-sm text-red-400">{error}</p>}
+      </div>
+    );
+  }
+);
+
+InputField.displayName = 'InputField';
+
+================================================================
+FILE: src\components\ui\TextArea\TextArea.tsx
+----------------------------------------------------------------
+import React from 'react';
+import clsx from 'clsx';
+
+interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: string;
+  error?: string;
+  containerClass?: string;
+}
+
+export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
+  ({ label, error, containerClass, className, ...props }, ref) => {
+    return (
+      <div className={containerClass}>
+        {label && (
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            {label}
+          </label>
+        )}
+        <textarea
+          ref={ref}
+          className={clsx(
+            'w-full px-3 py-2 bg-gray-800 border rounded-lg focus:outline-none focus:ring-2',
+            'text-gray-200 placeholder-gray-500 transition-all duration-200',
+            'focus:ring-green-500 focus:border-transparent',
+            error ? 'border-red-500' : 'border-gray-700 hover:border-gray-600',
+            className
+          )}
+          {...props}
+        />
+        {error && (
+          <p className="mt-1 text-sm text-red-500">{error}</p>
+        )}
+      </div>
+    );
+  }
+);
+
+TextArea.displayName = 'TextArea';
+
+================================================================
+FILE: src\hooks\useDebounce.ts
+----------------------------------------------------------------
+import { useEffect, useState } from 'react';
+
+export function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+================================================================
+FILE: src\lib\client-auth.ts
+----------------------------------------------------------------
+export async function checkAuthClient(): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/auth/verify`, {
+      cache: 'no-store',
+      credentials: 'include'
+    });
+    return res.ok;
+  } catch (error) {
+    console.error('Auth check failed:', error);
+    return false;
+  }
+}
+
+export async function logoutClient(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { success: false, error: error.message || 'Logout failed' };
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user');
+      sessionStorage.clear();
+      
+      window.location.href = '/auth/login';
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Logout error:', error);
+    return { success: false, error: 'Network error' };
+  }
+}
+
+================================================================
+FILE: src\lib\server-auth.ts
+----------------------------------------------------------------
+import { cookies } from 'next/headers';
+
+export async function getServerSession() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth-token')?.value;
+  
+  if (!token) return null;
+
+  try {
+    const res = await fetch(`${process.env.PUBLIC_API_URL}/api/auth/verify`, {
+      cache: 'no-store',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return res.ok ? { token } : null;
+  } catch (error) {
+    console.error('Session check failed:', error);
+    return null;
+  }
+}
+
+================================================================
+FILE: src\middleware\auth.ts
+----------------------------------------------------------------
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export async function authMiddleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const token = request.cookies.get('auth-token')?.value;
+
+  const publicPaths = ['/auth/login', '/auth/register'];
+  if (publicPaths.includes(pathname)) {
+    if (token) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith('/api')) {
+    return NextResponse.next();
+  }
+
+  if (!token) {
+    return NextResponse.redirect(new URL('/auth/login', request.url));
+  }
+
+  return NextResponse.next();
+}
+
+================================================================
+FILE: src\middleware\config.ts
+----------------------------------------------------------------
+import { authMiddleware } from './auth';
+
+export const middleware = authMiddleware;
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+};
+
+================================================================
+FILE: src\providers\AuthProvider.tsx
+----------------------------------------------------------------
+'use client';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { checkAuthClient } from '@/lib/client-auth';
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const verifyAuth = async () => {
+      try {
+        const authStatus = await checkAuthClient();
+        setIsAuthenticated(authStatus);
+        
+        if (!authStatus && !pathname.startsWith('/auth')) {
+          router.replace('/auth/login');
+          return;
+        }
+        
+        if (authStatus && pathname.startsWith('/auth')) {
+          router.replace('/');
+          return;
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        if (!pathname.startsWith('/auth')) {
+          router.replace('/auth/login');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    verifyAuth();
+  }, [pathname, router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-dark-green-900">
+        <div className="text-green-400">Checking authentication...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated && !pathname.startsWith('/auth')) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
+================================================================
+FILE: src\types\chat.ts
+----------------------------------------------------------------
+import { User } from './user';
+
+
+export type Chat = {
+  id: string;
+  name: string;
+  isGroup: boolean;
+  createdAt: string;
+  lastMessage?: {
+    id: string;
+    content: string;
+    senderId: string;
+    chatId: string;
+    sentAt: string;
+    isRead: boolean;
+  };
+  unreadCount: number;
+  avatarUrl?: string;
+  members?: { userId: string }[];
+
+  serverChatId?: string | null;
+  peerUserId?: string;
+};
+
+
+export type ChatMember = {
+  id: string;
+  userId: string;
+  chatId: string;
+  user: User;
+  joinedAt: string;
+  lastReadAt?: string;
+  role?: 'member' | 'admin' | 'creator';
+};
+
+export interface ChatWithMembers extends Chat {
+  members: ChatMember[];
+};
+
+export type Message = {
+  id: string;
+  content: string;
+  senderId: string;
+  chatId: string;
+  sentAt: string;
+  editedAt?: string;
+  isRead: boolean;
+  isEdited?: boolean;
+  isDeleted?: boolean;
+  
+  sender?: User;
+  chat?: Chat;
+  
+  attachments?: Attachment[];
+  replyToMessage?: Message;
+  reactions?: Reaction[];
+};
+
+export type Attachment = {
+  id: string;
+  messageId: string;
+  url: string;
+  type: 'image' | 'video' | 'audio' | 'file';
+  fileName?: string;
+  fileSize?: number;
+  width?: number;
+  height?: number;
+  duration?: number;
+};
+
+export type Reaction = {
+  id: string;
+  messageId: string;
+  userId: string;
+  emoji: string;
+  createdAt: string;
+  user?: User;
+};
+
+export type CreateChatRequest = {
+  name?: string;
+  isGroup: boolean;
+  memberIds: string[];
+  avatar?: File;
+};
+
+export type SendMessageRequest = {
+  chatId: string;
+  content: string;
+  replyToId?: string;
+  attachments?: File[];
+};
+
+export type DirectChatHeaderDto = {
+  otherUserId: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+  isOnline: boolean;
+  chatId?: string | null;
+};
+
+================================================================
+FILE: src\types\contact.ts
+----------------------------------------------------------------
+import { User } from "./user";
+
+export type Contact = {
+  id: string;
+  userId: string;
+  nickname?: string;
+  avatarUrl?: string;
+  isOnline: boolean;
+  addedAt: Date;
+  ownerUserId: string;
+  contactUserId: string;
+  contactUser?: User;
+};
+
+================================================================
+FILE: src\types\index.ts
+----------------------------------------------------------------
+export * from './user';
+export * from './chat';
+export * from './contact';
+
+================================================================
+FILE: src\types\user.ts
+----------------------------------------------------------------
+export type User = {
+  id: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  firstName: string;
+  lastName: string;
+  bio?: string;
+  avatarUrl?: string;
+  isOnline: boolean;
+  lastSeenAt: string;
+  createdAt: string;
+  lastLoginAt?: string;
+};
+
+export type UserProfileDto = {
+  id: string;
+  username?: string;
+  email?: string;
+  phoneNumber?: string;
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  avatarUrl?: string;
+  isOnline: boolean;
+};
+
+export type UpdateProfileDto = {
+  email?: string;
+  phoneNumber?: string;
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  avatarUrl?: string;
+};
+
+export type UserStatus = {
+  userId: string;
+  isOnline: boolean;
+  lastSeenAt?: string;
+};
+
+export type UserSearchResult = {
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl?: string;
+  isOnline: boolean;
+  isContact: boolean;
+};
+
+================================================================
+FILE: tailwind.config.ts
+----------------------------------------------------------------
+import type { Config } from "tailwindcss";
+
+export default {
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        gray: {
+          50: '#f9fafb',
+          100: '#f3f4f6',
+          200: '#e5e7eb',
+          300: '#d1d5db',
+          400: '#9ca3af',
+          500: '#6b7280',
+          600: '#4b5563',
+          700: '#374151',
+          800: '#1f2937',
+          900: '#111827',
+          950: '#030712',
+        },
+        green: {
+          50: '#f0fdf5',
+          100: '#dcfce8',
+          200: '#bbf7d1',
+          300: '#86efad',
+          400: '#4ade81',
+          500: '#22c55e',
+          600: '#16a34a',
+          700: '#15803e',
+          800: '#166534',
+          900: '#14532d',
+          950: '#052e16',
+        },
+      },
+      fontFamily: {
+        primary: ['var(--font-nunito)', 'sans-serif'],
+        secondary: ['var(--font-press-start-2p)', 'sans-serif'],
+      },
+    },
+  },
+  plugins: [],
+} satisfies Config;
+
+================================================================
+FILE: tsconfig.json
+----------------------------------------------------------------
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+
+

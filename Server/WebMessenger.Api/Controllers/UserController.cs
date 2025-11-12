@@ -15,11 +15,11 @@ namespace WebMessenger.Api.Controllers
         private readonly IAvatarService _avatarService = avatarService;
 
         [HttpGet]
-        public async Task<IActionResult> Index([FromHeader(Name = "Authorization")] string authHeader, [FromQuery] string query = "", [FromQuery] int limit = 10)
+        public async Task<IActionResult> Index([FromHeader(Name = "Authorization")] string auth, [FromQuery] string query = "", [FromQuery] int limit = 10)
         {
             try
             {
-                var currentUserId = await _userService.GetUserIdFromAuthHeader(authHeader);
+                var currentUserId = await _userService.GetUserIdFromAuthHeader(auth);
                 if (string.IsNullOrWhiteSpace(query))
                     return BadRequest("Search query is required");
 
@@ -38,11 +38,11 @@ namespace WebMessenger.Api.Controllers
         }
 
         [HttpGet("profile")]
-        public async Task<IActionResult> GetUserProfile([FromHeader(Name = "Authorization")] string authHeader)
+        public async Task<IActionResult> GetUserProfile([FromHeader(Name = "Authorization")] string auth)
         {
             try
             {
-                var userId = await _userService.GetUserIdFromAuthHeader(authHeader);
+                var userId = await _userService.GetUserIdFromAuthHeader(auth);
                 if (!userId.HasValue)
                     return Unauthorized();
 
@@ -73,12 +73,12 @@ namespace WebMessenger.Api.Controllers
 
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateUserProfile(
-            [FromHeader(Name = "Authorization")] string authHeader,
+            [FromHeader(Name = "Authorization")] string auth,
             [FromBody] UpdateProfileDto updateDto)
         {
             try
             {
-                var userId = await _userService.GetUserIdFromAuthHeader(authHeader);
+                var userId = await _userService.GetUserIdFromAuthHeader(auth);
                 if (!userId.HasValue)
                     return Unauthorized();
 
@@ -94,12 +94,12 @@ namespace WebMessenger.Api.Controllers
 
         [HttpPost("avatar")]
         public async Task<IActionResult> UploadAvatar(
-            [FromHeader(Name = "Authorization")] string authHeader, 
+            [FromHeader(Name = "Authorization")] string auth, 
             IFormFile file)
         {
             try
             {
-                var userId = await _userService.GetUserIdFromAuthHeader(authHeader);
+                var userId = await _userService.GetUserIdFromAuthHeader(auth);
                 if (!userId.HasValue)
                     return Unauthorized();
 

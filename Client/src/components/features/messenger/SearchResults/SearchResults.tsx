@@ -1,7 +1,7 @@
 import { UserSearchResult } from "@/types";
 import { Avatar } from "@/components/ui/Avatar/Avatar";
 import { Button } from "@/components/ui/Button/Button";
-import { SendMessageIcon } from "@/components/icons/SendMessageIcon";
+import { StartChattingIcon } from "@/components/icons/StartChattingIcon";
 import { AddContactIcon } from "@/components/icons/AddContactIcon";
 
 interface SearchResultsProps {
@@ -45,7 +45,7 @@ export const SearchResults = ({
               useBaseClasses={false}
               onClick={() => onSelectUser(user.id)}
             >
-              <SendMessageIcon className="w-4 h-4" />
+              <StartChattingIcon className="w-4 h-4" />
             </Button>
           ) : (
             <Button

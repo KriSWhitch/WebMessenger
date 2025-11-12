@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { InputField } from "@/components/ui/Input/Input";
 import { BurgerMenu } from "@/components/navigation/dropdown/BurgerMenu";
 import { Chat } from "@/types/chat";
-import { logoutClient } from "@/lib/client-auth";
+import { logoutClient } from "@/lib/auth/client-auth";
 import { useCallback, useEffect, useState } from "react";
 import { Contact, UserSearchResult } from "@/types";
 import { SearchResults } from "@/components/features/messenger/SearchResults/SearchResults";

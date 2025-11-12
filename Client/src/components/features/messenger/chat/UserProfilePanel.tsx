@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import type { UserProfileDto } from '@/types';
 import clsx from 'clsx';
+import { CloseIcon } from '@/components/icons/CloseIcon';
 
 type Props = {
   userId: string;
@@ -42,7 +43,7 @@ export function UserProfilePanel({ userId, open, onClose }: Props) {
       <aside
         className={clsx(
           'fixed top-0 right-0 h-dvh w-full md:w-[28rem] max-w-[100vw] bg-gray-900 border-l border-gray-700',
-          'transform transition-transform duration-300 ease-out z-[61]',
+          'transform transition-transform duration-250 ease-out z-[61]',
           open ? 'translate-x-0' : 'translate-x-full'
         )}
         onClick={(e) => e.stopPropagation()}
@@ -57,7 +58,7 @@ export function UserProfilePanel({ userId, open, onClose }: Props) {
             aria-label="Close"
             title="Close"
           >
-            ✕
+            <CloseIcon className="w-6 h-6 text-white" />
           </button>
         </div>
 

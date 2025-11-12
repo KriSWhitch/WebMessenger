@@ -1,16 +1,19 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebMessenger.Api.Models;
 using WebMessenger.Api.Services.Interfaces;
+using Microsoft.AspNetCore.SignalR;
+using WebMessenger.Api.Hubs;
 
 namespace WebMessenger.Api.Controllers
 {
     [ApiController]
     [Route("api/chats")]
-    public class ChatController(IUserService userService, IChatService chatService, ILogger<ChatController> logger) : ControllerBase
+    public class ChatController(IUserService userService, IChatService chatService, ILogger<ChatController> logger, IHubContext<ChatHub> hub) : ControllerBase
     {
         private readonly IUserService _userService = userService;
         private readonly IChatService _chatService = chatService;
         private readonly ILogger<ChatController> _logger = logger;
+        private readonly IHubContext<ChatHub> _hub = hub;
 
         [HttpGet("direct/{userId:guid}/header")]
         public async Task<IActionResult> GetDirectHeader(
@@ -21,7 +24,6 @@ namespace WebMessenger.Api.Controllers
             {
                 var me = await _userService.GetUserIdFromAuthHeader(auth);
                 if (!me.HasValue) return Unauthorized();
-
                 var dto = await _chatService.GetDirectChatHeaderAsync(me.Value, userId);
                 return Ok(dto);
             }
@@ -43,7 +45,6 @@ namespace WebMessenger.Api.Controllers
             {
                 var me = await _userService.GetUserIdFromAuthHeader(auth);
                 if (!me.HasValue) return Unauthorized();
-
                 var page = await _chatService.GetMessagesAsync(me.Value, chatId, limit, before);
                 return Ok(page);
             }
@@ -70,6 +71,20 @@ namespace WebMessenger.Api.Controllers
                 if (!me.HasValue) return Unauthorized();
 
                 var result = await _chatService.SendMessageToUserAsync(me.Value, userId, req.Content);
+
+                var payload = new
+                {
+                    chatId = result.ChatId,
+                    message = result.Message
+                };
+
+                await _hub.Clients.Group($"chat:{result.ChatId}")
+                    .SendAsync("MessageCreated", payload);
+                await _hub.Clients.Group($"user:{userId}")
+                    .SendAsync("MessageCreated", payload);
+                await _hub.Clients.Group($"user:{me.Value}")
+                    .SendAsync("MessageCreated", payload);
+
                 return Ok(result);
             }
             catch (ArgumentException aex)
