@@ -176,7 +176,7 @@ const onSend = useCallback(async () => {
           <div className="flex-1 overflow-y-auto bg-gray-800/50">
             <MessageList
               messages={messages}
-              containerRef={containerRef}
+              externalContainerRef={containerRef}
               hasMore={hasMore}
               loading={loading}
               onLoadMore={loadOlder}
