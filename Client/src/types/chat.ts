@@ -1,6 +1,5 @@
 import { User } from './user';
 
-
 export type Chat = {
   id: string;
   name: string;
@@ -22,7 +21,6 @@ export type Chat = {
   peerUserId?: string;
 };
 
-
 export type ChatMember = {
   id: string;
   userId: string;
@@ -35,7 +33,7 @@ export type ChatMember = {
 
 export interface ChatWithMembers extends Chat {
   members: ChatMember[];
-};
+}
 
 export type Message = {
   id: string;
@@ -47,10 +45,10 @@ export type Message = {
   isRead: boolean;
   isEdited?: boolean;
   isDeleted?: boolean;
-  
+
   sender?: User;
   chat?: Chat;
-  
+
   attachments?: Attachment[];
   replyToMessage?: Message;
   reactions?: Reaction[];
@@ -97,4 +95,46 @@ export type DirectChatHeaderDto = {
   avatarUrl?: string | null;
   isOnline: boolean;
   chatId?: string | null;
+};
+
+export type ChatMessagePreviewDto = {
+  id: string;
+  senderId: string;
+  snippet: string;
+  sentAt: string;
+};
+
+export type ChatListItemDto = {
+  id: string;
+  isGroup: boolean;
+  title?: string | null;
+  avatarUrl?: string | null;
+  lastActivityAt: string;
+  lastMessage?: ChatMessagePreviewDto;
+  unreadCount: number;
+  hasUnread: boolean;
+  peerUsername?: string | null;
+  peerAvatarUrl?: string | null;
+  peerUserId?: string | null;
+};
+
+export type PagedResult<T> = {
+  items: T[];
+  hasMore: boolean;
+  nextBefore?: string | null;
+};
+
+
+export type MessageCreatedPayload = {
+  chatId: string;
+  peerUserId?: string;
+  message: {
+    id: string;
+    chatId: string;
+    senderId: string;
+    content: string;
+    sentAt: string;
+    editedAt?: string | null;
+    isRead: boolean;
+  };
 };

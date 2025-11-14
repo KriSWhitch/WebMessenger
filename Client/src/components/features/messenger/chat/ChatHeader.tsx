@@ -1,7 +1,7 @@
 'use client';
 
-import Image from 'next/image';
 import { LeftArrowIcon } from '@/components/icons/LeftArrowIcon';
+import { Avatar } from '@/components/ui/Avatar/Avatar';
 
 type Props = {
   peerUserId: string;
@@ -41,7 +41,7 @@ export function ChatHeader({
           aria-label="Open profile"
         >
           <div className="h-9 w-9 rounded-full overflow-hidden bg-gray-700">
-            {avatarUrl ? <Image src={avatarUrl} alt="avatar" width={36} height={36} /> : null}
+            {avatarUrl ? <Avatar src={avatarUrl} size={36} /> : null}
           </div>
           <div className="text-left">
             <div className="text-sm font-semibold leading-tight">{title}</div>

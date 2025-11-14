@@ -15,6 +15,41 @@ namespace WebMessenger.Api.Controllers
         private readonly ILogger<ChatController> _logger = logger;
         private readonly IHubContext<ChatHub> _hub = hub;
 
+        [HttpGet]
+        public async Task<IActionResult> Index(
+            [FromHeader(Name = "Authorization")] string auth,
+            int limit = 20,
+            DateTime? before = null)
+        {
+            var me = await _userService.GetUserIdFromAuthHeader(auth);
+            if (!me.HasValue) return Unauthorized();
+            var page = await _chatService.GetUserChatsAsync(me.Value, limit, before);
+            return Ok(page);
+        }
+
+
+        [HttpGet("{chatId:guid}/header")]
+        public async Task<IActionResult> GetChatHeader(
+            [FromHeader(Name = "Authorization")] string auth,
+            Guid chatId)
+        {
+            try
+            {
+                var me = await _userService.GetUserIdFromAuthHeader(auth);
+                if (!me.HasValue) return Unauthorized();
+
+                var dto = await _chatService.GetChatHeaderByChatIdAsync(me.Value, chatId);
+                if (dto == null) return NotFound();
+
+                return Ok(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting chat header by chatId");
+                return StatusCode(500, "Error getting chat header");
+            }
+        }
+
         [HttpGet("direct/{userId:guid}/header")]
         public async Task<IActionResult> GetDirectHeader(
             [FromHeader(Name = "Authorization")] string auth,

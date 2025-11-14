@@ -1,26 +1,52 @@
-import { clsx } from 'clsx';
+// components/ui/Avatar/Avatar.tsx
+'use client';
 
-interface AvatarProps {
+import { useState } from 'react';
+import clsx from 'clsx';
+
+type AvatarProps = {
   src?: string;
-  name: string;
+  name?: string;
   className?: string;
-}
+  size?: number;
+};
 
-export const Avatar = ({ src, name, className }: AvatarProps) => (
-  <div className={clsx(
-    "h-11 w-11 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center overflow-hidden",
-    className
-  )}>
-    {src ? (
-      <img
-        src={src}
-        alt={name}
-        className="h-full w-full object-cover"
-      />
-    ) : (
-      <span className="text-lg font-medium">
-        {name.charAt(0).toUpperCase()}
-      </span>
-    )}
-  </div>
-);
+export const Avatar = ({ src, name = '', className, size = 44 }: AvatarProps) => {
+  const [fitByHeight, setFitByHeight] = useState<boolean>(false);
+
+  return (
+    <div
+      className={clsx(
+        'relative rounded-full bg-gray-600 overflow-hidden flex items-center justify-center',
+        className
+      )}
+      style={{
+        width: size,
+        height: size,
+        aspectRatio: '1 / 1',
+      }}
+    >
+      {src ? (
+        <img
+          src={src}
+          alt={name}
+          className={clsx(
+            'block object-cover object-center select-none',
+            fitByHeight ? 'h-full w-auto' : 'w-full h-auto'
+          )}
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            const { naturalWidth, naturalHeight } = img;
+            setFitByHeight(naturalHeight >= naturalWidth);
+          }}
+          decoding="async"
+          loading="lazy"
+        />
+      ) : (
+        <span className="text-lg font-medium">
+          {name?.trim()?.charAt(0)?.toUpperCase() ?? 'U'}
+        </span>
+      )}
+    </div>
+  );
+};
