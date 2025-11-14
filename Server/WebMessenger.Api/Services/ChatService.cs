@@ -186,21 +186,21 @@ namespace WebMessenger.Api.Services
                 ChatId = chatId
             };
         }
-
         public async Task<PagedResult<ChatMessageDto>> GetMessagesAsync(Guid me, Guid chatId, int limit, DateTime? before)
         {
             var isMember = await _uow.ChatMemberRepository.GetAll()
                 .AnyAsync(cm => cm.ChatId == chatId && cm.UserId == me);
             if (!isMember) throw new UnauthorizedAccessException("Not a member of this chat");
 
-            var q = _uow.MessageRepository.GetAll()
-                .Where(m => m.ChatId == chatId);
+            var myLastReadAt = await _uow.ChatMemberRepository.GetAll()
+                .Where(cm => cm.ChatId == chatId && cm.UserId == me)
+                .Select(cm => cm.LastReadAt)
+                .FirstOrDefaultAsync() ?? DateTime.MinValue;
 
-            if (before.HasValue)
-                q = q.Where(m => m.SentAt < before.Value);
+            var q = _uow.MessageRepository.GetAll().Where(m => m.ChatId == chatId);
+            if (before.HasValue) q = q.Where(m => m.SentAt < before.Value);
 
             var take = Math.Clamp(limit, 1, 200);
-
             var items = await q
                 .OrderByDescending(m => m.SentAt)
                 .Take(take)
@@ -212,7 +212,7 @@ namespace WebMessenger.Api.Services
                     Content = m.Content,
                     SentAt = m.SentAt,
                     EditedAt = m.EditedAt,
-                    IsRead = m.IsRead
+                    IsRead = m.SentAt <= myLastReadAt
                 })
                 .ToListAsync();
 
@@ -272,5 +272,78 @@ namespace WebMessenger.Api.Services
                 }
             };
         }
+        public async Task<ReadStateDto> MarkChatReadAsync(Guid me, Guid chatId, DateTime? atUtc = null)
+        {
+            var cm = await _uow.ChatMemberRepository
+                .GetAll()
+                .FirstOrDefaultAsync(x => x.ChatId == chatId && x.UserId == me);
+
+            if (cm == null) throw new UnauthorizedAccessException("Not a member of this chat");
+
+            var now = atUtc?.ToUniversalTime() ?? DateTime.UtcNow;
+            cm.LastReadAt = cm.LastReadAt.HasValue && cm.LastReadAt.Value > now ? cm.LastReadAt : now;
+
+            _uow.ChatMemberRepository.Update(cm);
+            await _uow.CommitAsync();
+
+            var unread = await _uow.MessageRepository.GetAll()
+                .Where(m => m.ChatId == chatId && m.SenderId != me && m.SentAt > (cm.LastReadAt ?? DateTime.MinValue))
+                .CountAsync();
+
+            return new ReadStateDto
+            {
+                ChatId = chatId,
+                UserId = me,
+                LastReadAt = cm.LastReadAt ?? DateTime.MinValue,
+                UnreadCount = unread
+            };
+        }
+        public async Task<ReadStateDto> GetReadStateAsync(Guid me, Guid chatId)
+        {
+            var cm = await _uow.ChatMemberRepository
+                .GetAll()
+                .FirstOrDefaultAsync(x => x.ChatId == chatId && x.UserId == me);
+
+            if (cm == null) throw new UnauthorizedAccessException("Not a member of this chat");
+
+            var unread = await _uow.MessageRepository.GetAll()
+                .Where(m => m.ChatId == chatId && m.SenderId != me && m.SentAt > (cm.LastReadAt ?? DateTime.MinValue))
+                .CountAsync();
+
+            return new ReadStateDto
+            {
+                ChatId = chatId,
+                UserId = me,
+                LastReadAt = cm.LastReadAt ?? DateTime.MinValue,
+                UnreadCount = unread
+            };
+        }
+
+        public async Task<Guid?> TryGetDirectPeerAsync(Guid chatId, Guid me, CancellationToken ct = default)
+        {
+            var chatInfo = await _uow.ChatRepository.GetAll()
+                .AsNoTracking()
+                .Where(c => c.Id == chatId)
+                .Select(c => new { c.Id, c.IsGroup })
+                .SingleOrDefaultAsync(ct);
+
+            if (chatInfo is null || chatInfo.IsGroup)
+                return null;
+
+            var members = await _uow.ChatMemberRepository.GetAll()
+                .AsNoTracking()
+                .Where(m => m.ChatId == chatId)
+                .Select(m => m.UserId)
+                .Take(3)
+                .ToListAsync(ct);
+
+            if (members.Count != 2) return null;
+
+            if (!members.Contains(me)) return null;
+
+            var peer = members[0] == me ? members[1] : members[0];
+            return peer;
+        }
+
     }
 }

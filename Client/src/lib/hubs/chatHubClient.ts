@@ -1,16 +1,17 @@
 'use client';
+
 import * as signalR from '@microsoft/signalr';
 
 function getApiBase() {
   const fromEnv = process.env.PUBLIC_API_URL;
-  return (fromEnv ?? '').replace(/\/+$/,''); // '' => same-origin
+  return (fromEnv ?? '').replace(/\/+$/, '');
 }
 const API_BASE = getApiBase();
 const HUB_URL = (API_BASE ? API_BASE : '') + '/hubs/chat';
 
 async function fetchAccessToken(): Promise<string> {
   try {
-    const r = await fetch('/api/auth/token', { cache: 'no-store' });
+    const r = await fetch('/api/auth/token', { cache: 'no-store', credentials: 'include' });
     if (!r.ok) return '';
     const data = await r.json();
     return data?.token ?? '';
@@ -33,7 +34,7 @@ export function getChatConnection(): signalR.HubConnection {
     })
     .withAutomaticReconnect({
       nextRetryDelayInMilliseconds: (ctx) =>
-        Math.min(1000 * Math.pow(2, ctx.previousRetryCount), 30000),
+        Math.min(1000 * Math.pow(2, ctx.previousRetryCount), 30_000),
     })
     .configureLogging(signalR.LogLevel.Information)
     .build();

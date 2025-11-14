@@ -1,10 +1,12 @@
 'use client';
+
 import { useEffect, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { getChatConnection } from '@/lib/hubs/chatHubClient';
 
-type MessageCreated = {
+export type MessageCreated = {
   chatId: string;
+  peerUserId?: string;
   message: {
     id: string;
     chatId: string;
@@ -16,62 +18,109 @@ type MessageCreated = {
   };
 };
 
-export function useChatRealtime(params: {
+export type ReadReceipt = {
+  chatId: string;
+  userId: string;
+  lastReadAt: string;
+};
+
+type Params = {
   chatId?: string;
   peerUserId?: string;
   onMessage: (m: MessageCreated) => void;
   onTyping?: (p: { chatId: string; userId: string; isTyping: boolean }) => void;
-}) {
-  const { chatId, peerUserId, onMessage, onTyping } = params;
+  onReadReceipt?: (p: ReadReceipt) => void;
+};
+
+export function useChatRealtime({
+  chatId,
+  peerUserId,
+  onMessage,
+  onTyping,
+  onReadReceipt,
+}: Params) {
   const connRef = useRef<signalR.HubConnection | null>(null);
-  const lastJoinKeyRef = useRef<string | undefined>(undefined);
+  const joinedRef = useRef<{ mode: 'dm' | 'chat'; key: string; peerId?: string; chatId?: string } | null>(null);
 
   useEffect(() => {
     const conn = getChatConnection();
     connRef.current = conn;
-    conn.on('MessageCreated', onMessage);
-    if (onTyping) conn.on('Typing', onTyping);
 
-    const doJoin = async () => {
-      const key = chatId ? `chat:${chatId}` : peerUserId ? `dm:${peerUserId}` : undefined;
-      if (!key || lastJoinKeyRef.current === key) return;
+    const handleMessage = (p: MessageCreated) => onMessage(p);
+    const handleTyping = onTyping ? (p: any) => onTyping(p) : undefined;
+    const handleRead = onReadReceipt ? (p: any) => onReadReceipt(p) : undefined;
 
+    conn.off('MessageCreated', handleMessage);
+    conn.on('MessageCreated', handleMessage);
+    if (handleTyping) { conn.off('Typing', handleTyping); conn.on('Typing', handleTyping); }
+    if (handleRead)   { conn.off('ReadReceipt', handleRead); conn.on('ReadReceipt', handleRead); }
+
+    const ensureStarted = async () => {
       if (conn.state === signalR.HubConnectionState.Disconnected) {
+        await conn.start().catch(e => { console.error('Hub start failed:', e); });
+      }
+      return conn.state === signalR.HubConnectionState.Connected;
+    };
+
+    const joinCurrent = async () => {
+      const target = chatId ? { mode: 'chat' as const, key: `chat:${chatId}`, chatId }
+                            : peerUserId ? { mode: 'dm' as const, key: `dm:${peerUserId}`, peerId: peerUserId }
+                                         : null;
+      if (!target) return;
+
+      if (joinedRef.current && joinedRef.current.mode === target.mode && joinedRef.current.key === target.key) {
+        return;
+      }
+
+      if (joinedRef.current) {
         try {
-          await conn.start();
+          if (joinedRef.current.mode === 'dm' && joinedRef.current.peerId) {
+            await conn.invoke('LeaveDirect', joinedRef.current.peerId);
+          } else if (joinedRef.current.mode === 'chat' && joinedRef.current.chatId) {
+            await conn.invoke('LeaveChat', joinedRef.current.chatId);
+          }
         } catch (e) {
-          console.error('Hub start failed:', e);
-          return;
+          console.warn('Leave group failed:', e);
         }
       }
 
-      if (conn.state !== signalR.HubConnectionState.Connected) return;
+      if (!(await ensureStarted())) return;
 
       try {
-        if (chatId) {
-          await conn.invoke('JoinChat', chatId);
-          lastJoinKeyRef.current = key;
-        } else if (peerUserId) {
-          await conn.invoke('JoinDirect', peerUserId);
-          lastJoinKeyRef.current = key;
+        if (target.mode === 'chat' && target.chatId) {
+          await conn.invoke('JoinChat', target.chatId);
+          joinedRef.current = target;
+        } else if (target.mode === 'dm' && target.peerId) {
+          await conn.invoke('JoinDirect', target.peerId);
+          joinedRef.current = target;
         }
       } catch (e) {
         console.error('Join failed:', e);
       }
     };
 
-    void doJoin();
+    void joinCurrent();
 
-    const onReconnected = async () => {
-      lastJoinKeyRef.current = undefined;
-      await doJoin();
-    };
-    conn.onreconnected(onReconnected);
+    conn.onreconnected(async () => {
+      joinedRef.current = null;
+      await joinCurrent();
+    });
 
     return () => {
-      conn.off('MessageCreated', onMessage);
-      if (onTyping) conn.off('Typing', onTyping);
-      conn.onreconnected(() => {});
+      conn.off('MessageCreated', handleMessage);
+      if (handleTyping)   conn.off('Typing', handleTyping);
+      if (handleRead)     conn.off('ReadReceipt', handleRead);
+
+      (async () => {
+        try {
+          if (joinedRef.current?.mode === 'dm' && joinedRef.current.peerId) {
+            await conn.invoke('LeaveDirect', joinedRef.current.peerId);
+          } else if (joinedRef.current?.mode === 'chat' && joinedRef.current.chatId) {
+            await conn.invoke('LeaveChat', joinedRef.current.chatId);
+          }
+        } catch { /* noop */ }
+        finally { joinedRef.current = null; }
+      })();
     };
-  }, [chatId, peerUserId, onMessage, onTyping]);
+  }, [chatId, peerUserId, onMessage, onTyping, onReadReceipt]);
 }

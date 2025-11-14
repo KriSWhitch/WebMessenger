@@ -132,5 +132,74 @@ namespace WebMessenger.Api.Controllers
                 return StatusCode(500, "Error sending message");
             }
         }
+
+        [HttpPost("{chatId:guid}/read")]
+        public async Task<IActionResult> MarkRead(
+            [FromHeader(Name = "Authorization")] string auth,
+            Guid chatId,
+            [FromBody] MarkReadRequest? body)
+        {
+            try
+            {
+                var me = await _userService.GetUserIdFromAuthHeader(auth);
+                if (!me.HasValue) return Unauthorized();
+
+                DateTime? at = null;
+                if (body?.At is DateTime candidate)
+                {
+                    at = candidate.Kind switch
+                    {
+                        DateTimeKind.Utc => candidate,
+                        DateTimeKind.Local => candidate.ToUniversalTime(),
+                        DateTimeKind.Unspecified => DateTime.SpecifyKind(candidate, DateTimeKind.Utc),
+                        _ => null
+                    };
+                }
+
+                var state = await _chatService.MarkChatReadAsync(me.Value, chatId, at);
+
+                await _hub.Clients.Group($"chat:{chatId}")
+                    .SendAsync("ReadReceipt", new
+                    {
+                        chatId,
+                        userId = me.Value,
+                        lastReadAt = state.LastReadAt
+                    });
+
+                return Ok(new { lastReadAt = state.LastReadAt, unreadCount = state.UnreadCount });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking chat read");
+                return StatusCode(500, "Error marking chat read");
+            }
+        }
+
+        [HttpGet("{chatId:guid}/read-state")]
+        public async Task<IActionResult> GetReadState(
+            [FromHeader(Name = "Authorization")] string auth,
+            Guid chatId)
+        {
+            try
+            {
+                var me = await _userService.GetUserIdFromAuthHeader(auth);
+                if (!me.HasValue) return Unauthorized();
+                var state = await _chatService.GetReadStateAsync(me.Value, chatId);
+                return Ok(new { lastReadAt = state.LastReadAt, unreadCount = state.UnreadCount });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting read state");
+                return StatusCode(500, "Error getting read state");
+            }
+        }
     }
 }

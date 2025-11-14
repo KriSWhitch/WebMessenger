@@ -137,6 +137,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/api/chats/[chatId]/read-state/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/chats/[chatId]/read-state">> = Specific
+  const handler = {} as typeof import("../../src/app/api/chats/[chatId]/read-state/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/chats/[chatId]/read/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/chats/[chatId]/read">> = Specific
+  const handler = {} as typeof import("../../src/app/api/chats/[chatId]/read/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/api/chats/direct/[userId]/header/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/chats/direct/[userId]/header">> = Specific

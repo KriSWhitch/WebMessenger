@@ -1,4 +1,3 @@
-// src/hooks/useChatList.ts
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -55,7 +54,6 @@ export function useChatList(opts: { pageSize?: number } = {}) {
 
   const flat = useMemo(() => pages.flat().sort(byLastActivityDesc), [pages]);
 
-  // первый вход
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -91,7 +89,6 @@ export function useChatList(opts: { pageSize?: number } = {}) {
     }
   }, [hasMore, loading, nextBefore, pageSize]);
 
-  // Апсерт карточки по событию (MessageCreated)
   const upsertFromMessage = useCallback((payload: {
     chatId: string;
     message: { id: string; senderId: string; content: string; sentAt: string; };
@@ -100,7 +97,7 @@ export function useChatList(opts: { pageSize?: number } = {}) {
     const nowCard: ChatListItemDto = {
       id: payload.chatId,
       isGroup: false,
-      title: null, // для директов подтянем позже заголовок/аватар по header
+      title: null,
       avatarUrl: null,
       lastActivityAt: payload.message.sentAt,
       lastMessage: {
@@ -117,7 +114,6 @@ export function useChatList(opts: { pageSize?: number } = {}) {
 
     setPages(prev => {
       const merged = mergeUniqueById(prev.flat(), [nowCard]).sort(byLastActivityDesc);
-      // пересобираем «страницы» по pageSize, чтобы кнопка «Показать ещё» оставалась корректной
       const newPages: ChatListItemDto[][] = [];
       for (let i = 0; i < merged.length; i += pageSize) newPages.push(merged.slice(i, i + pageSize));
       return newPages.length ? newPages : [[]];

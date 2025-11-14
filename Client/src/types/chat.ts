@@ -138,3 +138,8 @@ export type MessageCreatedPayload = {
     isRead: boolean;
   };
 };
+
+export type ReadState = { 
+  lastReadAt: string; 
+  unreadCount: number
+};
