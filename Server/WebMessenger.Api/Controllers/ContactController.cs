@@ -1,70 +1,42 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WebMessenger.Api.Infrastructure;
+using WebMessenger.Api.Infrastructure.Interfaces;
 using WebMessenger.Api.Models;
 using WebMessenger.Api.Services.Interfaces;
 
 namespace WebMessenger.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/contacts")]
-    public class ContactController(ILogger<ContactController> logger,
-                              IUserService userService,
-                              IContactsService contactsService) : ControllerBase
+    public class ContactController(
+        ILogger<ContactController> logger,
+        IContactsService contactsService,
+        ICurrentUser currentUser) : ControllerBase
     {
         private readonly ILogger<ContactController> _logger = logger;
-        private readonly IUserService _userService = userService;
         private readonly IContactsService _contactsService = contactsService;
-
-
+        private readonly ICurrentUser _currentUser = currentUser;
 
         [HttpGet]
-        public async Task<IActionResult> Index([FromHeader(Name = "Authorization")] string auth, string query = "")
+        public async Task<IActionResult> Index([FromQuery] string query = "")
         {
-            try
-            {
-                var currentUserId = await _userService.GetUserIdFromAuthHeader(auth);
-
-                if (!currentUserId.HasValue)
-                    return BadRequest("Authentication problems occurred");
-
-                var contacts = await _contactsService.GetContactsAsync(currentUserId.Value, query);
-
-                var result = contacts.ToList();
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting contacts");
-                return StatusCode(500, "An error occurred while getting contacts");
-            }
+            var contacts = await _contactsService.GetContactsAsync(_currentUser.Id, query);
+            return Ok(contacts.ToList());
         }
 
         [HttpPost("add")]
-        public async Task<IActionResult> AddContact([FromHeader(Name = "Authorization")] string auth, [FromBody] AddContactRequest request)
+        public async Task<IActionResult> AddContact([FromBody] AddContactRequest request)
         {
-            try
-            {
-                var currentUserId = await _userService.GetUserIdFromAuthHeader(auth);
-                var contactUserId = request.ContactUserId;
+            if (_currentUser.Id == request.ContactUserId)
+                return BadRequest("Cannot add yourself as a contact");
 
-                if (!currentUserId.HasValue)
-                    return BadRequest("Authentication problems occurred");
+            if (await _contactsService.IsContactAsync(_currentUser.Id, request.ContactUserId))
+                return BadRequest("User is already in your contacts");
 
-                if (currentUserId == contactUserId)
-                    return BadRequest("Cannot add yourself as a contact");
-
-                if (await _contactsService.IsContactAsync(currentUserId.Value, contactUserId))
-                    return BadRequest("User is already in your contacts");
-
-                var response = await _contactsService.AddContactAsync(currentUserId.Value, request);
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error adding contact");
-                return StatusCode(500, "An error occurred while adding contact");
-            }
+            var response = await _contactsService.AddContactAsync(_currentUser.Id, request);
+            return Ok(response);
         }
     }
 }

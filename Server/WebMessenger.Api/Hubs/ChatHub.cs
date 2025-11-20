@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using WebMessenger.Api.Services.Interfaces;
+using WebMessenger.Api.Hubs.Helpers;
 
 namespace WebMessenger.Api.Hubs;
 
 #nullable enable
-
 [Authorize]
 public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> logger) : Hub
 {
@@ -13,23 +13,8 @@ public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> lo
     private readonly IChatService _chats = chats;
     private readonly ILogger<ChatHub> _logger = logger;
 
-    private static class Events
-    {
-        public const string MessageCreated = "MessageCreated";
-        public const string ReadReceipt = "ReadReceipt";
-        public const string Typing = "Typing";
-    }
-
-    private static string UG(Guid userId) => $"user:{userId}";
-    private static string CG(Guid chatId) => $"chat:{chatId}";
-    private static string DM(Guid a, Guid b)
-    {
-        var (x, y) = a.CompareTo(b) <= 0 ? (a, b) : (b, a);
-        return $"dm:{x}:{y}";
-    }
-
     private sealed record TypingPayload(Guid chatId, Guid userId, bool isTyping);
-    private sealed record ReadReceiptPayload(Guid chatId, Guid userId, DateTime lastReadAtUtc);
+    private sealed record ReadReceiptPayload(Guid chatId, Guid userId, DateTime lastReadAt);
 
     public override async Task OnConnectedAsync()
     {
@@ -39,9 +24,7 @@ public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> lo
             Context.Abort();
             return;
         }
-
-        await Groups.AddToGroupAsync(Context.ConnectionId, UG(userId.Value));
-
+        await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroups.User(userId.Value));
         _logger.LogInformation("User {UserId} connected, conn {ConnId}", userId, Context.ConnectionId);
         await base.OnConnectedAsync();
     }
@@ -64,8 +47,8 @@ public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> lo
             var peer = await _chats.TryGetDirectPeerAsync(chatId, me.Value);
             if (peer.HasValue)
             {
-                await Groups.RemoveFromGroupAsync(Context.ConnectionId, DM(me.Value, peer.Value));
-                _logger.LogDebug("Conn {ConnId} auto-left dm group {Group}", Context.ConnectionId, DM(me.Value, peer.Value));
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, SignalRGroups.Direct(me.Value, peer.Value));
+                _logger.LogDebug("Conn {ConnId} auto-left dm group {Group}", Context.ConnectionId, SignalRGroups.Direct(me.Value, peer.Value));
             }
         }
         catch (Exception ex)
@@ -73,8 +56,8 @@ public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> lo
             _logger.LogDebug(ex, "Auto-leave DM failed for chat {ChatId}", chatId);
         }
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, CG(chatId));
-        _logger.LogDebug("Conn {ConnId} joined chat group {Group}", Context.ConnectionId, CG(chatId));
+        await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroups.Chat(chatId));
+        _logger.LogDebug("Conn {ConnId} joined chat group {Group}", Context.ConnectionId, SignalRGroups.Chat(chatId));
     }
 
     public async Task JoinDirect(Guid otherUserId)
@@ -82,8 +65,8 @@ public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> lo
         var me = await GetCurrentUserId();
         if (!me.HasValue) throw new HubException("Unauthorized");
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, DM(me.Value, otherUserId));
-        _logger.LogDebug("Conn {ConnId} joined dm group {Group}", Context.ConnectionId, DM(me.Value, otherUserId));
+        await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroups.Direct(me.Value, otherUserId));
+        _logger.LogDebug("Conn {ConnId} joined dm group {Group}", Context.ConnectionId, SignalRGroups.Direct(me.Value, otherUserId));
     }
 
     public async Task Typing(Guid chatId, bool isTyping)
@@ -91,9 +74,8 @@ public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> lo
         var me = await GetCurrentUserId();
         if (!me.HasValue) return;
 
-        await Clients.Group(CG(chatId))
-            .SendAsync(Events.Typing, new TypingPayload(chatId, me.Value, isTyping));
-
+        await Clients.Group(SignalRGroups.Chat(chatId))
+            .SendAsync(Helpers.Events.Typing, new TypingPayload(chatId, me.Value, isTyping));
         _logger.LogTrace("Typing: user {UserId} -> chat {ChatId}: {IsTyping}", me.Value, chatId, isTyping);
     }
 
@@ -102,9 +84,8 @@ public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> lo
         var me = await GetCurrentUserId();
         if (!me.HasValue) return;
 
-        await Clients.Group(CG(chatId))
-            .SendAsync(Events.ReadReceipt, new ReadReceiptPayload(chatId, me.Value, upToUtc));
-
+        await Clients.Group(SignalRGroups.Chat(chatId))
+            .SendAsync(Helpers.Events.ReadReceipt, new ReadReceiptPayload(chatId, me.Value, upToUtc));
         _logger.LogTrace("ReadReceipt (hub-only): user {UserId} upTo {UpTo} in chat {ChatId}", me.Value, upToUtc, chatId);
     }
 
@@ -132,15 +113,16 @@ public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> lo
 
     public async Task LeaveChat(Guid chatId)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, CG(chatId));
-        _logger.LogDebug("Conn {ConnId} left chat group {Group}", Context.ConnectionId, CG(chatId));
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, SignalRGroups.Chat(chatId));
+        _logger.LogDebug("Conn {ConnId} left chat group {Group}", Context.ConnectionId, SignalRGroups.Chat(chatId));
     }
 
     public async Task LeaveDirect(Guid otherUserId)
     {
         var me = await GetCurrentUserId();
         if (!me.HasValue) throw new HubException("Unauthorized");
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, DM(me.Value, otherUserId));
-        _logger.LogDebug("Conn {ConnId} left dm group {Group}", Context.ConnectionId, DM(me.Value, otherUserId));
+
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, SignalRGroups.Direct(me.Value, otherUserId));
+        _logger.LogDebug("Conn {ConnId} left dm group {Group}", Context.ConnectionId, SignalRGroups.Direct(me.Value, otherUserId));
     }
 }

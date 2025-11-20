@@ -9,12 +9,24 @@ using WebMessenger.Services.Interfaces;
 using WebMessenger.Api.Services.Interfaces;
 using WebMessenger.Api.Services;
 using WebMessenger.Api.Hubs;
+using WebMessenger.Api.Hubs.Events.Interfaces;
+using WebMessenger.Api.Hubs.Events;
+using WebMessenger.Api.Infrastructure.Interfaces;
+using WebMessenger.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+    };
+});
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(
@@ -29,8 +41,11 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IContactsService, ContactsService>();
 builder.Services.AddScoped<IAvatarService, AvatarService>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IChatEvents, ChatEvents>();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 builder.Services.AddSignalR();
+builder.Services.AddHttpContextAccessor();
 
 const string FrontCors = "Front";
 builder.Services.AddCors(opts =>
@@ -95,6 +110,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseExceptionHandler();
 
 if (!app.Environment.IsDevelopment())
 {

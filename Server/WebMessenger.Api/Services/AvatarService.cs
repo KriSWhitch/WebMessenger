@@ -41,7 +41,7 @@ public class AvatarService : IAvatarService
             return null;
         }
 
-        var user = _unitOfWork.UserRepository.Get(userId);
+        var user = await _unitOfWork.UserRepository.GetAsync(userId);
         if (user == null)
         {
             _logger.LogWarning(UserNotFoundTemplate, userId);

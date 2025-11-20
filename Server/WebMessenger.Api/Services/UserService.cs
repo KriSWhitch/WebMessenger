@@ -27,7 +27,7 @@ public class UserService(IUnitOfWork unitOfWork, IContactsService contactsServic
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password)
         };
 
-        _unitOfWork.UserRepository.Insert(user);
+        await _unitOfWork.UserRepository.InsertAsync(user);
         await _unitOfWork.CommitAsync();
 
         return user;
@@ -72,9 +72,9 @@ public class UserService(IUnitOfWork unitOfWork, IContactsService contactsServic
         return user?.Id;
     }
 
-    public UserProfileDto GetUserProfile(Guid userId)
+    public async Task<UserProfileDto> GetUserProfileAsync(Guid userId)
     {
-        var user = _unitOfWork.UserRepository.Get(userId) ?? throw new InvalidOperationException("User not found");
+        var user = await _unitOfWork.UserRepository.GetAsync(userId) ?? throw new InvalidOperationException("User not found");
         return new UserProfileDto
         {
             Id = user.Id,
@@ -91,17 +91,17 @@ public class UserService(IUnitOfWork unitOfWork, IContactsService contactsServic
 
     public async Task<UserProfileDto> UpdateUserProfileAsync(Guid userId, UpdateProfileDto updateDto)
     {
-        var user = _unitOfWork.UserRepository.Get(userId) ?? throw new InvalidOperationException("User not found");
+        var user = await _unitOfWork.UserRepository.GetAsync(userId) ?? throw new InvalidOperationException("User not found");
         user.Email = updateDto.Email ?? user.Email;
         user.PhoneNumber = updateDto.PhoneNumber ?? user.PhoneNumber;
         user.FirstName = updateDto.FirstName ?? user.FirstName;
         user.LastName = updateDto.LastName ?? user.LastName;
         user.Bio = updateDto.Bio;
 
-        _unitOfWork.UserRepository.Update(user);
+        await _unitOfWork.UserRepository.UpdateAsync(user);
         await _unitOfWork.CommitAsync();
 
-        return GetUserProfile(userId);
+        return await GetUserProfileAsync(userId);
     }
 
     private async Task<IEnumerable<User>> SearchUsersAsync(string query, int limit = 10)

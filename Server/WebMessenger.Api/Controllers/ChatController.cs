@@ -1,205 +1,82 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebMessenger.Api.Models;
 using WebMessenger.Api.Services.Interfaces;
-using Microsoft.AspNetCore.SignalR;
-using WebMessenger.Api.Hubs;
+using WebMessenger.Api.Hubs.Events.Interfaces;
+using WebMessenger.Api.Infrastructure.Interfaces;
 
 namespace WebMessenger.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/chats")]
-    public class ChatController(IUserService userService, IChatService chatService, ILogger<ChatController> logger, IHubContext<ChatHub> hub) : ControllerBase
+    public class ChatController(
+        ICurrentUser currentUser,
+        IChatService chatService,
+        ILogger<ChatController> logger,
+        IChatEvents chatEvents) : ControllerBase
     {
-        private readonly IUserService _userService = userService;
+        private readonly ICurrentUser _currentUser = currentUser;
         private readonly IChatService _chatService = chatService;
         private readonly ILogger<ChatController> _logger = logger;
-        private readonly IHubContext<ChatHub> _hub = hub;
+        private readonly IChatEvents _events = chatEvents;
 
         [HttpGet]
-        public async Task<IActionResult> Index(
-            [FromHeader(Name = "Authorization")] string auth,
-            int limit = 20,
-            DateTime? before = null)
+        public async Task<ActionResult<PagedResult<ChatListItemDto>>> Index(int limit = 20, DateTime? before = null, CancellationToken ct = default)
         {
-            var me = await _userService.GetUserIdFromAuthHeader(auth);
-            if (!me.HasValue) return Unauthorized();
-            var page = await _chatService.GetUserChatsAsync(me.Value, limit, before);
+            var page = await _chatService.GetUserChatsAsync(_currentUser.Id, limit, before);
             return Ok(page);
         }
 
-
         [HttpGet("{chatId:guid}/header")]
-        public async Task<IActionResult> GetChatHeader(
-            [FromHeader(Name = "Authorization")] string auth,
-            Guid chatId)
+        public async Task<IActionResult> GetChatHeader(Guid chatId, CancellationToken ct)
         {
-            try
-            {
-                var me = await _userService.GetUserIdFromAuthHeader(auth);
-                if (!me.HasValue) return Unauthorized();
-
-                var dto = await _chatService.GetChatHeaderByChatIdAsync(me.Value, chatId);
-                if (dto == null) return NotFound();
-
-                return Ok(dto);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting chat header by chatId");
-                return StatusCode(500, "Error getting chat header");
-            }
+            var dto = await _chatService.GetChatHeaderByChatIdAsync(_currentUser.Id, chatId);
+            return dto is null ? NotFound() : Ok(dto);
         }
 
         [HttpGet("direct/{userId:guid}/header")]
-        public async Task<IActionResult> GetDirectHeader(
-            [FromHeader(Name = "Authorization")] string auth,
-            Guid userId)
+        public async Task<IActionResult> GetDirectHeader(Guid userId, CancellationToken ct)
         {
-            try
-            {
-                var me = await _userService.GetUserIdFromAuthHeader(auth);
-                if (!me.HasValue) return Unauthorized();
-                var dto = await _chatService.GetDirectChatHeaderAsync(me.Value, userId);
-                return Ok(dto);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting direct chat header");
-                return StatusCode(500, "Error getting direct chat header");
-            }
+            var dto = await _chatService.GetDirectChatHeaderAsync(_currentUser.Id, userId);
+            return Ok(dto);
         }
 
         [HttpGet("{chatId:guid}/messages")]
-        public async Task<IActionResult> GetMessages(
-            [FromHeader(Name = "Authorization")] string auth,
-            Guid chatId,
-            int limit = 50,
-            DateTime? before = null)
+        public async Task<ActionResult<PagedResult<ChatMessageDto>>> GetMessages(Guid chatId, int limit = 50, DateTime? before = null, CancellationToken ct = default)
         {
-            try
-            {
-                var me = await _userService.GetUserIdFromAuthHeader(auth);
-                if (!me.HasValue) return Unauthorized();
-                var page = await _chatService.GetMessagesAsync(me.Value, chatId, limit, before);
-                return Ok(page);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Forbid();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting messages");
-                return StatusCode(500, "Error getting messages");
-            }
+            var page = await _chatService.GetMessagesAsync(_currentUser.Id, chatId, limit, before);
+            return Ok(page);
         }
 
         [HttpPost("direct/{userId:guid}/messages")]
-        public async Task<IActionResult> SendMessage(
-            [FromHeader(Name = "Authorization")] string auth,
-            Guid userId,
-            [FromBody] SendMessageRequest req)
+        public async Task<ActionResult<SendMessageResponse>> SendMessage(Guid userId, [FromBody] SendMessageRequest req, CancellationToken ct)
         {
-            try
-            {
-                var me = await _userService.GetUserIdFromAuthHeader(auth);
-                if (!me.HasValue) return Unauthorized();
-
-                var result = await _chatService.SendMessageToUserAsync(me.Value, userId, req.Content);
-
-                var payload = new
-                {
-                    chatId = result.ChatId,
-                    message = result.Message
-                };
-
-                await _hub.Clients.Group($"chat:{result.ChatId}")
-                    .SendAsync("MessageCreated", payload);
-                await _hub.Clients.Group($"user:{userId}")
-                    .SendAsync("MessageCreated", payload);
-                await _hub.Clients.Group($"user:{me.Value}")
-                    .SendAsync("MessageCreated", payload);
-
-                return Ok(result);
-            }
-            catch (ArgumentException aex)
-            {
-                return BadRequest(aex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending message");
-                return StatusCode(500, "Error sending message");
-            }
+            var result = await _chatService.SendMessageToUserAsync(_currentUser.Id, userId, req.Content);
+            return Ok(result);
         }
 
         [HttpPost("{chatId:guid}/read")]
-        public async Task<IActionResult> MarkRead(
-            [FromHeader(Name = "Authorization")] string auth,
-            Guid chatId,
-            [FromBody] MarkReadRequest? body)
+        public async Task<IActionResult> MarkRead(Guid chatId, [FromBody] MarkReadRequest? body, CancellationToken ct)
         {
-            try
+            DateTime? at = body?.At?.Kind switch
             {
-                var me = await _userService.GetUserIdFromAuthHeader(auth);
-                if (!me.HasValue) return Unauthorized();
+                DateTimeKind.Utc => body.At,
+                DateTimeKind.Local => body.At?.ToUniversalTime(),
+                DateTimeKind.Unspecified => body.At.HasValue ? DateTime.SpecifyKind(body.At.Value, DateTimeKind.Utc) : null,
+                _ => null
+            };
 
-                DateTime? at = null;
-                if (body?.At is DateTime candidate)
-                {
-                    at = candidate.Kind switch
-                    {
-                        DateTimeKind.Utc => candidate,
-                        DateTimeKind.Local => candidate.ToUniversalTime(),
-                        DateTimeKind.Unspecified => DateTime.SpecifyKind(candidate, DateTimeKind.Utc),
-                        _ => null
-                    };
-                }
-
-                var state = await _chatService.MarkChatReadAsync(me.Value, chatId, at);
-
-                await _hub.Clients.Group($"chat:{chatId}")
-                    .SendAsync("ReadReceipt", new
-                    {
-                        chatId,
-                        userId = me.Value,
-                        lastReadAt = state.LastReadAt
-                    });
-
-                return Ok(new { lastReadAt = state.LastReadAt, unreadCount = state.UnreadCount });
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Forbid();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error marking chat read");
-                return StatusCode(500, "Error marking chat read");
-            }
+            var state = await _chatService.MarkChatReadAsync(_currentUser.Id, chatId, at);
+            await _events.ReadReceiptAsync(chatId, _currentUser.Id, state.LastReadAt, ct);
+            return Ok(new { lastReadAt = state.LastReadAt, unreadCount = state.UnreadCount });
         }
 
         [HttpGet("{chatId:guid}/read-state")]
-        public async Task<IActionResult> GetReadState(
-            [FromHeader(Name = "Authorization")] string auth,
-            Guid chatId)
+        public async Task<IActionResult> GetReadState(Guid chatId, CancellationToken ct)
         {
-            try
-            {
-                var me = await _userService.GetUserIdFromAuthHeader(auth);
-                if (!me.HasValue) return Unauthorized();
-                var state = await _chatService.GetReadStateAsync(me.Value, chatId);
-                return Ok(new { lastReadAt = state.LastReadAt, unreadCount = state.UnreadCount });
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Forbid();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting read state");
-                return StatusCode(500, "Error getting read state");
-            }
+            var state = await _chatService.GetReadStateAsync(_currentUser.Id, chatId);
+            return Ok(new { lastReadAt = state.LastReadAt, unreadCount = state.UnreadCount });
         }
     }
 }

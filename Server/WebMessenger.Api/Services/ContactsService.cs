@@ -21,14 +21,14 @@ namespace WebMessenger.Api.Services
             var contact = new Contact
             {
                 OwnerUserId = currentUserId,
-                OwnerUser = _unitOfWork.UserRepository.Get(currentUserId),
+                OwnerUser = await _unitOfWork.UserRepository.GetAsync(currentUserId),
                 ContactUserId = request.ContactUserId,
-                ContactUser = _unitOfWork.UserRepository.Get(request.ContactUserId),
+                ContactUser = await _unitOfWork.UserRepository.GetAsync(request.ContactUserId),
                 Nickname = request.Nickname,
                 AddedAt = DateTime.UtcNow
             };
 
-            _unitOfWork.ContactRepository.Insert(contact);
+            await _unitOfWork.ContactRepository.InsertAsync(contact);
             await _unitOfWork.CommitAsync();
 
             return new AddContactResponse

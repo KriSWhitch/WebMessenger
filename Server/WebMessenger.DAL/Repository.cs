@@ -5,84 +5,60 @@ namespace WebMessenger.DAL
 {
     public class Repository<T> : IRepository<T> where T : class
     {
-        internal DbSet<T> DbSet;
-        internal DbContext Context;
+        private readonly DbSet<T> _dbSet;
+        private readonly DbContext _context;
+
         public Repository(DbContext context)
         {
-            Context = context;
-            DbSet = context.Set<T>();
-        }
-
-        public void Insert(T entity)
-        {
-            if (entity != null)
-            {
-                DbSet.Add(entity);
-            }
-            else
-            {
-                throw new ArgumentNullException();
-            }
-        }
-
-        public void Delete(int id)
-        {
-            var entity = DbSet.Find(id);
-            if (entity != null)
-            {
-                DbSet.Attach(entity);
-                DbSet.Remove(entity);
-            }
-            else
-            {
-                throw new ArgumentNullException();
-            }
-        }
-
-        public void Update(T entity)
-        {
-            if (entity != null)
-            {
-                DbSet.Attach(entity);
-                Context.Entry(entity).State = EntityState.Modified;
-            }
-            else
-            {
-                throw new ArgumentNullException();
-            }
-        }
-
-        public T Get(Guid id)
-        {
-            return DbSet.Find(id);
-        }
-
-        public IQueryable<T> GetAll()
-        {
-            return DbSet;
+            _context = context;
+            _dbSet = context.Set<T>();
         }
 
         public IQueryable<T> GetAll(params string[] navigationProperties)
         {
-            var query = Context.Set<T>().AsQueryable();
-
+            var query = _dbSet.AsNoTracking();
             foreach (var navProp in navigationProperties)
             {
                 query = query.Include(navProp);
             }
-
             return query;
         }
 
-        public void DeleteRange(IEnumerable<T> items)
+        public async Task<T?> GetAsync(Guid id, CancellationToken ct = default)
         {
-            Context.Set<T>().RemoveRange(items);
+            return await _dbSet.FindAsync(new object[] { id }, ct);
         }
 
-        public void CreateRange(IEnumerable<T> items)
+        public async Task InsertAsync(T entity, CancellationToken ct = default)
         {
-            Context.Set<T>().AddRange(items);
+            if (entity == null) throw new ArgumentNullException(nameof(entity));
+            await _dbSet.AddAsync(entity, ct);
+        }
+
+        public Task UpdateAsync(T entity, CancellationToken ct = default)
+        {
+            if (entity == null) throw new ArgumentNullException(nameof(entity));
+            _dbSet.Attach(entity);
+            _context.Entry(entity).State = EntityState.Modified;
+            return Task.CompletedTask;
+        }
+
+        public async Task DeleteAsync(Guid id, CancellationToken ct = default)
+        {
+            var entity = await _dbSet.FindAsync(new object[] { id }, ct);
+            if (entity == null) throw new KeyNotFoundException($"Entity {typeof(T).Name} with id {id} not found");
+            _dbSet.Remove(entity);
+        }
+
+        public async Task CreateRangeAsync(IEnumerable<T> items, CancellationToken ct = default)
+        {
+            await _dbSet.AddRangeAsync(items, ct);
+        }
+
+        public Task DeleteRangeAsync(IEnumerable<T> items, CancellationToken ct = default)
+        {
+            _dbSet.RemoveRange(items);
+            return Task.CompletedTask;
         }
     }
-
 }

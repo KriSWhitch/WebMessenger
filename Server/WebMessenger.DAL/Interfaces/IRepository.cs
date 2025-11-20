@@ -2,14 +2,12 @@
 {
     public interface IRepository<T> where T : class
     {
-        void Insert(T entity);
-        void Delete(int id);
-        void Update(T entity);
-        T Get(Guid id);
-        IQueryable<T> GetAll();
         IQueryable<T> GetAll(params string[] navigationProperties);
-        void DeleteRange(IEnumerable<T> items);
-        void CreateRange(IEnumerable<T> items);
+        Task<T?> GetAsync(Guid id, CancellationToken ct = default);
+        Task InsertAsync(T entity, CancellationToken ct = default);
+        Task UpdateAsync(T entity, CancellationToken ct = default);
+        Task DeleteAsync(Guid id, CancellationToken ct = default);
+        Task CreateRangeAsync(IEnumerable<T> items, CancellationToken ct = default);
+        Task DeleteRangeAsync(IEnumerable<T> items, CancellationToken ct = default);
     }
-
 }
