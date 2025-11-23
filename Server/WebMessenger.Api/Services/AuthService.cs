@@ -5,7 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using WebMessenger.DAL.Entities;
 using WebMessenger.DAL.Interfaces;
 using BCrypt.Net;
-using WebMessenger.Services.Interfaces;
+using WebMessenger.Api.Services.Interfaces;
 
 namespace WebMessenger.Api.Services;
 
@@ -141,7 +141,7 @@ public class AuthService(
             ValidIssuer = issuer,
             ValidAudience = audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ClockSkew = TimeSpan.FromMinutes(5) // Allow some leeway for clock differences
+            ClockSkew = TimeSpan.FromMinutes(5)
         };
     }
 
@@ -161,6 +161,6 @@ public class AuthService(
         {
             return lifetime;
         }
-        return 1440; // Default 24 hours if not configured
+        return 1440;
     }
 }

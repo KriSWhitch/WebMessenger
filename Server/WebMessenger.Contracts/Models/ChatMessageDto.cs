@@ -1,4 +1,4 @@
-﻿namespace WebMessenger.Api.Models
+﻿namespace WebMessenger.Contracts.Models
 {
     public class ChatMessageDto
     {
@@ -8,7 +8,5 @@
         public string Content { get; set; } = string.Empty;
         public DateTime SentAt { get; set; }
         public DateTime? EditedAt { get; set; }
-        public bool IsRead { get; set; }
-
     }
 }

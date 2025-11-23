@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using WebMessenger.Api.Models;
 using WebMessenger.Api.Services.Interfaces;
 using WebMessenger.Api.Hubs.Events.Interfaces;
 using WebMessenger.Api.Infrastructure.Interfaces;
+using WebMessenger.Contracts.Models;
 
 namespace WebMessenger.Api.Controllers
 {
@@ -22,28 +22,28 @@ namespace WebMessenger.Api.Controllers
         private readonly IChatEvents _events = chatEvents;
 
         [HttpGet]
-        public async Task<ActionResult<PagedResult<ChatListItemDto>>> Index(int limit = 20, DateTime? before = null, CancellationToken ct = default)
+        public async Task<ActionResult<PagedResult<ChatListItemDto>>> Index(int limit = 20, DateTime? before = null)
         {
             var page = await _chatService.GetUserChatsAsync(_currentUser.Id, limit, before);
             return Ok(page);
         }
 
         [HttpGet("{chatId:guid}/header")]
-        public async Task<IActionResult> GetChatHeader(Guid chatId, CancellationToken ct)
+        public async Task<IActionResult> GetChatHeader(Guid chatId)
         {
             var dto = await _chatService.GetChatHeaderByChatIdAsync(_currentUser.Id, chatId);
             return dto is null ? NotFound() : Ok(dto);
         }
 
         [HttpGet("direct/{userId:guid}/header")]
-        public async Task<IActionResult> GetDirectHeader(Guid userId, CancellationToken ct)
+        public async Task<IActionResult> GetDirectHeader(Guid userId)
         {
             var dto = await _chatService.GetDirectChatHeaderAsync(_currentUser.Id, userId);
             return Ok(dto);
         }
 
         [HttpGet("{chatId:guid}/messages")]
-        public async Task<ActionResult<PagedResult<ChatMessageDto>>> GetMessages(Guid chatId, int limit = 50, DateTime? before = null, CancellationToken ct = default)
+        public async Task<ActionResult<PagedResult<ChatMessageDto>>> GetMessages(Guid chatId, int limit = 50, DateTime? before = null)
         {
             var page = await _chatService.GetMessagesAsync(_currentUser.Id, chatId, limit, before);
             return Ok(page);
@@ -52,7 +52,7 @@ namespace WebMessenger.Api.Controllers
         [HttpPost("direct/{userId:guid}/messages")]
         public async Task<ActionResult<SendMessageResponse>> SendMessage(Guid userId, [FromBody] SendMessageRequest req, CancellationToken ct)
         {
-            var result = await _chatService.SendMessageToUserAsync(_currentUser.Id, userId, req.Content);
+            var result = await _chatService.SendMessageToUserAsync(_currentUser.Id, userId, req.Content, ct);
             return Ok(result);
         }
 
@@ -73,7 +73,7 @@ namespace WebMessenger.Api.Controllers
         }
 
         [HttpGet("{chatId:guid}/read-state")]
-        public async Task<IActionResult> GetReadState(Guid chatId, CancellationToken ct)
+        public async Task<IActionResult> GetReadState(Guid chatId)
         {
             var state = await _chatService.GetReadStateAsync(_currentUser.Id, chatId);
             return Ok(new { lastReadAt = state.LastReadAt, unreadCount = state.UnreadCount });

@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using WebMessenger.Api.Models;
-using WebMessenger.Api.Services.Interfaces;
+using WebMessenger.Contracts.Models;
 using WebMessenger.DAL.Entities;
 using WebMessenger.DAL.Interfaces;
+using WebMessenger.Api.Services.Interfaces;
 using WebMessenger.Api.Hubs.Events.Interfaces;
 
 namespace WebMessenger.Api.Services
@@ -15,6 +15,7 @@ namespace WebMessenger.Api.Services
         public async Task<PagedResult<ChatListItemDto>> GetUserChatsAsync(Guid me, int limit, DateTime? before)
         {
             var take = Math.Clamp(limit, 1, 200);
+
             var baseQuery =
                 from c in _uow.ChatRepository.GetAll(nameof(Chat.Members))
                 where c.Members.Any(m => m.UserId == me)
@@ -44,6 +45,7 @@ namespace WebMessenger.Api.Services
                 .ToListAsync();
 
             var chatIds = rows.Select(r => r.Chat.Id).ToArray();
+
             var lastReads = _uow.ChatMemberRepository.GetAll()
                 .Where(cm => cm.UserId == me && chatIds.Contains(cm.ChatId))
                 .Select(cm => new { cm.ChatId, cm.LastReadAt })
@@ -52,6 +54,7 @@ namespace WebMessenger.Api.Services
             var items = rows.Select(r =>
             {
                 var readAt = lastReads.FirstOrDefault(x => x.ChatId == r.Chat.Id)?.LastReadAt ?? DateTime.MinValue;
+
                 var unread = _uow.MessageRepository.GetAll()
                     .Count(m => m.ChatId == r.Chat.Id && m.SenderId != me && m.SentAt > readAt);
 
@@ -108,7 +111,6 @@ namespace WebMessenger.Api.Services
             var chat = await _uow.ChatRepository
                 .GetAll(nameof(Chat.Members))
                 .FirstOrDefaultAsync(c => c.Id == chatId);
-
             if (chat == null) return null;
 
             if (!chat.IsGroup)
@@ -120,7 +122,6 @@ namespace WebMessenger.Api.Services
                     .GetAll()
                     .Select(u => new { u.Id, u.Username, u.AvatarUrl, u.IsOnline })
                     .FirstOrDefaultAsync(u => u.Id == otherId);
-
                 if (other == null) return null;
 
                 return new DirectChatHeaderDto
@@ -160,12 +161,11 @@ namespace WebMessenger.Api.Services
             var otherUser = await _uow.UserRepository.GetAll()
                 .Where(u => u.Id == other)
                 .Select(u => new { u.Id, u.Username, u.AvatarUrl, u.IsOnline })
-                .FirstOrDefaultAsync();
-
-            if (otherUser == null)
-                throw new InvalidOperationException("User not found");
+                .FirstOrDefaultAsync()
+                ?? throw new InvalidOperationException("User not found");
 
             var chatId = await GetDirectChatIdAsync(me, other);
+
             return new DirectChatHeaderDto
             {
                 OtherUserId = otherUser.Id,
@@ -191,6 +191,7 @@ namespace WebMessenger.Api.Services
             if (before.HasValue) q = q.Where(m => m.SentAt < before.Value);
 
             var take = Math.Clamp(limit, 1, 200);
+
             var items = await q
                 .OrderByDescending(m => m.SentAt)
                 .Take(take)
@@ -201,8 +202,7 @@ namespace WebMessenger.Api.Services
                     SenderId = m.SenderId,
                     Content = m.Content,
                     SentAt = m.SentAt,
-                    EditedAt = m.EditedAt,
-                    IsRead = m.SentAt <= myLastReadAt
+                    EditedAt = m.EditedAt
                 })
                 .ToListAsync();
 
@@ -216,23 +216,20 @@ namespace WebMessenger.Api.Services
             };
         }
 
-        public async Task<SendMessageResponse> SendMessageToUserAsync(Guid me, Guid other, string content)
+        public async Task<SendMessageResponse> SendMessageToUserAsync(Guid me, Guid other, string content, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(content))
                 throw new ArgumentException("Content is required");
 
             var chatId = await GetDirectChatIdAsync(me, other);
-
             if (!chatId.HasValue)
             {
                 var chat = new Chat { IsGroup = false };
-                await _uow.ChatRepository.InsertAsync(chat);
-
+                await _uow.ChatRepository.InsertAsync(chat, ct);
                 var cm1 = new ChatMember { Chat = chat, UserId = me };
                 var cm2 = new ChatMember { Chat = chat, UserId = other };
-                await _uow.ChatMemberRepository.CreateRangeAsync(new[] { cm1, cm2 });
-
-                await _uow.CommitAsync();
+                await _uow.ChatMemberRepository.CreateRangeAsync([cm1, cm2], ct);
+                await _uow.CommitAsync(ct);
                 chatId = chat.Id;
             }
 
@@ -243,8 +240,9 @@ namespace WebMessenger.Api.Services
                 Content = content,
                 SentAt = DateTime.UtcNow
             };
-            await _uow.MessageRepository.InsertAsync(message);
-            await _uow.CommitAsync();
+
+            await _uow.MessageRepository.InsertAsync(message, ct);
+            await _uow.CommitAsync(ct);
 
             var dto = new ChatMessageDto
             {
@@ -253,11 +251,10 @@ namespace WebMessenger.Api.Services
                 SenderId = message.SenderId,
                 Content = message.Content,
                 SentAt = message.SentAt,
-                EditedAt = message.EditedAt,
-                IsRead = message.IsRead
+                EditedAt = message.EditedAt
             };
 
-            await _events.MessageCreatedAsync(chatId.Value, dto, other);
+            await _events.MessageCreatedAsync(chatId.Value, dto, other, ct);
 
             return new SendMessageResponse
             {
@@ -270,10 +267,11 @@ namespace WebMessenger.Api.Services
         {
             var cm = await _uow.ChatMemberRepository
                 .GetAll()
-                .FirstOrDefaultAsync(x => x.ChatId == chatId && x.UserId == me);
-            if (cm == null) throw new UnauthorizedAccessException("Not a member of this chat");
+                .FirstOrDefaultAsync(x => x.ChatId == chatId && x.UserId == me)
+                ?? throw new UnauthorizedAccessException("Not a member of this chat");
 
             var now = atUtc?.ToUniversalTime() ?? DateTime.UtcNow;
+
             cm.LastReadAt = cm.LastReadAt.HasValue && cm.LastReadAt.Value > now ? cm.LastReadAt : now;
             await _uow.ChatMemberRepository.UpdateAsync(cm);
             await _uow.CommitAsync();
@@ -295,8 +293,8 @@ namespace WebMessenger.Api.Services
         {
             var cm = await _uow.ChatMemberRepository
                 .GetAll()
-                .FirstOrDefaultAsync(x => x.ChatId == chatId && x.UserId == me);
-            if (cm == null) throw new UnauthorizedAccessException("Not a member of this chat");
+                .FirstOrDefaultAsync(x => x.ChatId == chatId && x.UserId == me)
+                ?? throw new UnauthorizedAccessException("Not a member of this chat");
 
             var unread = await _uow.MessageRepository.GetAll()
                 .Where(m => m.ChatId == chatId && m.SenderId != me && m.SentAt > (cm.LastReadAt ?? DateTime.MinValue))

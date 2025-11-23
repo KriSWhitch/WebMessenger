@@ -1,7 +1,6 @@
 ﻿using WebMessenger.DAL.Entities;
-using WebMessenger.Api.Models;
 
-namespace WebMessenger.Services.Interfaces;
+namespace WebMessenger.Api.Services.Interfaces;
 
 public interface IAuthService
 {

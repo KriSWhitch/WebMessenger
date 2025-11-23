@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using WebMessenger.Api.Services.Interfaces;
-using WebMessenger.Api.Hubs.Helpers;
+using WebMessenger.Contracts.Helpers;
 
 namespace WebMessenger.Api.Hubs;
 
 #nullable enable
+
 [Authorize]
 public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> logger) : Hub
 {
@@ -13,8 +14,8 @@ public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> lo
     private readonly IChatService _chats = chats;
     private readonly ILogger<ChatHub> _logger = logger;
 
-    private sealed record TypingPayload(Guid chatId, Guid userId, bool isTyping);
-    private sealed record ReadReceiptPayload(Guid chatId, Guid userId, DateTime lastReadAt);
+    private sealed record TypingPayload(Guid ChatId, Guid UserId, bool IsTyping);
+    private sealed record ReadReceiptPayload(Guid ChatId, Guid UserId, DateTime LastReadAt);
 
     public override async Task OnConnectedAsync()
     {
@@ -24,7 +25,9 @@ public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> lo
             Context.Abort();
             return;
         }
+
         await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroups.User(userId.Value));
+
         _logger.LogInformation("User {UserId} connected, conn {ConnId}", userId, Context.ConnectionId);
         await base.OnConnectedAsync();
     }
@@ -75,7 +78,8 @@ public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> lo
         if (!me.HasValue) return;
 
         await Clients.Group(SignalRGroups.Chat(chatId))
-            .SendAsync(Helpers.Events.Typing, new TypingPayload(chatId, me.Value, isTyping));
+            .SendAsync(Contracts.Helpers.Events.Typing, new TypingPayload(chatId, me.Value, isTyping));
+
         _logger.LogTrace("Typing: user {UserId} -> chat {ChatId}: {IsTyping}", me.Value, chatId, isTyping);
     }
 
@@ -85,7 +89,8 @@ public class ChatHub(IUserService users, IChatService chats, ILogger<ChatHub> lo
         if (!me.HasValue) return;
 
         await Clients.Group(SignalRGroups.Chat(chatId))
-            .SendAsync(Helpers.Events.ReadReceipt, new ReadReceiptPayload(chatId, me.Value, upToUtc));
+            .SendAsync(Contracts.Helpers.Events.ReadReceipt, new ReadReceiptPayload(chatId, me.Value, upToUtc));
+
         _logger.LogTrace("ReadReceipt (hub-only): user {UserId} upTo {UpTo} in chat {ChatId}", me.Value, upToUtc, chatId);
     }
 

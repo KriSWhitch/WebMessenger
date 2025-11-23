@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using WebMessenger.Api.Infrastructure;
 using WebMessenger.Api.Infrastructure.Interfaces;
-using WebMessenger.Api.Models;
 using WebMessenger.Api.Services.Interfaces;
+using WebMessenger.Contracts.Models;
 
 namespace WebMessenger.Api.Controllers
 {

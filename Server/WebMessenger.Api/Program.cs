@@ -5,7 +5,6 @@ using WebMessenger.DAL;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using WebMessenger.Services.Interfaces;
 using WebMessenger.Api.Services.Interfaces;
 using WebMessenger.Api.Services;
 using WebMessenger.Api.Hubs;
@@ -44,7 +43,12 @@ builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IChatEvents, ChatEvents>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
-builder.Services.AddSignalR();
+
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+});
+
 builder.Services.AddHttpContextAccessor();
 
 const string FrontCors = "Front";

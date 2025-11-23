@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebMessenger.Api", "WebMess
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebMessenger.DAL", "WebMessenger.DAL\WebMessenger.DAL.csproj", "{7DE68E9F-FD24-4A09-92B5-B9A2224053E1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebMessenger.Contracts", "WebMessenger.Contracts\WebMessenger.Contracts.csproj", "{A9AC1185-C09C-4F3B-9A57-06722DDBE9BC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{7DE68E9F-FD24-4A09-92B5-B9A2224053E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7DE68E9F-FD24-4A09-92B5-B9A2224053E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7DE68E9F-FD24-4A09-92B5-B9A2224053E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A9AC1185-C09C-4F3B-9A57-06722DDBE9BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9AC1185-C09C-4F3B-9A57-06722DDBE9BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9AC1185-C09C-4F3B-9A57-06722DDBE9BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9AC1185-C09C-4F3B-9A57-06722DDBE9BC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

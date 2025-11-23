@@ -30,6 +30,7 @@ public class AvatarService : IAvatarService
 
         var accessToken = config["Dropbox:AccessToken"]
             ?? throw new ArgumentException("Dropbox access token not configured");
+
         _dropboxClient = new DropboxClient(accessToken);
     }
 

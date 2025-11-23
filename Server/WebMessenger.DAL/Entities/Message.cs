@@ -8,8 +8,6 @@
         public Guid ChatId { get; set; }
         public DateTime SentAt { get; set; } = DateTime.UtcNow;
         public DateTime? EditedAt { get; set; }
-        public bool IsRead { get; set; }
-
         public virtual User? Sender { get; set; }
         public virtual Chat? Chat { get; set; }
     }

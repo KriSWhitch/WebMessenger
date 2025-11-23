@@ -1,4 +1,4 @@
-﻿using WebMessenger.Api.Models;
+﻿using WebMessenger.Contracts.Models;
 
 namespace WebMessenger.Api.Services.Interfaces
 {

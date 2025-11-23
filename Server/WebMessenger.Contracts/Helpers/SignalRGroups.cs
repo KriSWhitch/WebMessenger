@@ -1,4 +1,4 @@
-﻿namespace WebMessenger.Api.Hubs.Helpers
+﻿namespace WebMessenger.Contracts.Helpers
 {
     public static class SignalRGroups
     {

@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using WebMessenger.Api.Hubs.Events.Interfaces;
-using WebMessenger.Api.Hubs.Helpers;
-using WebMessenger.Api.Models;
+using WebMessenger.Contracts.Helpers;
+using WebMessenger.Contracts.Models;
 
 namespace WebMessenger.Api.Hubs.Events;
 
@@ -26,26 +26,26 @@ public sealed class ChatEvents(IHubContext<ChatHub> hub, ILogger<ChatEvents> log
                 : (peerUserId.Value, message.SenderId);
 
             await _hub.Clients.Group(SignalRGroups.Direct(a, b))
-                .SendAsync(Helpers.Events.MessageCreated, payload, ct);
+                .SendAsync(Contracts.Helpers.Events.MessageCreated, payload, ct);
 
             await _hub.Clients.Group(SignalRGroups.User(message.SenderId))
-                .SendAsync(Helpers.Events.MessageCreated, payload, ct);
+                .SendAsync(Contracts.Helpers.Events.MessageCreated, payload, ct);
             await _hub.Clients.Group(SignalRGroups.User(peerUserId.Value))
-                .SendAsync(Helpers.Events.MessageCreated, payload, ct);
+                .SendAsync(Contracts.Helpers.Events.MessageCreated, payload, ct);
 
             _log.LogTrace("MessageCreated -> DM group {Group} + user groups for message {MessageId}", SignalRGroups.Direct(a, b), message.Id);
         }
         else
         {
             await _hub.Clients.Group(SignalRGroups.Chat(chatId))
-                .SendAsync(Helpers.Events.MessageCreated, payload, ct);
+                .SendAsync(Contracts.Helpers.Events.MessageCreated, payload, ct);
 
             await _hub.Clients.Group(SignalRGroups.User(message.SenderId))
-                .SendAsync(Helpers.Events.MessageCreated, payload, ct);
+                .SendAsync(Contracts.Helpers.Events.MessageCreated, payload, ct);
             if (peerUserId.HasValue)
             {
                 await _hub.Clients.Group(SignalRGroups.User(peerUserId.Value))
-                    .SendAsync(Helpers.Events.MessageCreated, payload, ct);
+                    .SendAsync(Contracts.Helpers.Events.MessageCreated, payload, ct);
             }
 
             _log.LogTrace("MessageCreated -> Chat group {Group} + user groups for message {MessageId}", SignalRGroups.Chat(chatId), message.Id);
@@ -55,14 +55,14 @@ public sealed class ChatEvents(IHubContext<ChatHub> hub, ILogger<ChatEvents> log
     public async Task ReadReceiptAsync(Guid chatId, Guid userId, DateTime lastReadAtUtc, CancellationToken ct = default)
     {
         var payload = new { chatId, userId, lastReadAt = lastReadAtUtc };
-        await _hub.Clients.Group(SignalRGroups.Chat(chatId)).SendAsync(Helpers.Events.ReadReceipt, payload, ct);
+        await _hub.Clients.Group(SignalRGroups.Chat(chatId)).SendAsync(Contracts.Helpers.Events.ReadReceipt, payload, ct);
         _log.LogTrace("ReadReceipt -> {Group} upTo {LastReadAt} by {UserId}", SignalRGroups.Chat(chatId), lastReadAtUtc, userId);
     }
 
     public async Task TypingAsync(Guid chatId, Guid userId, bool isTyping, CancellationToken ct = default)
     {
         var payload = new { chatId, userId, isTyping };
-        await _hub.Clients.Group(SignalRGroups.Chat(chatId)).SendAsync(Helpers.Events.Typing, payload, ct);
+        await _hub.Clients.Group(SignalRGroups.Chat(chatId)).SendAsync(Contracts.Helpers.Events.Typing, payload, ct);
         _log.LogTrace("Typing -> {Group} {UserId} {IsTyping}", SignalRGroups.Chat(chatId), userId, isTyping);
     }
 }

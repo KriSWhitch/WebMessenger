@@ -16,8 +16,10 @@ namespace WebMessenger.Api.Infrastructure
             {
                 if (!IsAuthenticated)
                     throw new InvalidOperationException("User is not authenticated");
+
                 var claim = _accessor.HttpContext!.User.FindFirst(ClaimTypes.NameIdentifier)
                             ?? throw new InvalidOperationException("NameIdentifier claim not found");
+
                 return Guid.Parse(claim.Value);
             }
         }

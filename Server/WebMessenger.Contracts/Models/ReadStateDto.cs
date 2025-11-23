@@ -1,4 +1,4 @@
-﻿namespace WebMessenger.Api.Models
+﻿namespace WebMessenger.Contracts.Models
 {
     public class ReadStateDto
     {

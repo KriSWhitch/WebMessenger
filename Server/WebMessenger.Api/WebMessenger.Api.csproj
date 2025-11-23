@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\WebMessenger.Contracts\WebMessenger.Contracts.csproj" />
     <ProjectReference Include="..\WebMessenger.DAL\WebMessenger.DAL.csproj" />
   </ItemGroup>
 

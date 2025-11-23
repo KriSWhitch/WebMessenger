@@ -1,9 +1,8 @@
 ﻿using WebMessenger.DAL.Entities;
 using WebMessenger.DAL.Interfaces;
-using WebMessenger.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using WebMessenger.Api.Services.Interfaces;
-using WebMessenger.Services.Interfaces;
+using WebMessenger.Contracts.Models;
 
 namespace WebMessenger.Api.Services;
 
