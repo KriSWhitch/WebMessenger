@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { getChatConnection } from '@/lib/hubs/chatHubClient';
+import { makeDmKey } from '@/lib/utils/makeDmKey';
 
 export type MessageCreated = {
   chatId: string;
@@ -27,6 +28,7 @@ export type ReadReceipt = {
 type Params = {
   chatId?: string;
   peerUserId?: string;
+  currentUserId?: string;
   onMessage: (m: MessageCreated) => void;
   onTyping?: (p: { chatId: string; userId: string; isTyping: boolean }) => void;
   onReadReceipt?: (p: ReadReceipt) => void;
@@ -35,6 +37,7 @@ type Params = {
 export function useChatRealtime({
   chatId,
   peerUserId,
+  currentUserId,
   onMessage,
   onTyping,
   onReadReceipt,
@@ -68,9 +71,7 @@ export function useChatRealtime({
 
     const ensureStarted = async () => {
       if (conn.state === signalR.HubConnectionState.Disconnected) {
-        await conn.start().catch((e) => {
-          console.error('Hub start failed:', e);
-        });
+        await conn.start().catch((e) => console.error('Hub start failed:', e));
       }
       return conn.state === signalR.HubConnectionState.Connected;
     };
@@ -79,17 +80,14 @@ export function useChatRealtime({
       const target = chatId
         ? { mode: 'chat' as const, key: `chat:${chatId}`, chatId }
         : peerUserId
-          ? { mode: 'dm' as const, key: `dm:${peerUserId}`, peerId: peerUserId }
+          ? currentUserId
+            ? { mode: 'dm' as const, key: makeDmKey(currentUserId, peerUserId), peerId: peerUserId }
+            : null
           : null;
-      if (!target) return;
 
-      if (
-        joinedRef.current &&
-        joinedRef.current.mode === target.mode &&
-        joinedRef.current.key === target.key
-      ) {
-        return;
-      }
+      if (!target) return;
+      
+      if (joinedRef.current && joinedRef.current.key === target.key) return;
 
       if (joinedRef.current) {
         try {
@@ -129,20 +127,6 @@ export function useChatRealtime({
       conn.off('MessageCreated', handleMessage);
       if (handleTyping) conn.off('Typing', handleTyping);
       if (handleRead) conn.off('ReadReceipt', handleRead);
-
-      (async () => {
-        try {
-          if (joinedRef.current?.mode === 'dm' && joinedRef.current.peerId) {
-            await conn.invoke('LeaveDirect', joinedRef.current.peerId);
-          } else if (joinedRef.current?.mode === 'chat' && joinedRef.current.chatId) {
-            await conn.invoke('LeaveChat', joinedRef.current.chatId);
-          }
-        } catch {
-          /* noop */
-        } finally {
-          joinedRef.current = null;
-        }
-      })();
     };
-  }, [chatId, peerUserId, onMessage, onTyping, onReadReceipt]);
+  }, [chatId, peerUserId, currentUserId, onMessage, onTyping, onReadReceipt]);
 }

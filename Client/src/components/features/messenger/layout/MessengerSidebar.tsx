@@ -50,6 +50,14 @@ export const MessengerSidebar = ({
 
   const debouncedSearchQuery = useDebounce(searchQuery, 1000);
 
+  async function onAddSearchUserToContact(userId: string) {
+    onAddContact(userId);
+
+    setSearchUserResults((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, isContact: true } : u))
+    );
+  }
+
   const searchUsers = useCallback(
     async (
       query: string,
@@ -201,7 +209,7 @@ export const MessengerSidebar = ({
               <SearchResults
                 results={searchUserResults}
                 onSelectUser={onSearchUserSelect}
-                onAddContact={onAddContact}
+                onAddSearchUserToContact={onAddSearchUserToContact}
               />
             ) : (
               <EmptyState

@@ -34,18 +34,20 @@ export const MessengerMainArea = ({
   onChatRead,
 }: MessengerMainAreaProps) => {
   const chatViewOpen = !!selectedChat;
+  const [chatId, setChatId] = useState<string | null>(getServerChatId(selectedChat));
+  const [meId, setMeId] = useState<string | null>(null);
 
   const peerUserId = useMemo(() => {
     if (!selectedChat) return '';
-    return (
-      (selectedChat as Chat).peerUserId ??
-      selectedChat.members?.find((m) => m.userId !== 'current-user')?.userId ??
-      ''
-    );
-  }, [selectedChat]);
+    if (selectedChat.peerUserId) return selectedChat.peerUserId;
 
-  const [chatId, setChatId] = useState<string | null>(getServerChatId(selectedChat));
-  const [meId, setMeId] = useState<string | null>(null);
+    if (meId && selectedChat.members?.length) {
+      const other = selectedChat.members.find((m) => m.userId !== meId);
+      if (other) return other.userId;
+    }
+
+    return '';
+  }, [selectedChat, meId]);
 
   React.useEffect(() => {
     let alive = true;
@@ -179,6 +181,7 @@ export const MessengerMainArea = ({
   useChatRealtime({
     chatId: chatViewOpen ? (chatId ?? undefined) : undefined,
     peerUserId: chatViewOpen && !chatId ? peerUserId || undefined : undefined,
+    currentUserId: meId || undefined,
     onMessage: React.useCallback(
       (evt) => {
         if (!chatViewOpen) return;

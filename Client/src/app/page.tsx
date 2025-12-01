@@ -8,7 +8,7 @@ import { UserSettings } from '@/components/features/messenger/UserSettings/UserS
 import { UserProfilePanel } from '@/components/features/messenger/chat/UserProfilePanel';
 import * as signalR from '@microsoft/signalr';
 import { getChatConnection } from '@/lib/hubs/chatHubClient';
-
+import { makeDmKey } from '@/lib/utils/makeDmKey';
 import type {
   Chat,
   DirectChatHeaderDto,
@@ -24,17 +24,20 @@ function normalizePage(json: any): PagedResult<ChatListItemDto> {
   const items = Array.isArray(json?.data) ? json.data : [];
   return { items, hasMore: !!json?.hasMore, nextBefore: json?.nextBefore ?? null };
 }
+
 function byLastActivityDesc(a: Chat, b: Chat) {
   const aTs = new Date(a.lastMessage?.sentAt ?? a.createdAt).getTime();
   const bTs = new Date(b.lastMessage?.sentAt ?? b.createdAt).getTime();
   return bTs - aTs;
 }
+
 function mergeUniqueById(base: Chat[], incoming: Chat[]) {
   const map = new Map<string, Chat>();
   for (const c of base) map.set(c.id, c);
   for (const c of incoming) map.set(c.id, c);
   return Array.from(map.values());
 }
+
 function dtoToChat(dto: ChatListItemDto): Chat {
   const isDirect = !dto.isGroup;
   return {
@@ -77,6 +80,7 @@ export default function MessengerPage() {
   const [loading, setLoading] = useState(false);
 
   const currentUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -87,6 +91,7 @@ export default function MessengerPage() {
         if (alive) currentUserIdRef.current = profile?.id ?? null;
       } catch {}
     })();
+
     return () => {
       alive = false;
     };
@@ -115,6 +120,7 @@ export default function MessengerPage() {
         if (alive) setLoading(false);
       }
     })();
+
     return () => {
       alive = false;
     };
@@ -139,7 +145,6 @@ export default function MessengerPage() {
 
   const seenIdsRef = useRef<string[]>([]);
   const seenSetRef = useRef<Set<string>>(new Set());
-
   const rememberId = (id: string) => {
     if (seenSetRef.current.has(id)) return true;
     seenSetRef.current.add(id);
@@ -153,6 +158,7 @@ export default function MessengerPage() {
 
   useEffect(() => {
     const conn = getChatConnection();
+
     const start = async () => {
       if (conn.state === signalR.HubConnectionState.Disconnected) {
         try {
@@ -165,13 +171,11 @@ export default function MessengerPage() {
 
     const onMessageCreated = (payload: MessageCreatedPayload & { peerUserId?: string }) => {
       if (rememberId(payload.message.id)) return;
-
       const meId = currentUserIdRef.current;
       const mine = !!meId && payload.message.senderId === meId;
 
       const activeServerId = selectedServerChatIdRef.current;
       const activePeerId = selectedPeerUserIdRef.current;
-
       const isActive =
         (payload.chatId && payload.chatId === activeServerId) ||
         (!!activePeerId &&
@@ -180,46 +184,112 @@ export default function MessengerPage() {
       const shouldIncrement = !mine && !isActive;
 
       setChats((prev) => {
-        const existing = prev.find((c) => c.id === payload.chatId);
-        const snippet =
-          payload.message.content.length > 120
-            ? payload.message.content.slice(0, 120) + '…'
-            : payload.message.content;
+        let changed = false;
+        if (payload.peerUserId && meId) {
+          const dmKey = makeDmKey(meId, payload.peerUserId);
+          const stubIdx = prev.findIndex((c) => c.id === dmKey && !c.serverChatId);
+          if (stubIdx >= 0) {
+            const stub = prev[stubIdx];
+            const upgraded: Chat = {
+              ...stub,
+              id: payload.chatId,
+              serverChatId: payload.chatId,
+              lastMessage: {
+                id: payload.message.id,
+                content:
+                  payload.message.content.length > 120
+                    ? payload.message.content.slice(0, 120) + '…'
+                    : payload.message.content,
+                senderId: payload.message.senderId,
+                chatId: payload.chatId,
+                sentAt: payload.message.sentAt,
+                isRead: mine,
+              },
+              unreadCount: shouldIncrement ? (stub.unreadCount ?? 0) + 1 : (stub.unreadCount ?? 0),
+            };
+            const next = [...prev];
+            next[stubIdx] = upgraded;
 
-        const preview = {
-          id: payload.message.id,
-          content: snippet,
-          senderId: payload.message.senderId,
-          chatId: payload.chatId,
-          sentAt: payload.message.sentAt,
-          isRead: !!payload.message.isRead && !!mine,
-        };
+            setSelectedChat((sel) => (sel === dmKey ? payload.chatId : sel));
 
-        if (existing) {
+            changed = true;
+            return next.sort(byLastActivityDesc);
+          }
+        }
+
+        const existingIdx = prev.findIndex((c) => c.id === payload.chatId);
+        if (existingIdx >= 0) {
+          const existing = prev[existingIdx];
           const updated: Chat = {
             ...existing,
-            lastMessage: preview,
+            lastMessage: {
+              id: payload.message.id,
+              content:
+                payload.message.content.length > 120
+                  ? payload.message.content.slice(0, 120) + '…'
+                  : payload.message.content,
+              senderId: payload.message.senderId,
+              chatId: payload.chatId,
+              sentAt: payload.message.sentAt,
+              isRead: mine,
+            },
             unreadCount: shouldIncrement
               ? (existing.unreadCount ?? 0) + 1
               : (existing.unreadCount ?? 0),
             peerUserId: existing.peerUserId ?? payload.peerUserId ?? existing.peerUserId,
           };
-          return prev.map((c) => (c.id === existing.id ? updated : c)).sort(byLastActivityDesc);
+          const next = [...prev];
+          next[existingIdx] = updated;
+          changed = true;
+          return next.sort(byLastActivityDesc);
         }
 
-        const stub: Chat = {
+        const newChat: Chat = {
           id: payload.chatId,
           serverChatId: payload.chatId,
           isGroup: false,
           name: 'Direct chat',
           createdAt: payload.message.sentAt,
           avatarUrl: undefined,
-          lastMessage: preview,
+          lastMessage: {
+            id: payload.message.id,
+            content:
+              payload.message.content.length > 120
+                ? payload.message.content.slice(0, 120) + '…'
+                : payload.message.content,
+            senderId: payload.message.senderId,
+            chatId: payload.chatId,
+            sentAt: payload.message.sentAt,
+            isRead: mine,
+          },
           unreadCount: shouldIncrement ? 1 : 0,
           members: [],
           peerUserId: payload.peerUserId ?? (!mine ? payload.message.senderId : undefined),
         };
-        return [stub, ...prev].sort(byLastActivityDesc);
+
+        const next = [newChat, ...prev];
+        setTimeout(async () => {
+          try {
+            const hdr = await getChatHeaderByChatId(payload.chatId);
+            setChats((prevChats) => {
+              const idx = prevChats.findIndex((c) => c.id === payload.chatId);
+              if (idx < 0) return prevChats;
+              const updated = {
+                ...prevChats[idx],
+                name: hdr.username ?? 'Direct chat',
+                avatarUrl: hdr.avatarUrl ?? undefined,
+                peerUserId: hdr.otherUserId ?? prevChats[idx].peerUserId,
+              };
+              const copy = [...prevChats];
+              copy[idx] = updated;
+              return copy;
+            });
+          } catch (e) {
+            console.error('Failed to fetch chat header:', e);
+          }
+        }, 0);
+
+        return next.sort(byLastActivityDesc);
       });
     };
 
@@ -231,13 +301,12 @@ export default function MessengerPage() {
 
     conn.off('MessageCreated', onMessageCreated);
     conn.on('MessageCreated', onMessageCreated);
-
     conn.off('ReadReceipt', onReadReceipt);
     conn.on('ReadReceipt', onReadReceipt);
-
     void start();
 
     conn.onreconnected(() => {});
+
     return () => {
       conn.off('MessageCreated', onMessageCreated);
       conn.off('ReadReceipt', onReadReceipt);
@@ -247,35 +316,33 @@ export default function MessengerPage() {
 
   const openDirectChatWithUser = useCallback(
     async (userId: string): Promise<Chat> => {
-      const existing = chats.find((c) => c.peerUserId === userId || c.id === `dm-${userId}`);
+      const meId = currentUserIdRef.current!;
+      const dmKey = makeDmKey(meId, userId);
+
+      const existing = chats.find((c) => c.id === dmKey || c.peerUserId === userId);
       if (existing) return existing;
 
       const headerResp = await fetch(`/api/chats/direct/${userId}/header`, {
         method: 'GET',
-        cache: 'no-store',
         credentials: 'include',
+        cache: 'no-store',
       });
-      if (!headerResp.ok) throw new Error(await headerResp.text());
       const header = (await headerResp.json()) as DirectChatHeaderDto;
 
       const newChat: Chat = {
-        id: `dm-${userId}`,
+        id: dmKey,
         name: header.username ?? userId,
         isGroup: false,
         createdAt: new Date().toISOString(),
         lastMessage: undefined,
         unreadCount: 0,
         avatarUrl: header.avatarUrl ?? undefined,
-        members: [{ userId }, { userId: 'current-user' }],
+        members: [],
         serverChatId: header.chatId ?? null,
         peerUserId: userId,
       };
 
-      setChats((prev) => {
-        if (header.chatId && prev.some((c) => c.id === header.chatId)) return prev;
-        return mergeUniqueById(prev, [newChat]).sort(byLastActivityDesc);
-      });
-
+      setChats((prev) => mergeUniqueById(prev, [newChat]).sort(byLastActivityDesc));
       return newChat;
     },
     [chats]
@@ -299,20 +366,17 @@ export default function MessengerPage() {
     async (chatId: string) => {
       const card = chats.find((c) => c.id === chatId);
       if (!card) return;
-
       if (card.isGroup) {
         setSelectedChat(card.id);
         setShowSettings(false);
         return;
       }
-
       if (card.peerUserId) {
         const resolved = await openDirectChatWithUser(card.peerUserId);
         setSelectedChat(resolved.id);
         setShowSettings(false);
         return;
       }
-
       try {
         const hdr = await getChatHeaderByChatId(chatId);
         const resolved = await openDirectChatWithUser(hdr.otherUserId);
@@ -372,7 +436,9 @@ export default function MessengerPage() {
     setProfileUserId(userId);
     setIsProfileOpen(true);
   }, []);
+
   const closeProfilePanel = useCallback(() => setIsProfileOpen(false), []);
+
   const handleCloseChat = useCallback(() => {
     setIsProfileOpen(false);
     setShowSettings(false);

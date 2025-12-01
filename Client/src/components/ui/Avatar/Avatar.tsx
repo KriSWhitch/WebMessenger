@@ -1,7 +1,5 @@
-// components/ui/Avatar/Avatar.tsx
 'use client';
 
-import { useState } from 'react';
 import clsx from 'clsx';
 
 type AvatarProps = {

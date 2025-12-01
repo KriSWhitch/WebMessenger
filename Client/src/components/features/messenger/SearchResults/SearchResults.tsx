@@ -7,10 +7,14 @@ import { AddContactIcon } from '@/components/icons/AddContactIcon';
 interface SearchResultsProps {
   results: UserSearchResult[];
   onSelectUser: (userId: string) => void;
-  onAddContact: (userId: string) => Promise<void>;
+  onAddSearchUserToContact: (userId: string) => Promise<void>;
 }
 
-export const SearchResults = ({ results, onSelectUser, onAddContact }: SearchResultsProps) => (
+export const SearchResults = ({
+  results,
+  onSelectUser,
+  onAddSearchUserToContact,
+}: SearchResultsProps) => (
   <div className="divide-y divide-gray-700">
     {results.map((user) => (
       <div key={user.id} className="p-3 hover:bg-gray-800/50 transition-colors duration-150">
@@ -39,7 +43,7 @@ export const SearchResults = ({ results, onSelectUser, onAddContact }: SearchRes
               variant="none"
               className="flex-end w-4 h-4 text-white hover:text-green-500"
               useBaseClasses={false}
-              onClick={() => onAddContact(user.id)}
+              onClick={() => onAddSearchUserToContact(user.id)}
             >
               <AddContactIcon className="w-4 h-4" />
             </Button>
