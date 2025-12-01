@@ -11,11 +11,7 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
   ({ label, error, containerClass, className, ...props }, ref) => {
     return (
       <div className={containerClass}>
-        {label && (
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            {label}
-          </label>
-        )}
+        {label && <label className="block text-sm font-medium text-gray-300 mb-1">{label}</label>}
         <textarea
           ref={ref}
           className={clsx(
@@ -27,9 +23,7 @@ export const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
           )}
           {...props}
         />
-        {error && (
-          <p className="mt-1 text-sm text-red-500">{error}</p>
-        )}
+        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
       </div>
     );
   }

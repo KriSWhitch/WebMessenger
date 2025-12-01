@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 interface LeftArrowIconProps extends React.SVGProps<SVGSVGElement> {
   className?: string;

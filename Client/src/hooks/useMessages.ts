@@ -27,7 +27,11 @@ function mergeUniqueById(base: MessageVM[], incoming: MessageVM[]) {
   return Array.from(map.values());
 }
 
-export function useMessages(opts: { chatId: string | null; pageSize?: number; meId?: string | null; }) {
+export function useMessages(opts: {
+  chatId: string | null;
+  pageSize?: number;
+  meId?: string | null;
+}) {
   const { chatId, pageSize = 30, meId } = opts;
 
   const [messages, setMessages] = useState<MessageVM[]>([]);
@@ -61,12 +65,17 @@ export function useMessages(opts: { chatId: string | null; pageSize?: number; me
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/chats/${chatId}/messages?limit=${pageSize}`, { cache: 'no-store' });
+        const res = await fetch(`/api/chats/${chatId}/messages?limit=${pageSize}`, {
+          cache: 'no-store',
+        });
         if (!res.ok) return;
         const data = normalizePage(await res.json());
         if (!alive) return;
 
-        const prepared = (data.items ?? []).map(m => ({ ...m, _mine: meId ? m.senderId === meId : undefined }));
+        const prepared = (data.items ?? []).map((m) => ({
+          ...m,
+          _mine: meId ? m.senderId === meId : undefined,
+        }));
         const merged = mergeUniqueById([], prepared);
         setMessages(sortAsc(merged));
         setHasMore(!!data.hasMore);
@@ -77,7 +86,9 @@ export function useMessages(opts: { chatId: string | null; pageSize?: number; me
         if (alive) setLoading(false);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [chatId, pageSize, meId, scrollToBottom]);
 
   const loadOlder = useCallback(async () => {
@@ -92,8 +103,11 @@ export function useMessages(opts: { chatId: string | null; pageSize?: number; me
       if (!res.ok) return;
       const data = normalizePage(await res.json());
 
-      const incoming = (data.items ?? []).map(m => ({ ...m, _mine: meId ? m.senderId === meId : undefined }));
-      setMessages(prev => sortAsc(mergeUniqueById(incoming, prev)));
+      const incoming = (data.items ?? []).map((m) => ({
+        ...m,
+        _mine: meId ? m.senderId === meId : undefined,
+      }));
+      setMessages((prev) => sortAsc(mergeUniqueById(incoming, prev)));
 
       setHasMore(!!data.hasMore);
       setNextBefore(data.nextBefore ?? null);
@@ -108,7 +122,7 @@ export function useMessages(opts: { chatId: string | null; pageSize?: number; me
   }, [chatId, hasMore, loading, nextBefore, pageSize, meId]);
 
   const upsertMessage = useCallback((m: MessageVM) => {
-    setMessages(prev => {
+    setMessages((prev) => {
       const merged = mergeUniqueById(prev, [m]);
       return sortAsc(merged);
     });

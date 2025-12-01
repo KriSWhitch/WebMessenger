@@ -11,7 +11,19 @@ interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
-  ({ label = null, error, className, containerClass, showError = true, useBaseClasses = true, icon, ...props }, ref) => {
+  (
+    {
+      label = null,
+      error,
+      className,
+      containerClass,
+      showError = true,
+      useBaseClasses = true,
+      icon,
+      ...props
+    },
+    ref
+  ) => {
     return (
       <div className={clsx('space-y-1 relative', containerClass)}>
         {label && <label className="block text-gray-300 text-sm font-medium">{label}</label>}
@@ -19,7 +31,7 @@ export const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
         <input
           ref={ref}
           className={clsx(
-            useBaseClasses 
+            useBaseClasses
               ? 'w-full p-3 bg-gray-700 border rounded-lg focus:ring-1 focus:ring-green-500 focus:border-green-500 text-gray-200 placeholder-gray-500'
               : '',
             error ? 'border-red-500' : 'border-gray-600',

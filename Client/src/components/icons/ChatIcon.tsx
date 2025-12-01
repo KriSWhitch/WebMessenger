@@ -1,16 +1,11 @@
-import clsx from "clsx"
+import clsx from 'clsx';
 
-type ChatIconProps = React.SVGProps<SVGSVGElement>
+type ChatIconProps = React.SVGProps<SVGSVGElement>;
 
-export const ChatIcon = ({
-  className
-} : ChatIconProps) => {
+export const ChatIcon = ({ className }: ChatIconProps) => {
   return (
     <svg
-      className={clsx(
-        "w-20 h-20 text-gray-600",
-        className
-      )}
+      className={clsx('w-20 h-20 text-gray-600', className)}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -24,4 +19,4 @@ export const ChatIcon = ({
       />
     </svg>
   );
-}
+};

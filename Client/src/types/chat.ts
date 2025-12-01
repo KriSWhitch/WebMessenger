@@ -124,7 +124,6 @@ export type PagedResult<T> = {
   nextBefore?: string | null;
 };
 
-
 export type MessageCreatedPayload = {
   chatId: string;
   peerUserId?: string;
@@ -139,7 +138,7 @@ export type MessageCreatedPayload = {
   };
 };
 
-export type ReadState = { 
-  lastReadAt: string; 
-  unreadCount: number
+export type ReadState = {
+  lastReadAt: string;
+  unreadCount: number;
 };

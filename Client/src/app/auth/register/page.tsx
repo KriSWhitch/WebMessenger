@@ -11,27 +11,27 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     username: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({
     username: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    
+
     if (validationErrors[name as keyof typeof validationErrors]) {
-      setValidationErrors(prev => ({
+      setValidationErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: '',
       }));
     }
   };
@@ -40,7 +40,7 @@ export default function RegisterPage() {
     const errors = {
       username: '',
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
     };
     let isValid = true;
 
@@ -69,39 +69,39 @@ export default function RegisterPage() {
     return isValid;
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
-  
-  if (!validateForm()) {
-    return;
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
 
-  setIsLoading(true);
-  try {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
-    });
-    
-    if (!res.ok) {
-      try {
-        const errorData = await res.json();
-        setError(errorData.error || 'Registration failed');
-      } catch {
-        setError(`Registration failed with status ${res.status}`);
-      }
+    if (!validateForm()) {
       return;
     }
 
-    router.push('/auth/login');
-  } catch (err) {
-    setError(`Connection error: ${err instanceof Error ? err.message : String(err)}`);
-  } finally {
-    setIsLoading(false);
-  }
-};
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        try {
+          const errorData = await res.json();
+          setError(errorData.error || 'Registration failed');
+        } catch {
+          setError(`Registration failed with status ${res.status}`);
+        }
+        return;
+      }
+
+      router.push('/auth/login');
+    } catch (err) {
+      setError(`Connection error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const formFooter = (
     <>
@@ -156,12 +156,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           required
         />
 
-        <Button
-          variant='primary'
-          type="submit"
-          isLoading={isLoading}
-          className="mt-6"
-        >
+        <Button variant="primary" type="submit" isLoading={isLoading} className="mt-6">
           Create Account
         </Button>
       </form>

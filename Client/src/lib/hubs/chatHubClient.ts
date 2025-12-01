@@ -15,7 +15,9 @@ async function fetchAccessToken(): Promise<string> {
     if (!r.ok) return '';
     const data = await r.json();
     return data?.token ?? '';
-  } catch { return ''; }
+  } catch {
+    return '';
+  }
 }
 
 let connection: signalR.HubConnection | null = null;

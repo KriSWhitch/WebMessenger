@@ -6,9 +6,6 @@ export async function POST() {
     response.cookies.delete('auth-token');
     return response;
   } catch (error) {
-    return NextResponse.json(
-      { message: `Logout failed: ${error}` },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: `Logout failed: ${error}` }, { status: 500 });
   }
 }

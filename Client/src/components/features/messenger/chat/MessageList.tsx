@@ -33,8 +33,7 @@ export function MessageList(props: {
 
   const isFarFromBottom = () => distanceToBottom() > FAR_FROM_BOTTOM_EPSILON;
 
-  const rAF2 = (cb: () => void) =>
-    requestAnimationFrame(() => requestAnimationFrame(cb));
+  const rAF2 = (cb: () => void) => requestAnimationFrame(() => requestAnimationFrame(cb));
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
     rAF2(() => {
@@ -128,21 +127,21 @@ export function MessageList(props: {
       aria-live="polite"
       aria-relevant="additions"
       className={[
-        "h-full overflow-y-auto px-2 pt-2 space-y-2",
-        "[-webkit-overflow-scrolling:touch]",
-        "[scrollbar-width:thin]",
-        "[scrollbar-color:rgba(156,163,175,.6)_transparent]",
-        "[&::-webkit-scrollbar]:w-2",
-        "[&::-webkit-scrollbar]:h-2",
-        "[&::-webkit-scrollbar-track]:bg-transparent",
-        "[&::-webkit-scrollbar-thumb]:rounded-full",
-        "[&::-webkit-scrollbar-thumb]:border-2",
-        "[&::-webkit-scrollbar-thumb]:border-transparent",
-        "[&::-webkit-scrollbar-thumb]:bg-clip-padding",
-        "[&::-webkit-scrollbar-thumb]:bg-gray-400/60",
-        "[&::-webkit-scrollbar-thumb]:transition-colors",
-        "hover:[&::-webkit-scrollbar-thumb]:bg-gray-300/80",
-      ].join(" ")}
+        'h-full overflow-y-auto px-2 pt-2 space-y-2',
+        '[-webkit-overflow-scrolling:touch]',
+        '[scrollbar-width:thin]',
+        '[scrollbar-color:rgba(156,163,175,.6)_transparent]',
+        '[&::-webkit-scrollbar]:w-2',
+        '[&::-webkit-scrollbar]:h-2',
+        '[&::-webkit-scrollbar-track]:bg-transparent',
+        '[&::-webkit-scrollbar-thumb]:rounded-full',
+        '[&::-webkit-scrollbar-thumb]:border-2',
+        '[&::-webkit-scrollbar-thumb]:border-transparent',
+        '[&::-webkit-scrollbar-thumb]:bg-clip-padding',
+        '[&::-webkit-scrollbar-thumb]:bg-gray-400/60',
+        '[&::-webkit-scrollbar-thumb]:transition-colors',
+        'hover:[&::-webkit-scrollbar-thumb]:bg-gray-300/80',
+      ].join(' ')}
     >
       {hasMore && (
         <div className="text-center text-gray-400 text-xs">
@@ -155,7 +154,7 @@ export function MessageList(props: {
           No messages yet. Say hello 👋
         </div>
       ) : (
-        messages.map(m => <MessageBubble key={m.id} m={m} />)
+        messages.map((m) => <MessageBubble key={m.id} m={m} />)
       )}
 
       <div ref={bottomRef} />

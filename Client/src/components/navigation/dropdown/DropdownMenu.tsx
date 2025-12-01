@@ -13,10 +13,7 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
     if (!isOpen) return null;
 
     return (
-      <Card 
-        ref={ref}
-        className={`absolute left-0 top-6 z-50 w-48 shadow-lg ${className}`}
-      >
+      <Card ref={ref} className={`absolute left-0 top-6 z-50 w-48 shadow-lg ${className}`}>
         {children}
       </Card>
     );

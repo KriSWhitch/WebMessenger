@@ -46,7 +46,12 @@ export function useChatRealtime(params: {
       if (!key || lastJoinKeyRef.current === key) return;
 
       if (conn.state === signalR.HubConnectionState.Disconnected) {
-        try { await conn.start(); } catch (e) { console.error('Hub start failed:', e); return; }
+        try {
+          await conn.start();
+        } catch (e) {
+          console.error('Hub start failed:', e);
+          return;
+        }
       }
       if (conn.state !== signalR.HubConnectionState.Connected) return;
 

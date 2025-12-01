@@ -15,7 +15,7 @@ export const ChatPreview = ({ name, lastMessage, time, unread }: ChatPreviewProp
     </div>
     <div className="flex justify-between items-center gap-2">
       <p className="text-sm text-gray-400 truncate">{lastMessage}</p>
-      {(unread && unread > 0) ? <Badge count={unread} /> : <></>}
+      {unread && unread > 0 ? <Badge count={unread} /> : <></>}
     </div>
   </div>
 );

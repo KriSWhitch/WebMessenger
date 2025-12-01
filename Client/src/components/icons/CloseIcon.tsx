@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 export interface CloseIconProps extends React.SVGProps<SVGSVGElement> {
   className?: string;
@@ -19,7 +19,7 @@ export const CloseIcon: React.FC<CloseIconProps> = ({
         viewBox="0 0 24 24"
         fill="currentColor"
         className={className}
-        aria-hidden={props["aria-label"] ? undefined : true}
+        aria-hidden={props['aria-label'] ? undefined : true}
         {...props}
       >
         <path
@@ -41,7 +41,7 @@ export const CloseIcon: React.FC<CloseIconProps> = ({
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
-      aria-hidden={props["aria-label"] ? undefined : true}
+      aria-hidden={props['aria-label'] ? undefined : true}
       {...props}
     >
       <path d="M18 6L6 18" />

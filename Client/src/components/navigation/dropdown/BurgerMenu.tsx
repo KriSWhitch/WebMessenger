@@ -20,7 +20,7 @@ export const BurgerMenu = ({ className = '', menuItems = [] }: BurgerMenuProps) 
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const toggleMenu = () => {
-    setIsMenuOpen(prev => !prev);
+    setIsMenuOpen((prev) => !prev);
   };
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export const BurgerMenu = ({ className = '', menuItems = [] }: BurgerMenuProps) 
       <DropdownMenu isOpen={isMenuOpen} ref={menuRef}>
         <div className="p-2 space-y-1">
           {menuItems.map((item, index) => (
-            <DropdownMenuItem 
+            <DropdownMenuItem
               key={index}
               onClick={(e) => {
                 e.stopPropagation();

@@ -106,15 +106,11 @@ export function UserProfilePanel({ userId, open, onClose }: Props) {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Bio</p>
-                <p className="whitespace-pre-line break-words">
-                  {data?.bio || 'No bio provided'}
-                </p>
+                <p className="whitespace-pre-line break-words">{data?.bio || 'No bio provided'}</p>
               </div>
             </div>
 
-            {!!error && (
-              <div className="text-xs text-red-400">Error loading profile: {error}</div>
-            )}
+            {!!error && <div className="text-xs text-red-400">Error loading profile: {error}</div>}
           </div>
         </div>
       </aside>

@@ -40,7 +40,12 @@ export function useChatRealtime({
   onReadReceipt,
 }: Params) {
   const connRef = useRef<signalR.HubConnection | null>(null);
-  const joinedRef = useRef<{ mode: 'dm' | 'chat'; key: string; peerId?: string; chatId?: string } | null>(null);
+  const joinedRef = useRef<{
+    mode: 'dm' | 'chat';
+    key: string;
+    peerId?: string;
+    chatId?: string;
+  } | null>(null);
 
   useEffect(() => {
     const conn = getChatConnection();
@@ -52,23 +57,37 @@ export function useChatRealtime({
 
     conn.off('MessageCreated', handleMessage);
     conn.on('MessageCreated', handleMessage);
-    if (handleTyping) { conn.off('Typing', handleTyping); conn.on('Typing', handleTyping); }
-    if (handleRead)   { conn.off('ReadReceipt', handleRead); conn.on('ReadReceipt', handleRead); }
+    if (handleTyping) {
+      conn.off('Typing', handleTyping);
+      conn.on('Typing', handleTyping);
+    }
+    if (handleRead) {
+      conn.off('ReadReceipt', handleRead);
+      conn.on('ReadReceipt', handleRead);
+    }
 
     const ensureStarted = async () => {
       if (conn.state === signalR.HubConnectionState.Disconnected) {
-        await conn.start().catch(e => { console.error('Hub start failed:', e); });
+        await conn.start().catch((e) => {
+          console.error('Hub start failed:', e);
+        });
       }
       return conn.state === signalR.HubConnectionState.Connected;
     };
 
     const joinCurrent = async () => {
-      const target = chatId ? { mode: 'chat' as const, key: `chat:${chatId}`, chatId }
-                            : peerUserId ? { mode: 'dm' as const, key: `dm:${peerUserId}`, peerId: peerUserId }
-                                         : null;
+      const target = chatId
+        ? { mode: 'chat' as const, key: `chat:${chatId}`, chatId }
+        : peerUserId
+          ? { mode: 'dm' as const, key: `dm:${peerUserId}`, peerId: peerUserId }
+          : null;
       if (!target) return;
 
-      if (joinedRef.current && joinedRef.current.mode === target.mode && joinedRef.current.key === target.key) {
+      if (
+        joinedRef.current &&
+        joinedRef.current.mode === target.mode &&
+        joinedRef.current.key === target.key
+      ) {
         return;
       }
 
@@ -108,8 +127,8 @@ export function useChatRealtime({
 
     return () => {
       conn.off('MessageCreated', handleMessage);
-      if (handleTyping)   conn.off('Typing', handleTyping);
-      if (handleRead)     conn.off('ReadReceipt', handleRead);
+      if (handleTyping) conn.off('Typing', handleTyping);
+      if (handleRead) conn.off('ReadReceipt', handleRead);
 
       (async () => {
         try {
@@ -118,8 +137,11 @@ export function useChatRealtime({
           } else if (joinedRef.current?.mode === 'chat' && joinedRef.current.chatId) {
             await conn.invoke('LeaveChat', joinedRef.current.chatId);
           }
-        } catch { /* noop */ }
-        finally { joinedRef.current = null; }
+        } catch {
+          /* noop */
+        } finally {
+          joinedRef.current = null;
+        }
       })();
     };
   }, [chatId, peerUserId, onMessage, onTyping, onReadReceipt]);

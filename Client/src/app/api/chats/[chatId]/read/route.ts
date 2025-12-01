@@ -1,5 +1,5 @@
-import { NextRequest } from "next/server";
-import { proxyPost } from "@/app/api/utils/proxy";
+import { NextRequest } from 'next/server';
+import { proxyPost } from '@/app/api/utils/proxy';
 
 export async function POST(req: NextRequest, context: { params: { chatId: string } }) {
   const { chatId } = await context.params;

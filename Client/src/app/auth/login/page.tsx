@@ -10,7 +10,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     username: '',
-    password: ''
+    password: '',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -58,15 +58,15 @@ export default function LoginPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-  
+
     if (validationErrors[name as keyof typeof validationErrors]) {
-      setValidationErrors(prev => ({
+      setValidationErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: '',
       }));
     }
   };
@@ -84,9 +84,9 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          username: formData.username, 
-          password: formData.password 
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
         }),
       });
 
@@ -153,12 +153,7 @@ export default function LoginPage() {
           required
         />
 
-        <Button
-          variant='primary'
-          type="submit"
-          isLoading={isLoading}
-          className="mt-6"
-        >
+        <Button variant="primary" type="submit" isLoading={isLoading} className="mt-6">
           Sign In
         </Button>
       </form>

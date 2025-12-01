@@ -14,12 +14,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const authStatus = await checkAuthClient();
         setIsAuthenticated(authStatus);
-        
+
         if (!authStatus && !pathname.startsWith('/auth')) {
           router.replace('/auth/login');
           return;
         }
-        
+
         if (authStatus && pathname.startsWith('/auth')) {
           router.replace('/');
           return;

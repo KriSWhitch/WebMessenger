@@ -39,7 +39,7 @@ export const MessengerMainArea = ({
     if (!selectedChat) return '';
     return (
       (selectedChat as Chat).peerUserId ??
-      selectedChat.members?.find(m => m.userId !== 'current-user')?.userId ??
+      selectedChat.members?.find((m) => m.userId !== 'current-user')?.userId ??
       ''
     );
   }, [selectedChat]);
@@ -57,7 +57,9 @@ export const MessengerMainArea = ({
         if (alive) setMeId(profile?.id ?? null);
       } catch {}
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const {
@@ -107,9 +109,7 @@ export const MessengerMainArea = ({
   const scheduleReadIfNeeded = useCallback(() => {
     if (!chatViewOpen) return;
     if (!chatId) return;
-    const visible = typeof document !== 'undefined'
-      ? document.visibilityState === 'visible'
-      : true;
+    const visible = typeof document !== 'undefined' ? document.visibilityState === 'visible' : true;
     if (!visible) return;
     if (!isNearBottom()) return;
 
@@ -129,12 +129,12 @@ export const MessengerMainArea = ({
 
       inflightRef.current = true;
       try {
-        setMessages(prev =>
-          prev.map(m =>
-            (m.chatId === chatId &&
-             !(meId ? m.senderId === meId : false) &&
-             !m.isRead &&
-             new Date(m.sentAt).getTime() <= maxNow)
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.chatId === chatId &&
+            !(meId ? m.senderId === meId : false) &&
+            !m.isRead &&
+            new Date(m.sentAt).getTime() <= maxNow
               ? { ...m, isRead: true }
               : m
           )
@@ -178,30 +178,44 @@ export const MessengerMainArea = ({
 
   useChatRealtime({
     chatId: chatViewOpen ? (chatId ?? undefined) : undefined,
-    peerUserId: chatViewOpen && !chatId ? (peerUserId || undefined) : undefined,
-    onMessage: React.useCallback((evt) => {
-      if (!chatViewOpen) return;
+    peerUserId: chatViewOpen && !chatId ? peerUserId || undefined : undefined,
+    onMessage: React.useCallback(
+      (evt) => {
+        if (!chatViewOpen) return;
 
-      const srv: MessageVM = {
-        ...evt.message,
-        _mine: meId ? evt.message.senderId === meId : undefined,
-      };
-      upsertMessage(srv);
+        const srv: MessageVM = {
+          ...evt.message,
+          _mine: meId ? evt.message.senderId === meId : undefined,
+        };
+        upsertMessage(srv);
 
-      if (!chatId && evt.chatId) setChatId(evt.chatId);
+        if (!chatId && evt.chatId) setChatId(evt.chatId);
 
-      const isMine = meId ? evt.message.senderId === meId : false;
-      if (!isMine) scheduleReadIfNeeded();
+        const isMine = meId ? evt.message.senderId === meId : false;
+        if (!isMine) scheduleReadIfNeeded();
 
-      if (isNearBottom()) setTimeout(scrollToBottom, 0);
-    }, [chatViewOpen, chatId, meId, upsertMessage, isNearBottom, scrollToBottom, scheduleReadIfNeeded]),
+        if (isNearBottom()) setTimeout(scrollToBottom, 0);
+      },
+      [
+        chatViewOpen,
+        chatId,
+        meId,
+        upsertMessage,
+        isNearBottom,
+        scrollToBottom,
+        scheduleReadIfNeeded,
+      ]
+    ),
 
-    onReadReceipt: React.useCallback((p) => {
-      if (!chatViewOpen) return;
-      if (p.chatId && p.chatId === chatId && p.userId === meId) {
-        onChatRead?.(p.chatId, p.lastReadAt, 0);
-      }
-    }, [chatViewOpen, chatId, meId, onChatRead]),
+    onReadReceipt: React.useCallback(
+      (p) => {
+        if (!chatViewOpen) return;
+        if (p.chatId && p.chatId === chatId && p.userId === meId) {
+          onChatRead?.(p.chatId, p.lastReadAt, 0);
+        }
+      },
+      [chatViewOpen, chatId, meId, onChatRead]
+    ),
   });
 
   const [text, setText] = useState('');
@@ -222,9 +236,11 @@ export const MessengerMainArea = ({
       _pending: true,
       _mine: true,
     };
-    setMessages(prev => [...prev, optimistic]);
+    setMessages((prev) => [...prev, optimistic]);
     setText('');
-    setTimeout(() => { if (isNearBottom()) scrollToBottom(); }, 0);
+    setTimeout(() => {
+      if (isNearBottom()) scrollToBottom();
+    }, 0);
     try {
       const res = await fetch(`/api/chats/direct/${peerUserId}/messages`, {
         method: 'POST',
@@ -233,15 +249,21 @@ export const MessengerMainArea = ({
         credentials: 'include',
       });
       if (!res.ok) {
-        setMessages(prev => prev.map(m => m.id === clientId ? { ...m, _pending: false, _failed: true } : m));
+        setMessages((prev) =>
+          prev.map((m) => (m.id === clientId ? { ...m, _pending: false, _failed: true } : m))
+        );
         return;
       }
-      const data = await res.json() as { chatId: string; message: MessageVM };
-      setMessages(prev => prev.filter(m => m.id !== clientId));
+      const data = (await res.json()) as { chatId: string; message: MessageVM };
+      setMessages((prev) => prev.filter((m) => m.id !== clientId));
       if (!chatId) setChatId(data.chatId);
-      setTimeout(() => { if (isNearBottom()) scrollToBottom(); }, 0);
+      setTimeout(() => {
+        if (isNearBottom()) scrollToBottom();
+      }, 0);
     } catch {
-      setMessages(prev => prev.map(m => m.id === clientId ? { ...m, _pending: false, _failed: true } : m));
+      setMessages((prev) =>
+        prev.map((m) => (m.id === clientId ? { ...m, _pending: false, _failed: true } : m))
+      );
     } finally {
       setIsSending(false);
     }
@@ -313,7 +335,7 @@ export const MessengerMainArea = ({
                   className="!py-3 !px-3 bg-green-600 rounded-full cursor-pointer"
                   useBaseClasses={false}
                 >
-                  <SendMessageIcon className='w-6 h-6' />
+                  <SendMessageIcon className="w-6 h-6" />
                 </Button>
               </div>
             </div>

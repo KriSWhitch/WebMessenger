@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const upstreamResp = await fetch(`${process.env.API_BASE_URL ?? process.env.PUBLIC_API_URL}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  const upstreamResp = await fetch(
+    `${process.env.API_BASE_URL ?? process.env.PUBLIC_API_URL}/api/auth/login`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }
+  );
 
   const status = upstreamResp.status;
   const contentType = upstreamResp.headers.get('content-type') || '';
@@ -14,10 +17,9 @@ export async function POST(req: NextRequest) {
   const payload = isJson ? await upstreamResp.json().catch(() => ({})) : await upstreamResp.text();
 
   if (!upstreamResp.ok) {
-    return NextResponse.json(
-      typeof payload === 'string' ? { message: payload } : payload,
-      { status }
-    );
+    return NextResponse.json(typeof payload === 'string' ? { message: payload } : payload, {
+      status,
+    });
   }
 
   const token = typeof payload === 'string' ? undefined : payload?.token;

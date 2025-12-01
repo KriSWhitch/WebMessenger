@@ -1,18 +1,15 @@
-import { Contact } from "@/types/contact";
-import { Avatar } from "@/components/ui/Avatar/Avatar";
-import clsx from "clsx";
-import { EmptyState } from "@/components/features/messenger/EmptyState/EmptyState";
-import { ChatIcon } from "@/components/icons/ChatIcon";
+import { Contact } from '@/types/contact';
+import { Avatar } from '@/components/ui/Avatar/Avatar';
+import clsx from 'clsx';
+import { EmptyState } from '@/components/features/messenger/EmptyState/EmptyState';
+import { ChatIcon } from '@/components/icons/ChatIcon';
 
 interface ContactListProps {
   contacts: Contact[];
   onSelectContact: (contactId: string) => void;
 }
 
-export const ContactList = ({ 
-  contacts, 
-  onSelectContact
-}: ContactListProps) => {
+export const ContactList = ({ contacts, onSelectContact }: ContactListProps) => {
   if (!contacts || contacts.length === 0) {
     return (
       <EmptyState
@@ -30,25 +27,24 @@ export const ContactList = ({
           key={contact.id}
           onClick={() => onSelectContact(contact.userId)}
           className={clsx(
-            "block hover:bg-gray-800/50 transition-colors duration-150 cursor-pointer"
+            'block hover:bg-gray-800/50 transition-colors duration-150 cursor-pointer'
           )}
         >
           <div className="p-3">
             <div className="flex items-center gap-3">
-              <Avatar 
-                src={contact.avatarUrl} 
-                name={contact?.contactUser?.username || ""} 
+              <Avatar
+                src={contact.avatarUrl}
+                name={contact?.contactUser?.username || ''}
                 className="h-11 w-11"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-medium truncate">
-                    {
-                        [contact?.nickname, 
-                        `${contact?.contactUser?.firstName} ${contact?.contactUser?.lastName}`, 
-                        contact?.contactUser?.username]
-                        .find(str => str && str?.trim().length > 0)
-                    }
+                    {[
+                      contact?.nickname,
+                      `${contact?.contactUser?.firstName} ${contact?.contactUser?.lastName}`,
+                      contact?.contactUser?.username,
+                    ].find((str) => str && str?.trim().length > 0)}
                   </h3>
                   {contact.isOnline ? (
                     <span className="text-xs text-green-500">Online</span>
@@ -56,9 +52,7 @@ export const ContactList = ({
                     <span className="text-xs text-gray-400">Offline</span>
                   )}
                 </div>
-                <p className="text-sm text-gray-400 truncate">
-                  @{contact?.contactUser?.username}
-                </p>
+                <p className="text-sm text-gray-400 truncate">@{contact?.contactUser?.username}</p>
               </div>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 interface AddContactIconProps extends React.SVGProps<SVGSVGElement> {
   className?: string;

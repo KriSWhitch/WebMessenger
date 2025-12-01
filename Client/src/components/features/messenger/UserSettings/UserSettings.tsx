@@ -30,10 +30,10 @@ export const UserSettings = ({ onClose }: UserSettingsProps) => {
       try {
         const response = await fetch('/api/users/profile', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           setProfile(data);
@@ -76,11 +76,11 @@ export const UserSettings = ({ onClose }: UserSettingsProps) => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
+
     if (name === 'bio' && value.length > 70) return;
-    
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (name === 'bio') {
       setBioLength(value.length);
     }
@@ -89,14 +89,14 @@ export const UserSettings = ({ onClose }: UserSettingsProps) => {
   const handleSave = async () => {
     try {
       setIsLoading(true);
-      
+
       const profileResponse = await fetch('/api/users/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
       if (!profileResponse.ok) {
@@ -113,9 +113,9 @@ export const UserSettings = ({ onClose }: UserSettingsProps) => {
         const avatarResponse = await fetch('/api/users/avatar', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
-          body: formData
+          body: formData,
         });
 
         if (!avatarResponse.ok) {
@@ -123,7 +123,7 @@ export const UserSettings = ({ onClose }: UserSettingsProps) => {
         }
 
         const { avatarUrl } = await avatarResponse.json();
-        setProfile(prev => prev ? { ...prev, avatarUrl } : null);
+        setProfile((prev) => (prev ? { ...prev, avatarUrl } : null));
       }
 
       setIsEditing(false);
@@ -150,17 +150,13 @@ export const UserSettings = ({ onClose }: UserSettingsProps) => {
 
   return (
     <div className="relative w-full h-full overflow-hidden">
-      <div
-        className={clsx(
-          'p-4 w-full h-full mx-auto'
-        )}
-      >
+      <div className={clsx('p-4 w-full h-full mx-auto')}>
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-semibold">User Profile</h2>
           <div className="flex gap-2">
             {isEditing ? (
               <>
-                <Button 
+                <Button
                   useBaseClasses={false}
                   onClick={handleSave}
                   disabled={isLoading}
@@ -168,7 +164,7 @@ export const UserSettings = ({ onClose }: UserSettingsProps) => {
                 >
                   <SaveIcon className="w-4 h-4" />
                 </Button>
-                <Button 
+                <Button
                   useBaseClasses={false}
                   onClick={handleCancel}
                   className="p-2 h-fit w-fit rounded-full hover:bg-gray-700 transition-colors"
@@ -178,14 +174,14 @@ export const UserSettings = ({ onClose }: UserSettingsProps) => {
               </>
             ) : (
               <>
-                <Button 
+                <Button
                   useBaseClasses={false}
                   onClick={() => setIsEditing(true)}
                   className="p-2 h-fit w-fit rounded-full hover:bg-gray-700 transition-colors"
                 >
                   <EditIcon className="w-5 h-5" />
                 </Button>
-                <Button 
+                <Button
                   useBaseClasses={false}
                   onClick={onClose}
                   className="p-2 h-fit w-fit rounded-full hover:bg-gray-700 transition-colors"
@@ -200,18 +196,18 @@ export const UserSettings = ({ onClose }: UserSettingsProps) => {
         {/* Avatar Section */}
         <div className="flex flex-col items-center mb-8">
           <div className="relative group mb-4">
-            <Avatar 
-              src={avatarPreview || profile.avatarUrl} 
-              name={profile.username ?? "User"} 
+            <Avatar
+              src={avatarPreview || profile.avatarUrl}
+              name={profile.username ?? 'User'}
               className="h-32 w-32 text-4xl"
             />
             {isEditing && (
               <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <label className="cursor-pointer p-2 bg-gray-700 rounded-full">
-                  <input 
+                  <input
                     ref={fileInputRef}
-                    type="file" 
-                    className="hidden" 
+                    type="file"
+                    className="hidden"
                     accept="image/*"
                     onChange={handleAvatarChange}
                   />
@@ -267,9 +263,7 @@ export const UserSettings = ({ onClose }: UserSettingsProps) => {
                   rows={3}
                   className="w-full"
                 />
-                <p className="text-xs text-gray-400 mt-1">
-                  Maximum 70 characters allowed
-                </p>
+                <p className="text-xs text-gray-400 mt-1">Maximum 70 characters allowed</p>
               </div>
             </>
           ) : (

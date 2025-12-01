@@ -2,7 +2,7 @@ export async function checkAuthClient(): Promise<boolean> {
   try {
     const res = await fetch(`/api/auth/verify`, {
       cache: 'no-store',
-      credentials: 'include'
+      credentials: 'include',
     });
     return res.ok;
   } catch (error) {
@@ -29,7 +29,7 @@ export async function logoutClient(): Promise<{ success: boolean; error?: string
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user');
       sessionStorage.clear();
-      
+
       window.location.href = '/auth/login';
     }
 

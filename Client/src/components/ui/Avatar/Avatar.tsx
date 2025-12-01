@@ -11,41 +11,24 @@ type AvatarProps = {
   size?: number;
 };
 
-export const Avatar = ({ src, name = '', className, size = 44 }: AvatarProps) => {
-  const [fitByHeight, setFitByHeight] = useState<boolean>(false);
-
+export const Avatar = ({ src, name = '', className }: AvatarProps) => {
   return (
     <div
       className={clsx(
         'relative rounded-full bg-gray-600 overflow-hidden flex items-center justify-center',
         className
       )}
-      style={{
-        width: size,
-        height: size,
-        aspectRatio: '1 / 1',
-      }}
     >
       {src ? (
         <img
           src={src}
           alt={name}
-          className={clsx(
-            'block object-cover object-center select-none',
-            fitByHeight ? 'h-full w-auto' : 'w-full h-auto'
-          )}
-          onLoad={(e) => {
-            const img = e.currentTarget;
-            const { naturalWidth, naturalHeight } = img;
-            setFitByHeight(naturalHeight >= naturalWidth);
-          }}
+          className={clsx('block object-cover object-center select-none', 'h-full w-full')}
           decoding="async"
           loading="lazy"
         />
       ) : (
-        <span className="text-lg font-medium">
-          {name?.trim()?.charAt(0)?.toUpperCase() ?? 'U'}
-        </span>
+        <span className="text-lg font-medium">{name?.trim()?.charAt(0)?.toUpperCase() ?? 'U'}</span>
       )}
     </div>
   );

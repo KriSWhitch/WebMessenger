@@ -12,7 +12,7 @@ export const DropdownMenuItem = ({
   children,
   onClick,
   className = '',
-  danger = false
+  danger = false,
 }: DropdownMenuItemProps) => {
   return (
     <button

@@ -59,7 +59,10 @@ export function useChatList(opts: { pageSize?: number } = {}) {
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/chats?limit=${pageSize}`, { cache: 'no-store', credentials: 'include' });
+        const res = await fetch(`/api/chats?limit=${pageSize}`, {
+          cache: 'no-store',
+          credentials: 'include',
+        });
         if (!res.ok) return;
         const data = normalizePage(await res.json());
         if (!alive) return;
@@ -70,7 +73,9 @@ export function useChatList(opts: { pageSize?: number } = {}) {
         if (alive) setLoading(false);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [pageSize]);
 
   const loadMore = useCallback(async () => {
@@ -81,7 +86,7 @@ export function useChatList(opts: { pageSize?: number } = {}) {
       const res = await fetch(url, { cache: 'no-store', credentials: 'include' });
       if (!res.ok) return;
       const data = normalizePage(await res.json());
-      setPages(prev => [...prev, data.items ?? []]);
+      setPages((prev) => [...prev, data.items ?? []]);
       setHasMore(!!data.hasMore);
       setNextBefore(data.nextBefore ?? null);
     } finally {
@@ -89,36 +94,41 @@ export function useChatList(opts: { pageSize?: number } = {}) {
     }
   }, [hasMore, loading, nextBefore, pageSize]);
 
-  const upsertFromMessage = useCallback((payload: {
-    chatId: string;
-    message: { id: string; senderId: string; content: string; sentAt: string; };
-    meUserId?: string | null;
-  }) => {
-    const nowCard: ChatListItemDto = {
-      id: payload.chatId,
-      isGroup: false,
-      title: null,
-      avatarUrl: null,
-      lastActivityAt: payload.message.sentAt,
-      lastMessage: {
-        id: payload.message.id,
-        senderId: payload.message.senderId,
-        snippet: payload.message.content.length > 120
-          ? payload.message.content.slice(0, 120) + '…'
-          : payload.message.content,
-        sentAt: payload.message.sentAt,
-      },
-      unreadCount: payload.meUserId && payload.message.senderId !== payload.meUserId ? 1 : 0,
-      hasUnread: !!(payload.meUserId && payload.message.senderId !== payload.meUserId),
-    };
+  const upsertFromMessage = useCallback(
+    (payload: {
+      chatId: string;
+      message: { id: string; senderId: string; content: string; sentAt: string };
+      meUserId?: string | null;
+    }) => {
+      const nowCard: ChatListItemDto = {
+        id: payload.chatId,
+        isGroup: false,
+        title: null,
+        avatarUrl: null,
+        lastActivityAt: payload.message.sentAt,
+        lastMessage: {
+          id: payload.message.id,
+          senderId: payload.message.senderId,
+          snippet:
+            payload.message.content.length > 120
+              ? payload.message.content.slice(0, 120) + '…'
+              : payload.message.content,
+          sentAt: payload.message.sentAt,
+        },
+        unreadCount: payload.meUserId && payload.message.senderId !== payload.meUserId ? 1 : 0,
+        hasUnread: !!(payload.meUserId && payload.message.senderId !== payload.meUserId),
+      };
 
-    setPages(prev => {
-      const merged = mergeUniqueById(prev.flat(), [nowCard]).sort(byLastActivityDesc);
-      const newPages: ChatListItemDto[][] = [];
-      for (let i = 0; i < merged.length; i += pageSize) newPages.push(merged.slice(i, i + pageSize));
-      return newPages.length ? newPages : [[]];
-    });
-  }, [pageSize]);
+      setPages((prev) => {
+        const merged = mergeUniqueById(prev.flat(), [nowCard]).sort(byLastActivityDesc);
+        const newPages: ChatListItemDto[][] = [];
+        for (let i = 0; i < merged.length; i += pageSize)
+          newPages.push(merged.slice(i, i + pageSize));
+        return newPages.length ? newPages : [[]];
+      });
+    },
+    [pageSize]
+  );
 
   return { chats: flat, hasMore, loading, loadMore, upsertFromMessage };
 }

@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import clsx from "clsx";
-import { MessengerMainArea } from "@/components/features/messenger/layout/MessengerMainArea";
-import { MessengerSidebar } from "@/components/features/messenger/layout/MessengerSidebar";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import clsx from 'clsx';
+import { MessengerMainArea } from '@/components/features/messenger/layout/MessengerMainArea';
+import { MessengerSidebar } from '@/components/features/messenger/layout/MessengerSidebar';
 import { UserSettings } from '@/components/features/messenger/UserSettings/UserSettings';
-import { UserProfilePanel } from "@/components/features/messenger/chat/UserProfilePanel";
+import { UserProfilePanel } from '@/components/features/messenger/chat/UserProfilePanel';
 import * as signalR from '@microsoft/signalr';
 import { getChatConnection } from '@/lib/hubs/chatHubClient';
 
@@ -41,10 +41,13 @@ function dtoToChat(dto: ChatListItemDto): Chat {
     id: dto.id,
     serverChatId: dto.id,
     isGroup: dto.isGroup,
-    name: isDirect ? ((dto as any).peerUsername ?? dto.title ?? 'Direct chat') : (dto.title ?? 'Group'),
+    name: isDirect
+      ? ((dto as any).peerUsername ?? dto.title ?? 'Direct chat')
+      : (dto.title ?? 'Group'),
     createdAt: dto.lastActivityAt,
-    avatarUrl: isDirect ? ((dto as any).peerAvatarUrl ?? dto.avatarUrl ?? undefined)
-                        : (dto.avatarUrl ?? undefined),
+    avatarUrl: isDirect
+      ? ((dto as any).peerAvatarUrl ?? dto.avatarUrl ?? undefined)
+      : (dto.avatarUrl ?? undefined),
     lastMessage: dto.lastMessage
       ? {
           id: dto.lastMessage.id,
@@ -84,18 +87,23 @@ export default function MessengerPage() {
         if (alive) currentUserIdRef.current = profile?.id ?? null;
       } catch {}
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const selectedServerChatIdRef = useRef<string | null>(null);
-  const selectedPeerUserIdRef   = useRef<string | null>(null);
+  const selectedPeerUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/chats?limit=20`, { cache: 'no-store', credentials: 'include' });
+        const res = await fetch(`/api/chats?limit=20`, {
+          cache: 'no-store',
+          credentials: 'include',
+        });
         if (!res.ok) return;
         const data = normalizePage(await res.json());
         if (!alive) return;
@@ -107,7 +115,9 @@ export default function MessengerPage() {
         if (alive) setLoading(false);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const loadMoreChats = useCallback(async () => {
@@ -119,7 +129,7 @@ export default function MessengerPage() {
       if (!res.ok) return;
       const data = normalizePage(await res.json());
       const mapped = (data.items ?? []).map(dtoToChat);
-      setChats(prev => mergeUniqueById(prev, mapped).sort(byLastActivityDesc));
+      setChats((prev) => mergeUniqueById(prev, mapped).sort(byLastActivityDesc));
       setHasMore(!!data.hasMore);
       setNextBefore(data.nextBefore ?? null);
     } finally {
@@ -136,7 +146,7 @@ export default function MessengerPage() {
     seenIdsRef.current.push(id);
     if (seenIdsRef.current.length > 500) {
       const drop = seenIdsRef.current.splice(0, seenIdsRef.current.length - 500);
-      drop.forEach(d => seenSetRef.current.delete(d));
+      drop.forEach((d) => seenSetRef.current.delete(d));
     }
     return false;
   };
@@ -145,7 +155,11 @@ export default function MessengerPage() {
     const conn = getChatConnection();
     const start = async () => {
       if (conn.state === signalR.HubConnectionState.Disconnected) {
-        try { await conn.start(); } catch (e) { console.error('Hub start failed:', e); }
+        try {
+          await conn.start();
+        } catch (e) {
+          console.error('Hub start failed:', e);
+        }
       }
     };
 
@@ -156,22 +170,21 @@ export default function MessengerPage() {
       const mine = !!meId && payload.message.senderId === meId;
 
       const activeServerId = selectedServerChatIdRef.current;
-      const activePeerId   = selectedPeerUserIdRef.current;
+      const activePeerId = selectedPeerUserIdRef.current;
 
       const isActive =
         (payload.chatId && payload.chatId === activeServerId) ||
-        (!!activePeerId && (
-          payload.peerUserId === activePeerId ||
-          payload.message.senderId === activePeerId
-        ));
+        (!!activePeerId &&
+          (payload.peerUserId === activePeerId || payload.message.senderId === activePeerId));
 
       const shouldIncrement = !mine && !isActive;
 
-      setChats(prev => {
-        const existing = prev.find(c => c.id === payload.chatId);
-        const snippet = payload.message.content.length > 120
-          ? payload.message.content.slice(0, 120) + '…'
-          : payload.message.content;
+      setChats((prev) => {
+        const existing = prev.find((c) => c.id === payload.chatId);
+        const snippet =
+          payload.message.content.length > 120
+            ? payload.message.content.slice(0, 120) + '…'
+            : payload.message.content;
 
         const preview = {
           id: payload.message.id,
@@ -186,10 +199,12 @@ export default function MessengerPage() {
           const updated: Chat = {
             ...existing,
             lastMessage: preview,
-            unreadCount: shouldIncrement ? (existing.unreadCount ?? 0) + 1 : (existing.unreadCount ?? 0),
+            unreadCount: shouldIncrement
+              ? (existing.unreadCount ?? 0) + 1
+              : (existing.unreadCount ?? 0),
             peerUserId: existing.peerUserId ?? payload.peerUserId ?? existing.peerUserId,
           };
-          return prev.map(c => c.id === existing.id ? updated : c).sort(byLastActivityDesc);
+          return prev.map((c) => (c.id === existing.id ? updated : c)).sort(byLastActivityDesc);
         }
 
         const stub: Chat = {
@@ -211,7 +226,7 @@ export default function MessengerPage() {
     const onReadReceipt = (p: { chatId: string; userId: string; lastReadAt: string }) => {
       const meId = currentUserIdRef.current;
       if (!meId || p.userId !== meId) return;
-      setChats(prev => prev.map(c => c.id === p.chatId ? { ...c, unreadCount: 0 } : c));
+      setChats((prev) => prev.map((c) => (c.id === p.chatId ? { ...c, unreadCount: 0 } : c)));
     };
 
     conn.off('MessageCreated', onMessageCreated);
@@ -230,76 +245,87 @@ export default function MessengerPage() {
     };
   }, []);
 
-  const openDirectChatWithUser = useCallback(async (userId: string): Promise<Chat> => {
-    const existing = chats.find(c => c.peerUserId === userId || c.id === `dm-${userId}`);
-    if (existing) return existing;
+  const openDirectChatWithUser = useCallback(
+    async (userId: string): Promise<Chat> => {
+      const existing = chats.find((c) => c.peerUserId === userId || c.id === `dm-${userId}`);
+      if (existing) return existing;
 
-    const headerResp = await fetch(`/api/chats/direct/${userId}/header`, {
-      method: 'GET',
-      cache: 'no-store',
-      credentials: 'include',
-    });
-    if (!headerResp.ok) throw new Error(await headerResp.text());
-    const header = (await headerResp.json()) as DirectChatHeaderDto;
+      const headerResp = await fetch(`/api/chats/direct/${userId}/header`, {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'include',
+      });
+      if (!headerResp.ok) throw new Error(await headerResp.text());
+      const header = (await headerResp.json()) as DirectChatHeaderDto;
 
-    const newChat: Chat = {
-      id: `dm-${userId}`,
-      name: header.username ?? userId,
-      isGroup: false,
-      createdAt: new Date().toISOString(),
-      lastMessage: undefined,
-      unreadCount: 0,
-      avatarUrl: header.avatarUrl ?? undefined,
-      members: [{ userId }, { userId: 'current-user' }],
-      serverChatId: header.chatId ?? null,
-      peerUserId: userId,
-    };
+      const newChat: Chat = {
+        id: `dm-${userId}`,
+        name: header.username ?? userId,
+        isGroup: false,
+        createdAt: new Date().toISOString(),
+        lastMessage: undefined,
+        unreadCount: 0,
+        avatarUrl: header.avatarUrl ?? undefined,
+        members: [{ userId }, { userId: 'current-user' }],
+        serverChatId: header.chatId ?? null,
+        peerUserId: userId,
+      };
 
-    setChats(prev => {
-      if (header.chatId && prev.some(c => c.id === header.chatId)) return prev;
-      return mergeUniqueById(prev, [newChat]).sort(byLastActivityDesc);
-    });
+      setChats((prev) => {
+        if (header.chatId && prev.some((c) => c.id === header.chatId)) return prev;
+        return mergeUniqueById(prev, [newChat]).sort(byLastActivityDesc);
+      });
 
-    return newChat;
-  }, [chats]);
+      return newChat;
+    },
+    [chats]
+  );
 
-  const handleUserSelect = useCallback(async (userId: string) => {
-    try {
-      const chat = await openDirectChatWithUser(userId);
-      setSelectedChat(chat.id);
-      setSearchQuery('');
-      setShowSettings(false);
-    } catch (e) { console.error('Failed to open direct chat:', e); }
-  }, [openDirectChatWithUser]);
+  const handleUserSelect = useCallback(
+    async (userId: string) => {
+      try {
+        const chat = await openDirectChatWithUser(userId);
+        setSelectedChat(chat.id);
+        setSearchQuery('');
+        setShowSettings(false);
+      } catch (e) {
+        console.error('Failed to open direct chat:', e);
+      }
+    },
+    [openDirectChatWithUser]
+  );
 
-  const handleChatSelect = useCallback(async (chatId: string) => {
-    const card = chats.find(c => c.id === chatId);
-    if (!card) return;
+  const handleChatSelect = useCallback(
+    async (chatId: string) => {
+      const card = chats.find((c) => c.id === chatId);
+      if (!card) return;
 
-    if (card.isGroup) {
-      setSelectedChat(card.id);
-      setShowSettings(false);
-      return;
-    }
+      if (card.isGroup) {
+        setSelectedChat(card.id);
+        setShowSettings(false);
+        return;
+      }
 
-    if (card.peerUserId) {
-      const resolved = await openDirectChatWithUser(card.peerUserId);
-      setSelectedChat(resolved.id);
-      setShowSettings(false);
-      return;
-    }
+      if (card.peerUserId) {
+        const resolved = await openDirectChatWithUser(card.peerUserId);
+        setSelectedChat(resolved.id);
+        setShowSettings(false);
+        return;
+      }
 
-    try {
-      const hdr = await getChatHeaderByChatId(chatId);
-      const resolved = await openDirectChatWithUser(hdr.otherUserId);
-      setSelectedChat(resolved.id);
-      setShowSettings(false);
-    } catch (e) {
-      console.error('Failed to resolve header by chatId:', e);
-      setSelectedChat(card.id);
-      setShowSettings(false);
-    }
-  }, [chats, openDirectChatWithUser]);
+      try {
+        const hdr = await getChatHeaderByChatId(chatId);
+        const resolved = await openDirectChatWithUser(hdr.otherUserId);
+        setSelectedChat(resolved.id);
+        setShowSettings(false);
+      } catch (e) {
+        console.error('Failed to resolve header by chatId:', e);
+        setSelectedChat(card.id);
+        setShowSettings(false);
+      }
+    },
+    [chats, openDirectChatWithUser]
+  );
 
   async function getChatHeaderByChatId(chatId: string) {
     const resp = await fetch(`/api/chats/${encodeURIComponent(chatId)}/header`, {
@@ -316,7 +342,7 @@ export default function MessengerPage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contactUserId: userId })
+        body: JSON.stringify({ contactUserId: userId }),
       });
       if (!resp.ok) console.error('Failed to add contact:', await resp.text());
     } catch (error) {
@@ -325,19 +351,22 @@ export default function MessengerPage() {
   }, []);
 
   const selectedChatObj = useMemo(
-    () => chats.find(chat => chat.id === selectedChat) ?? undefined,
+    () => chats.find((chat) => chat.id === selectedChat) ?? undefined,
     [chats, selectedChat]
   );
 
   useEffect(() => {
     const sid = selectedChatObj?.serverChatId ?? selectedChatObj?.id ?? null;
     selectedServerChatIdRef.current = sid;
-    selectedPeerUserIdRef.current   = selectedChatObj?.peerUserId ?? null;
+    selectedPeerUserIdRef.current = selectedChatObj?.peerUserId ?? null;
   }, [selectedChatObj]);
 
-  const onChatRead = useCallback((serverChatId: string, _lastReadAt: string, _unreadCount: number) => {
-    setChats(prev => prev.map(c => c.id === serverChatId ? { ...c, unreadCount: 0 } : c));
-  }, []);
+  const onChatRead = useCallback(
+    (serverChatId: string, _lastReadAt: string, _unreadCount: number) => {
+      setChats((prev) => prev.map((c) => (c.id === serverChatId ? { ...c, unreadCount: 0 } : c)));
+    },
+    []
+  );
 
   const openProfilePanel = useCallback((userId: string) => {
     setProfileUserId(userId);
@@ -354,13 +383,13 @@ export default function MessengerPage() {
     <div className="relative flex h-screen bg-gray-900 text-gray-200 overflow-hidden">
       <div
         className={clsx(
-          "relative flex-shrink-0 border-r border-gray-700 z-[20]",
-          (selectedChat && !showSettings) ? "w-0" : "w-full",
-          "md:w-80 lg:w-96",
-          "transition-[width] duration-0"
+          'relative flex-shrink-0 border-r border-gray-700 z-[20]',
+          selectedChat && !showSettings ? 'w-0' : 'w-full',
+          'md:w-80 lg:w-96',
+          'transition-[width] duration-0'
         )}
       >
-        <div className={clsx("h-full flex flex-col", selectedChat ? "hidden md:flex" : "flex")}>
+        <div className={clsx('h-full flex flex-col', selectedChat ? 'hidden md:flex' : 'flex')}>
           <MessengerSidebar
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
@@ -391,13 +420,13 @@ export default function MessengerPage() {
 
         <aside
           className={clsx(
-            "absolute inset-0 z-[40]",
-            "bg-gray-900 border-r border-gray-700",
-            "will-change-transform transform transition-transform duration-300 ease-out",
-            "transition-opacity duration-300",
+            'absolute inset-0 z-[40]',
+            'bg-gray-900 border-r border-gray-700',
+            'will-change-transform transform transition-transform duration-300 ease-out',
+            'transition-opacity duration-300',
             showSettings
-              ? "translate-x-0 opacity-100 pointer-events-auto"
-              : "-translate-x-full opacity-0 pointer-events-none"
+              ? 'translate-x-0 opacity-100 pointer-events-auto'
+              : '-translate-x-full opacity-0 pointer-events-none'
           )}
         >
           <UserSettings onClose={() => setShowSettings(false)} />
@@ -413,11 +442,7 @@ export default function MessengerPage() {
       />
 
       {profileUserId && (
-        <UserProfilePanel
-          userId={profileUserId}
-          open={isProfileOpen}
-          onClose={closeProfilePanel}
-        />
+        <UserProfilePanel userId={profileUserId} open={isProfileOpen} onClose={closeProfilePanel} />
       )}
     </div>
   );
