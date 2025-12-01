@@ -108,7 +108,7 @@ export const UserSettings = ({ onClose }: UserSettingsProps) => {
 
       if (avatarFile) {
         const formData = new FormData();
-        formData.append('avatar', avatarFile);
+        formData.append('file', avatarFile);
 
         const avatarResponse = await fetch('/api/users/avatar', {
           method: 'POST',

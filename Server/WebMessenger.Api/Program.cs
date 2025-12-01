@@ -12,6 +12,7 @@ using WebMessenger.Api.Hubs.Events.Interfaces;
 using WebMessenger.Api.Hubs.Events;
 using WebMessenger.Api.Infrastructure.Interfaces;
 using WebMessenger.Api.Infrastructure;
+using WebMessenger.Api.Services.FileStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,7 +43,7 @@ builder.Services.AddScoped<IAvatarService, AvatarService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IChatEvents, ChatEvents>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
-
+builder.Services.AddScoped<IFileStorage, DropboxFileStorage>();
 
 builder.Services.AddSignalR(options =>
 {
