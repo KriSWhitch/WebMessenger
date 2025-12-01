@@ -13,7 +13,6 @@ public class AuthService(
     IConfiguration config,
     ILogger<AuthService> logger) : IAuthService
 {
-    private const string TokenValidationError = "Token validation failed";
     private const string UsernameClaimNotFound = "Username claim not found in token";
 
     private readonly IConfiguration _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -73,34 +72,6 @@ public class AuthService(
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public bool ValidateJwtToken(string authHeader)
-    {
-        if (string.IsNullOrWhiteSpace(authHeader))
-        {
-            _logger.LogWarning("Empty authorization header received");
-            return false;
-        }
-
-        try
-        {
-            var token = ExtractTokenFromHeader(authHeader);
-            var validationParameters = GetTokenValidationParameters();
-
-            new JwtSecurityTokenHandler().ValidateToken(token, validationParameters, out _);
-            return true;
-        }
-        catch (SecurityTokenException ex)
-        {
-            _logger.LogWarning(ex, TokenValidationError);
-            return false;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error during token validation");
-            return false;
-        }
-    }
-
     public string? GetUsernameFromToken(string authHeader)
     {
         if (string.IsNullOrWhiteSpace(authHeader))
@@ -124,25 +95,6 @@ public class AuthService(
             _logger.LogWarning(ex, UsernameClaimNotFound);
             return null;
         }
-    }
-
-    private TokenValidationParameters GetTokenValidationParameters()
-    {
-        var jwtKey = _config["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured");
-        var issuer = _config["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT Issuer not configured");
-        var audience = _config["Jwt:Audience"] ?? throw new InvalidOperationException("JWT Audience not configured");
-
-        return new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = issuer,
-            ValidAudience = audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ClockSkew = TimeSpan.FromMinutes(5)
-        };
     }
 
     private static string ExtractTokenFromHeader(string authHeader)

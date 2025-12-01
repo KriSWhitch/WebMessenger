@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using WebMessenger.Api.Services.Interfaces;
 using WebMessenger.Contracts.Models;
 
@@ -30,7 +32,6 @@ namespace WebMessenger.Api.Controllers
                 return Unauthorized(new { message = "Invalid credentials" });
 
             var token = _authService.GenerateJwtToken(user);
-
             Response.Cookies.Append("auth-token", token, new CookieOptions
             {
                 HttpOnly = true,
@@ -42,12 +43,21 @@ namespace WebMessenger.Api.Controllers
             return Ok(new { token });
         }
 
+        [Authorize]
         [HttpGet("verify")]
-        public IActionResult VerifyToken([FromHeader(Name = "Authorization")] string auth)
+        public IActionResult VerifyToken()
         {
-            return _authService.ValidateJwtToken(auth)
-                ? Ok(new { valid = true })
-                : Unauthorized(new { valid = false });
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var username = User.FindFirstValue(ClaimTypes.Name);
+            var expiry = User.FindFirstValue("exp");
+
+            return Ok(new
+            {
+                valid = true,
+                userId,
+                username,
+                expiry
+            });
         }
     }
 }
