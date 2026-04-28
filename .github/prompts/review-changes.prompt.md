@@ -58,7 +58,7 @@ This review should surface:
 
 \## Mandatory project context
 
-\- Use docs/CODEBASE\_MAP.md as the source of truth for architecture and key files.
+\- Use docs/CODEBASE_MAP.md as the source of truth for architecture and key files.
 
 \- Respect monorepo boundaries: Client/ (Next.js) vs Server/ (.NET 8 + SignalR).
 
