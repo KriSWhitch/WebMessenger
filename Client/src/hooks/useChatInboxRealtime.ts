@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { getChatConnection } from '@/lib/hubs/chatHubClient';
+import { ensureConnected, getJoinTarget, joinTarget } from '@/lib/hubs/chatHubOperations';
 
 type MessageCreated = {
   chatId: string;
@@ -42,27 +43,14 @@ export function useChatRealtime(params: {
     if (onReadReceipt) conn.on('ReadReceipt', onReadReceipt);
 
     const doJoin = async () => {
-      const key = chatId ? `chat:${chatId}` : peerUserId ? `dm:${peerUserId}` : undefined;
-      if (!key || lastJoinKeyRef.current === key) return;
+      const target = getJoinTarget({ chatId, peerUserId });
+      if (!target || lastJoinKeyRef.current === target.key) return;
 
-      if (conn.state === signalR.HubConnectionState.Disconnected) {
-        try {
-          await conn.start();
-        } catch (e) {
-          console.error('Hub start failed:', e);
-          return;
-        }
-      }
-      if (conn.state !== signalR.HubConnectionState.Connected) return;
+      if (!(await ensureConnected(conn))) return;
 
       try {
-        if (chatId) {
-          await conn.invoke('JoinChat', chatId);
-          lastJoinKeyRef.current = key;
-        } else if (peerUserId) {
-          await conn.invoke('JoinDirect', peerUserId);
-          lastJoinKeyRef.current = key;
-        }
+        await joinTarget(conn, target);
+        lastJoinKeyRef.current = target.key;
       } catch (e) {
         console.error('Join failed:', e);
       }

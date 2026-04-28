@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/providers/AuthProvider';
+import { UserProvider } from '@/providers/UserProvider';
 import '../styles/globals.scss';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -14,7 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className="bg-gray-900">
       <body className={`${inter.className} bg-gray-900 text-gray-200`} suppressHydrationWarning>
         <AuthProvider>
-          <main className="min-h-screen">{children}</main>
+          <UserProvider>
+            <main className="min-h-screen">{children}</main>
+          </UserProvider>
         </AuthProvider>
       </body>
     </html>

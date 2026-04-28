@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MessageVM } from '@/components/features/messenger/chat/MessageBubble';
+import { byDateAsc, mergeUniqueById, normalizePage } from '@/lib/utils/pagination';
 
 type PageResponse = {
   items: MessageVM[];
@@ -8,23 +9,10 @@ type PageResponse = {
   nextBefore?: string | null;
 };
 
-function normalizePage(json: any): PageResponse {
-  if (json && Array.isArray(json.items)) {
-    return { items: json.items, hasMore: !!json.hasMore, nextBefore: json.nextBefore ?? null };
-  }
-  const items = Array.isArray(json?.data) ? json.data : [];
-  return { items, hasMore: !!json?.hasMore, nextBefore: json?.nextBefore ?? null };
-}
+const bySentAtAsc = byDateAsc<MessageVM>((m) => m.sentAt);
 
 function sortAsc(arr: MessageVM[]) {
-  return [...arr].sort((a, b) => a.sentAt.localeCompare(b.sentAt));
-}
-
-function mergeUniqueById(base: MessageVM[], incoming: MessageVM[]) {
-  const map = new Map<string, MessageVM>();
-  for (const m of base) map.set(m.id, m);
-  for (const m of incoming) map.set(m.id, m);
-  return Array.from(map.values());
+  return [...arr].sort(bySentAtAsc);
 }
 
 export function useMessages(opts: {
@@ -69,14 +57,14 @@ export function useMessages(opts: {
           cache: 'no-store',
         });
         if (!res.ok) return;
-        const data = normalizePage(await res.json());
+        const data: PageResponse = normalizePage<MessageVM>(await res.json());
         if (!alive) return;
 
         const prepared = (data.items ?? []).map((m) => ({
           ...m,
           _mine: meId ? m.senderId === meId : undefined,
         }));
-        const merged = mergeUniqueById([], prepared);
+        const merged = mergeUniqueById([], prepared, (m) => m.id);
         setMessages(sortAsc(merged));
         setHasMore(!!data.hasMore);
         setNextBefore(data.nextBefore ?? null);
@@ -101,13 +89,13 @@ export function useMessages(opts: {
       const url = `/api/chats/${chatId}/messages?limit=${pageSize}&before=${encodeURIComponent(nextBefore)}`;
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) return;
-      const data = normalizePage(await res.json());
+      const data: PageResponse = normalizePage<MessageVM>(await res.json());
 
       const incoming = (data.items ?? []).map((m) => ({
         ...m,
         _mine: meId ? m.senderId === meId : undefined,
       }));
-      setMessages((prev) => sortAsc(mergeUniqueById(incoming, prev)));
+      setMessages((prev) => sortAsc(mergeUniqueById(incoming, prev, (m) => m.id)));
 
       setHasMore(!!data.hasMore);
       setNextBefore(data.nextBefore ?? null);
@@ -123,7 +111,7 @@ export function useMessages(opts: {
 
   const upsertMessage = useCallback((m: MessageVM) => {
     setMessages((prev) => {
-      const merged = mergeUniqueById(prev, [m]);
+      const merged = mergeUniqueById(prev, [m], (x) => x.id);
       return sortAsc(merged);
     });
   }, []);

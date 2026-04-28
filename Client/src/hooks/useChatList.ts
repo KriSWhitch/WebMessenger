@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { byDateDesc, mergeUniqueById, normalizePage } from '@/lib/utils/pagination';
 
 export type ChatMessagePreviewDto = {
   id: string;
@@ -25,24 +26,7 @@ type PageResponse = {
   nextBefore?: string | null;
 };
 
-function normalizePage(json: any): PageResponse {
-  if (json && Array.isArray(json.items)) {
-    return { items: json.items, hasMore: !!json.hasMore, nextBefore: json.nextBefore ?? null };
-  }
-  const items = Array.isArray(json?.data) ? json.data : [];
-  return { items, hasMore: !!json?.hasMore, nextBefore: json?.nextBefore ?? null };
-}
-
-function byLastActivityDesc(a: ChatListItemDto, b: ChatListItemDto) {
-  return new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime();
-}
-
-function mergeUniqueById(base: ChatListItemDto[], incoming: ChatListItemDto[]) {
-  const map = new Map<string, ChatListItemDto>();
-  for (const c of base) map.set(c.id, c);
-  for (const c of incoming) map.set(c.id, c);
-  return Array.from(map.values());
-}
+const byLastActivityDesc = byDateDesc<ChatListItemDto>((c) => c.lastActivityAt);
 
 export function useChatList(opts: { pageSize?: number } = {}) {
   const { pageSize = 20 } = opts;
@@ -64,7 +48,7 @@ export function useChatList(opts: { pageSize?: number } = {}) {
           credentials: 'include',
         });
         if (!res.ok) return;
-        const data = normalizePage(await res.json());
+        const data: PageResponse = normalizePage<ChatListItemDto>(await res.json());
         if (!alive) return;
         setPages(data.items.length ? [data.items] : [[]]);
         setHasMore(!!data.hasMore);
@@ -85,7 +69,7 @@ export function useChatList(opts: { pageSize?: number } = {}) {
       const url = `/api/chats?limit=${pageSize}&before=${encodeURIComponent(nextBefore)}`;
       const res = await fetch(url, { cache: 'no-store', credentials: 'include' });
       if (!res.ok) return;
-      const data = normalizePage(await res.json());
+      const data: PageResponse = normalizePage<ChatListItemDto>(await res.json());
       setPages((prev) => [...prev, data.items ?? []]);
       setHasMore(!!data.hasMore);
       setNextBefore(data.nextBefore ?? null);
@@ -120,7 +104,7 @@ export function useChatList(opts: { pageSize?: number } = {}) {
       };
 
       setPages((prev) => {
-        const merged = mergeUniqueById(prev.flat(), [nowCard]).sort(byLastActivityDesc);
+        const merged = mergeUniqueById(prev.flat(), [nowCard], (c) => c.id).sort(byLastActivityDesc);
         const newPages: ChatListItemDto[][] = [];
         for (let i = 0; i < merged.length; i += pageSize)
           newPages.push(merged.slice(i, i + pageSize));

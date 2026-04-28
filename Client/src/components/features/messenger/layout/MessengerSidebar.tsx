@@ -8,10 +8,10 @@ import { InputField } from '@/components/ui/Input/Input';
 import { BurgerMenu } from '@/components/navigation/dropdown/BurgerMenu';
 import { Chat } from '@/types/chat';
 import { logoutClient } from '@/lib/auth/client-auth';
-import { useCallback, useEffect, useState } from 'react';
-import { Contact, UserSearchResult } from '@/types';
+import { useState } from 'react';
+import { Contact } from '@/types';
 import { SearchResults } from '@/components/features/messenger/SearchResults/SearchResults';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useSearch } from '@/hooks/useSearch';
 import { ContactList } from '../ContactList/ContactList';
 import { LeftArrowIcon } from '@/components/icons/LeftArrowIcon';
 
@@ -43,106 +43,15 @@ export const MessengerSidebar = ({
   onAddContact,
   onSettingsClick,
 }: MessengerSidebarProps) => {
-  const [searchContactResults, setSearchContactResults] = useState<Contact[]>([]);
-  const [searchUserResults, setSearchUserResults] = useState<UserSearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [showContacts, setShowContacts] = useState(false);
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 1000);
-
-  async function onAddSearchUserToContact(userId: string) {
-    onAddContact(userId);
-
-    setSearchUserResults((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, isContact: true } : u))
-    );
-  }
-
-  const searchUsers = useCallback(
-    async (
-      query: string,
-      validateQuery: (query: string) => boolean = () => {
-        return true;
-      }
-    ) => {
-      const isQueryValid = validateQuery(query);
-
-      if (!isQueryValid) return;
-
-      setIsSearching(true);
-
-      try {
-        const response = await fetch(`/api/users?query=${encodeURIComponent(query)}`);
-
-        if (response.ok) {
-          const data = await response.json();
-          setSearchUserResults(data);
-        }
-      } catch (error) {
-        console.error('Search failed:', error);
-      } finally {
-        setIsSearching(false);
-      }
-    },
-    []
-  );
-
-  const searchContacts = useCallback(
-    async (
-      query: string,
-      validateQuery: (query: string) => boolean = () => {
-        return true;
-      }
-    ) => {
-      const isQueryValid = validateQuery(query);
-
-      if (!isQueryValid) return;
-
-      setIsSearching(true);
-
-      try {
-        const response = await fetch(`/api/contacts?query=${encodeURIComponent(query)}`);
-
-        if (response.ok) {
-          const data = await response.json();
-          setSearchContactResults(data);
-        }
-      } catch (error) {
-        console.error('Search failed:', error);
-      } finally {
-        setIsSearching(false);
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    setSearchQuery('');
-
-    if (showContacts) {
-      searchContacts('');
-    }
-  }, [showContacts]);
-
-  useEffect(() => {
-    if (debouncedSearchQuery) {
-      if (showContacts) {
-        searchContacts(debouncedSearchQuery, (debouncedSearchQuery) => {
-          if (debouncedSearchQuery.length < 3) return false;
-          return true;
-        });
-      } else {
-        searchUsers(debouncedSearchQuery, (debouncedSearchQuery) => {
-          if (debouncedSearchQuery.length < 3) return false;
-          return true;
-        });
-      }
-    } else if (debouncedSearchQuery.length == 0) {
-      if (showContacts) {
-        searchContacts('');
-      }
-    }
-  }, [debouncedSearchQuery]);
+  const { searchContactResults, searchUserResults, isSearching, onAddSearchUserToContact } =
+    useSearch({
+      showContacts,
+      searchQuery,
+      setSearchQuery,
+      onAddContact,
+    });
 
   return (
     <div className="w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-gray-700 flex flex-col">

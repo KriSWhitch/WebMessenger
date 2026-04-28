@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { proxyPost } from '@/app/api/utils/proxy';
 
-export async function POST(req: NextRequest, context: { params: { chatId: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ chatId: string }> }) {
   const { chatId } = await context.params;
 
   let body: unknown = {};

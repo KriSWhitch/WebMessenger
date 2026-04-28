@@ -1,9 +1,12 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-const PUBLIC_API_URL = process.env.PUBLIC_API_URL;
-if (!PUBLIC_API_URL) {
-  throw new Error('PUBLIC_API_URL is not found in .env.*');
+function getApiBaseUrl(): string {
+  const url = process.env.PUBLIC_API_URL;
+  if (!url) {
+    throw new Error('PUBLIC_API_URL is not found in .env.*');
+  }
+  return url;
 }
 
 async function getTokenFromCookies(): Promise<string | undefined> {
@@ -20,7 +23,7 @@ type ProxyOptions = {
 };
 
 function buildUrl(path: string, sp?: URLSearchParams) {
-  const url = new URL(path, PUBLIC_API_URL);
+  const url = new URL(path, getApiBaseUrl());
   if (sp) {
     sp.forEach((v, k) => url.searchParams.set(k, v));
   }
@@ -94,8 +97,8 @@ export async function proxyRequest(
       status,
       headers: proxyHeaders,
     });
-  } catch (err: any) {
-    const aborted = err?.name === 'AbortError';
+  } catch (err: unknown) {
+    const aborted = typeof err === 'object' && err !== null && 'name' in err && err.name === 'AbortError';
     const message = aborted ? 'Upstream timeout' : `Upstream ${method} failed: ${String(err)}`;
     const code = aborted ? 504 : 500;
     return NextResponse.json({ error: message }, { status: code });
@@ -140,4 +143,6 @@ export function proxyDelete(
   return proxyRequest('DELETE', path, { searchParams, requireAuth, timeoutMs });
 }
 
-export default { proxyGet, proxyPost, proxyPut, proxyDelete };
+const proxyApi = { proxyGet, proxyPost, proxyPut, proxyDelete };
+
+export default proxyApi;

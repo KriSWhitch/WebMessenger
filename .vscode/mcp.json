@@ -1,0 +1,27 @@
+{
+  "servers": {
+    "trello": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@delorenj/mcp-server-trello"],
+      "env": {
+        "TRELLO_API_KEY": "${input:trello_api_key_v1}",
+        "TRELLO_TOKEN": "${input:trello_token_v1}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "id": "trello_api_key_v1",
+      "type": "promptString",
+      "description": "Trello API Key (from https://trello.com/power-ups/admin)",
+      "password": true
+    },
+    {
+      "id": "trello_token_v1",
+      "type": "promptString",
+      "description": "Trello Token (from https://trello.com/power-ups/admin)",
+      "password": true
+    }
+  ]
+}

@@ -88,7 +88,7 @@ namespace WebMessenger.Api.Services
 
         private async Task<IEnumerable<Contact>> GetUserContactsAsync(Guid currentUserId, string query = "")
         {
-            return await _unitOfWork.ContactRepository.GetAll().Where(x => x.OwnerUserId == currentUserId 
+            return await _unitOfWork.ContactRepository.GetAll().Where(x => x.OwnerUserId == currentUserId
                 && x.ContactUser.Username.ToLower().Contains(query.ToLower())).Include(x => x.ContactUser).ToListAsync();
         }
 

@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { getChatConnection } from '@/lib/hubs/chatHubClient';
-import { makeDmKey } from '@/lib/utils/makeDmKey';
+import { ensureConnected, getJoinTarget, joinTarget, leaveTarget } from '@/lib/hubs/chatHubOperations';
 
 export type MessageCreated = {
   chatId: string;
@@ -55,8 +55,8 @@ export function useChatRealtime({
     connRef.current = conn;
 
     const handleMessage = (p: MessageCreated) => onMessage(p);
-    const handleTyping = onTyping ? (p: any) => onTyping(p) : undefined;
-    const handleRead = onReadReceipt ? (p: any) => onReadReceipt(p) : undefined;
+    const handleTyping = onTyping ? (p: { chatId: string; userId: string; isTyping: boolean }) => onTyping(p) : undefined;
+    const handleRead = onReadReceipt ? (p: ReadReceipt) => onReadReceipt(p) : undefined;
 
     conn.off('MessageCreated', handleMessage);
     conn.on('MessageCreated', handleMessage);
@@ -69,48 +69,22 @@ export function useChatRealtime({
       conn.on('ReadReceipt', handleRead);
     }
 
-    const ensureStarted = async () => {
-      if (conn.state === signalR.HubConnectionState.Disconnected) {
-        await conn.start().catch((e) => console.error('Hub start failed:', e));
-      }
-      return conn.state === signalR.HubConnectionState.Connected;
-    };
-
     const joinCurrent = async () => {
-      const target = chatId
-        ? { mode: 'chat' as const, key: `chat:${chatId}`, chatId }
-        : peerUserId
-          ? currentUserId
-            ? { mode: 'dm' as const, key: makeDmKey(currentUserId, peerUserId), peerId: peerUserId }
-            : null
-          : null;
+      const target = getJoinTarget({ chatId, peerUserId, currentUserId });
 
       if (!target) return;
-      
+
       if (joinedRef.current && joinedRef.current.key === target.key) return;
 
       if (joinedRef.current) {
-        try {
-          if (joinedRef.current.mode === 'dm' && joinedRef.current.peerId) {
-            await conn.invoke('LeaveDirect', joinedRef.current.peerId);
-          } else if (joinedRef.current.mode === 'chat' && joinedRef.current.chatId) {
-            await conn.invoke('LeaveChat', joinedRef.current.chatId);
-          }
-        } catch (e) {
-          console.warn('Leave group failed:', e);
-        }
+        await leaveTarget(conn, joinedRef.current);
       }
 
-      if (!(await ensureStarted())) return;
+      if (!(await ensureConnected(conn))) return;
 
       try {
-        if (target.mode === 'chat' && target.chatId) {
-          await conn.invoke('JoinChat', target.chatId);
-          joinedRef.current = target;
-        } else if (target.mode === 'dm' && target.peerId) {
-          await conn.invoke('JoinDirect', target.peerId);
-          joinedRef.current = target;
-        }
+        await joinTarget(conn, target);
+        joinedRef.current = target;
       } catch (e) {
         console.error('Join failed:', e);
       }

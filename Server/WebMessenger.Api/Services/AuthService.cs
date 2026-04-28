@@ -3,7 +3,6 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using WebMessenger.DAL.Entities;
-using WebMessenger.DAL.Interfaces;
 using BCrypt.Net;
 using WebMessenger.Api.Services.Interfaces;
 
