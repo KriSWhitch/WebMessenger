@@ -42,7 +42,6 @@ Client/next-env.d.ts         # Next.js TypeScript declarations
 .DS_Store                     # macOS metadata
 *.pem                         # Certificate files (if any)
 
-
 # Ignore binary files
 bin/
 obj/
@@ -58,3 +57,7 @@ obj/
 # NuGet
 packages/
 *.nupkg
+
+### Internal Planning Docs ###
+docs/plans/
+docs/specs/
