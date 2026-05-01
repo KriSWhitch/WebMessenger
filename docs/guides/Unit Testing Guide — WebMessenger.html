@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<!-- saved from url=(0059)file:///D:/Programming/WebMessenger/docs/testing-guide.html -->
+<html lang="ru"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit Testing Guide — WebMessenger</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1a1a1a; background: #fff; padding: 40px 60px; max-width: 960px; margin: auto; }
+  h1 { font-size: 26px; color: #0a3d62; border-bottom: 3px solid #0a3d62; padding-bottom: 10px; margin: 30px 0 16px; }
+  h2 { font-size: 20px; color: #1a5276; border-left: 4px solid #2980b9; padding-left: 10px; margin: 28px 0 12px; }
+  h3 { font-size: 15px; color: #2471a3; margin: 20px 0 8px; }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 3px 0; }
+  code { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #f0f4f8; color: #c0392b; padding: 1px 5px; border-radius: 3px; }
+  pre { background: #1e2a3a; color: #abb2bf; font-family: 'Consolas', 'Courier New', monospace; font-size: 11.5px; line-height: 1.55; padding: 14px 18px; border-radius: 6px; margin: 10px 0; overflow-x: auto; border-left: 4px solid #2980b9; white-space: pre-wrap; word-break: break-word; }
+  pre .kw  { color: #c678dd; }
+  pre .str { color: #98c379; }
+  pre .cmt { color: #5c6370; font-style: italic; }
+  pre .cls { color: #e5c07b; }
+  pre .mth { color: #61afef; }
+  pre .num { color: #d19a66; }
+  pre .att { color: #e06c75; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  th { background: #2471a3; color: #fff; padding: 8px 10px; text-align: left; }
+  td { padding: 7px 10px; border: 1px solid #d5d8dc; }
+  tr:nth-child(even) td { background: #f4f6f8; }
+  .badge { display: inline-block; background: #2980b9; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-right: 4px; }
+  .badge.green { background: #27ae60; }
+  .badge.red { background: #c0392b; }
+  .badge.orange { background: #d35400; }
+  .note { background: #eaf4fb; border-left: 4px solid #2980b9; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .warn { background: #fef9e7; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  hr { border: none; border-top: 1px solid #d5d8dc; margin: 24px 0; }
+  @media print {
+    body { padding: 10px 20px; font-size: 12px; }
+    pre { font-size: 10.5px; }
+    h1 { page-break-before: auto; }
+    h2 { page-break-after: avoid; }
+    pre, table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Unit Testing Guide — WebMessenger</h1>
+<p>Подготовка к экзамену по навыкам: xUnit · Moq · Bogus · AutoFixture · Fixtures · Theory · Debugging · Manual API Validation</p>
+<p style="color:#888;font-size:11px;">Проект: WebMessenger.Api.Tests / WebMessenger.Contracts.Tests · .NET 8 · xUnit 2.9 · Moq 4.20 · Bogus 35.6</p>
+
+<hr>
+
+<!-- ================================================================ -->
+<h1>1. Зачем нужны тесты?</h1>
+
+<p>Представь: ты меняешь <code>AuthService.ValidateUserCredentials</code>. Без тестов ты узнаешь, что сломал логин, только когда вручную зайдёшь в браузер. С тестами — через 3 секунды после сохранения файла.</p>
+
+<ul>
+  <li><strong>Уверенность при рефакторинге</strong> — сломал что-то → тест упал сразу</li>
+  <li><strong>Документация</strong> — читая тест, понимаешь что должен делать метод</li>
+  <li><strong>Изоляция ошибок</strong> — тест говорит точно что упало и почему</li>
+  <li><strong>Скорость</strong> — 76 тестов за 4 секунды vs 30 минут ручной проверки</li>
+</ul>
+
+<!-- ================================================================ -->
+<h1>2. Паттерн AAA — основа всего</h1>
+
+<p><strong>AAA = Arrange → Act → Assert.</strong> Каждый тест делится на три чётких блока.</p>
+
+<pre><span class="cmt">// AuthServiceTests.cs</span>
+[<span class="att">Fact</span>]
+<span class="kw">public void</span> <span class="mth">ValidateUserCredentials_ValidPassword_ReturnsTrue</span>()
+{
+    <span class="cmt">// Arrange — подготовка: создаём объекты, настраиваем данные</span>
+    <span class="kw">const string</span> rawPassword = <span class="str">"P@ssw0rd!"</span>;
+    <span class="kw">var</span> user = <span class="cls">UserFaker</span>.<span class="mth">Single</span>();
+    user.PasswordHash = <span class="cls">BCrypt</span>.<span class="mth">HashPassword</span>(rawPassword);
+
+    <span class="cmt">// Act — вызов тестируемого метода (ровно одна строка)</span>
+    <span class="kw">var</span> result = _sut.<span class="mth">ValidateUserCredentials</span>(user, rawPassword);
+
+    <span class="cmt">// Assert — проверка результата</span>
+    <span class="cls">Assert</span>.<span class="mth">True</span>(result);
+}</pre>
+
+<div class="note">
+  <strong>_sut</strong> = <em>System Under Test</em> — конвенция: переменная с тестируемым объектом. Сразу ясно что именно тестируется.
+</div>
+
+<h3>Именование тестов</h3>
+<p>Паттерн: <code>МетодКоторыйТестируем_Условие_ОжидаемыйРезультат</code></p>
+<table>
+  <tbody><tr><th>Пример</th><th>Что означает</th></tr>
+  <tr><td><code>ValidateUserCredentials_ValidPassword_ReturnsTrue</code></td><td>правильный пароль → true</td></tr>
+  <tr><td><code>ValidateUserCredentials_NullUser_ReturnsFalse</code></td><td>null пользователь → false</td></tr>
+  <tr><td><code>GenerateJwtToken_NullUser_ThrowsArgumentNullException</code></td><td>null → исключение</td></tr>
+  <tr><td><code>Register_ExistingUsername_ReturnsBadRequest</code></td><td>дубликат → 400</td></tr>
+</tbody></table>
+
+<!-- ================================================================ -->
+<h1>3. [Fact] vs [Theory]</h1>
+
+<h3>[Fact] — тест без параметров, запускается один раз</h3>
+<pre>[<span class="att">Fact</span>]
+<span class="kw">public void</span> <span class="mth">GenerateJwtToken_ValidUser_ReturnsNonEmptyToken</span>()
+{
+    <span class="kw">var</span> user = <span class="cls">UserFaker</span>.<span class="mth">Single</span>();
+    <span class="kw">var</span> token = _sut.<span class="mth">GenerateJwtToken</span>(user);
+
+    <span class="cls">Assert</span>.<span class="mth">False</span>(<span class="kw">string</span>.<span class="mth">IsNullOrWhiteSpace</span>(token));
+    <span class="cls">Assert</span>.<span class="mth">Equal</span>(<span class="num">3</span>, token.<span class="mth">Split</span>(<span class="str">'.'</span>).Length); <span class="cmt">// JWT = header.payload.signature</span>
+}</pre>
+
+<h3>[Theory] + [InlineData] — один тест, несколько наборов данных</h3>
+<pre>[<span class="att">Theory</span>]
+[<span class="att">InlineData</span>(<span class="str">""</span>)]
+[<span class="att">InlineData</span>(<span class="str">"   "</span>)]
+[<span class="att">InlineData</span>(<span class="str">"\t"</span>)]
+<span class="kw">public void</span> <span class="mth">ValidateUserCredentials_EmptyOrWhitespacePassword_ReturnsFalse</span>(<span class="kw">string</span> password)
+{
+    <span class="kw">var</span> user = <span class="cls">UserFaker</span>.<span class="mth">Single</span>();
+    <span class="kw">var</span> result = _sut.<span class="mth">ValidateUserCredentials</span>(user, password);
+    <span class="cls">Assert</span>.<span class="mth">False</span>(result);
+}</pre>
+
+<p>xUnit запустит этот тест трижды, подставляя каждое значение. В Test Explorer видно как три отдельные строки:</p>
+<pre><span class="cmt">ValidateUserCredentials_EmptyOrWhitespacePassword_ReturnsFalse(password: "")
+ValidateUserCredentials_EmptyOrWhitespacePassword_ReturnsFalse(password: "   ")
+ValidateUserCredentials_EmptyOrWhitespacePassword_ReturnsFalse(password: "\t")</span></pre>
+
+<div class="note">
+  Используй <strong>[Theory]</strong> для: граничных значений (пустая строка, null, макс. длина), нескольких ID пользователей, разных форматов входных данных.
+</div>
+
+<!-- ================================================================ -->
+<h1>4. Moq — изоляция зависимостей</h1>
+
+<h3>Проблема без моков</h3>
+<p><code>UserService</code> зависит от <code>IUnitOfWork</code>, <code>IContactsService</code>, <code>IAuthService</code>. Если тестировать с реальными объектами — нужна настоящая база данных, реальный JWT ключ. Тест перестаёт быть <em>unit</em> тестом.</p>
+
+<h3>Мок — это поддельный объект, реализующий интерфейс</h3>
+<pre><span class="cmt">// Создание</span>
+<span class="kw">var</span> _userRepoMock = <span class="kw">new</span> <span class="cls">Mock</span>&lt;<span class="cls">IRepository</span>&lt;<span class="cls">User</span>&gt;&gt;();
+
+<span class="cmt">// Setup — настраиваем поведение</span>
+_userRepoMock.<span class="mth">Setup</span>(r =&gt; r.<span class="mth">GetAll</span>(<span class="cls">It</span>.<span class="mth">IsAny</span>&lt;<span class="kw">string</span>[]&gt;()))
+    .<span class="mth">Returns</span>(<span class="kw">new</span>[] { user }.<span class="mth">AsAsyncQueryable</span>());
+
+<span class="cmt">// Setup для async методов</span>
+_userRepoMock.<span class="mth">Setup</span>(r =&gt; r.<span class="mth">GetAsync</span>(user.Id, <span class="cls">It</span>.<span class="mth">IsAny</span>&lt;<span class="cls">CancellationToken</span>&gt;()))
+    .<span class="mth">ReturnsAsync</span>(user);
+
+<span class="cmt">// Setup исключения</span>
+_userRepoMock.<span class="mth">Setup</span>(r =&gt; r.<span class="mth">GetAsync</span>(<span class="cls">It</span>.<span class="mth">IsAny</span>&lt;<span class="cls">Guid</span>&gt;(), <span class="cls">It</span>.<span class="mth">IsAny</span>&lt;<span class="cls">CancellationToken</span>&gt;()))
+    .<span class="mth">ThrowsAsync</span>(<span class="kw">new</span> <span class="cls">Exception</span>(<span class="str">"DB down"</span>));</pre>
+
+<h3>Verify — проверка вызовов</h3>
+<pre><span class="cmt">// Из UserServiceTests — после регистрации должны быть вызваны InsertAsync и CommitAsync</span>
+_userRepoMock.<span class="mth">Verify</span>(
+    r =&gt; r.<span class="mth">InsertAsync</span>(<span class="cls">It</span>.<span class="mth">Is</span>&lt;<span class="cls">User</span>&gt;(u =&gt; u.Username == dto.Username), <span class="cls">It</span>.<span class="mth">IsAny</span>&lt;<span class="cls">CancellationToken</span>&gt;()),
+    <span class="cls">Times</span>.Once
+);
+_uowMock.<span class="mth">Verify</span>(u =&gt; u.<span class="mth">CommitAsync</span>(<span class="cls">It</span>.<span class="mth">IsAny</span>&lt;<span class="cls">CancellationToken</span>&gt;()), <span class="cls">Times</span>.Once);
+
+<span class="cmt">// Проверяем что RegisterUserAsync НЕ был вызван при дубликате</span>
+_userMock.<span class="mth">Verify</span>(s =&gt; s.<span class="mth">RegisterUserAsync</span>(<span class="cls">It</span>.<span class="mth">IsAny</span>&lt;<span class="cls">RegisterDto</span>&gt;()), <span class="cls">Times</span>.Never);</pre>
+
+<table>
+  <tbody><tr><th>Матчер</th><th>Значение</th></tr>
+  <tr><td><code>It.IsAny&lt;T&gt;()</code></td><td>любое значение типа T</td></tr>
+  <tr><td><code>It.Is&lt;T&gt;(x =&gt; x.Prop == val)</code></td><td>значение с условием</td></tr>
+  <tr><td><code>Times.Once</code></td><td>ровно один раз</td></tr>
+  <tr><td><code>Times.Never</code></td><td>никогда не вызывался</td></tr>
+  <tr><td><code>Times.AtLeastOnce</code></td><td>хотя бы один раз</td></tr>
+  <tr><td><code>Times.Exactly(n)</code></td><td>ровно n раз</td></tr>
+</tbody></table>
+
+<h3>UnitOfWorkMockHelper — переиспользуемые моки</h3>
+<pre><span class="cmt">// Shared/Mocks/UnitOfWorkMockHelper.cs</span>
+<span class="kw">public static</span> <span class="cls">Mock</span>&lt;<span class="cls">IUnitOfWork</span>&gt; <span class="mth">Create</span>()
+{
+    <span class="kw">var</span> mock = <span class="kw">new</span> <span class="cls">Mock</span>&lt;<span class="cls">IUnitOfWork</span>&gt;();
+    mock.<span class="mth">Setup</span>(u =&gt; u.UserRepository).<span class="mth">Returns</span>(<span class="kw">new</span> <span class="cls">Mock</span>&lt;<span class="cls">IRepository</span>&lt;<span class="cls">User</span>&gt;&gt;().Object);
+    mock.<span class="mth">Setup</span>(u =&gt; u.<span class="mth">CommitAsync</span>(<span class="cls">It</span>.<span class="mth">IsAny</span>&lt;<span class="cls">CancellationToken</span>&gt;())).<span class="mth">Returns</span>(<span class="cls">Task</span>.CompletedTask);
+    <span class="cmt">// ... все репозитории</span>
+    <span class="kw">return</span> mock;
+}
+
+<span class="cmt">// В тесте: создаём базу и переопределяем нужный репозиторий</span>
+_uowMock = <span class="cls">UnitOfWorkMockHelper</span>.<span class="mth">Create</span>();
+_uowMock.<span class="mth">Setup</span>(u =&gt; u.UserRepository).<span class="mth">Returns</span>(_userRepoMock.Object);</pre>
+
+<!-- ================================================================ -->
+<h1>5. Fixtures — переиспользование дорогих объектов</h1>
+
+<h3>IClassFixture — один объект на весь тестовый класс</h3>
+<pre><span class="cmt">// UserPoolFixture.cs — создаётся ОДИН РАЗ для всего класса</span>
+<span class="kw">public sealed class</span> <span class="cls">UserPoolFixture</span>
+{
+    <span class="kw">public</span> IReadOnlyList&lt;<span class="cls">User</span>&gt; Users { <span class="kw">get</span>; } = <span class="cls">UserFaker</span>.<span class="mth">Many</span>(<span class="num">10</span>, seed: <span class="num">42</span>);
+}
+
+<span class="cmt">// AuthServiceTheoryTests.cs — принимает fixture через конструктор</span>
+<span class="kw">public class</span> <span class="cls">AuthServiceTheoryTests</span> : <span class="cls">IClassFixture</span>&lt;<span class="cls">UserPoolFixture</span>&gt;
+{
+    <span class="kw">private readonly</span> IReadOnlyList&lt;<span class="cls">User</span>&gt; _users;
+
+    <span class="kw">public</span> <span class="cls">AuthServiceTheoryTests</span>(<span class="cls">UserPoolFixture</span> fixture)
+    {
+        _users = fixture.Users; <span class="cmt">// используем готовых пользователей</span>
+    }
+
+    [<span class="att">Theory</span>]
+    [<span class="att">InlineData</span>(<span class="num">0</span>)]
+    [<span class="att">InlineData</span>(<span class="num">3</span>)]
+    [<span class="att">InlineData</span>(<span class="num">7</span>)]
+    <span class="kw">public void</span> <span class="mth">GetUsernameFromToken_TokenGeneratedForPooledUser_ReturnsCorrectUsername</span>(<span class="kw">int</span> userIndex)
+    {
+        <span class="kw">var</span> user  = _users[userIndex];
+        <span class="kw">var</span> token = _sut.<span class="mth">GenerateJwtToken</span>(user);
+        <span class="kw">var</span> username = _sut.<span class="mth">GetUsernameFromToken</span>(<span class="str">$"Bearer {token}"</span>);
+        <span class="cls">Assert</span>.<span class="mth">Equal</span>(user.Username, username);
+    }
+}</pre>
+
+<h3>ICollectionFixture — один объект для нескольких классов</h3>
+<pre>[<span class="att">CollectionDefinition</span>(<span class="cls">UserPoolCollection</span>.Name)]
+<span class="kw">public sealed class</span> <span class="cls">UserPoolCollection</span> : <span class="cls">ICollectionFixture</span>&lt;<span class="cls">UserPoolFixture</span>&gt;
+{
+    <span class="kw">public const string</span> Name = <span class="str">"UserPool"</span>;
+}
+
+<span class="cmt">// Применяем к тестовому классу:</span>
+[<span class="att">Collection</span>(<span class="cls">UserPoolCollection</span>.Name)]
+<span class="kw">public class</span> <span class="cls">SomeOtherTests</span> { ... }</pre>
+
+<table>
+  <tbody><tr><th>Вид</th><th>Жизненный цикл</th><th>Применение</th></tr>
+  <tr><td>Конструктор класса</td><td>Новый объект перед каждым тестом</td><td>Дешёвые объекты</td></tr>
+  <tr><td>IClassFixture&lt;T&gt;</td><td>Один объект на класс</td><td>Дорогие объекты (BCrypt, JWT)</td></tr>
+  <tr><td>ICollectionFixture&lt;T&gt;</td><td>Один объект на несколько классов</td><td>Общий пул данных</td></tr>
+</tbody></table>
+
+<div class="warn">
+  <strong>Правило:</strong> Fixture — только для чтения. Никогда не мутируй данные внутри fixture из теста, иначе тесты станут зависимыми друг от друга (fixture leakage).
+</div>
+
+<!-- ================================================================ -->
+<h1>6. Генерация данных — Bogus и AutoFixture</h1>
+
+<h3>Без Bogus — скучно и хрупко</h3>
+<pre><span class="kw">var</span> user = <span class="kw">new</span> <span class="cls">User</span> { Id = <span class="cls">Guid</span>.<span class="mth">NewGuid</span>(), Username = <span class="str">"testuser"</span>, PasswordHash = <span class="str">"hash"</span>, <span class="cmt">/* ещё 10 полей */</span> };</pre>
+
+<h3>Bogus — реалистичные фейковые данные с фиксированным seed</h3>
+<pre><span class="cmt">// UserFaker.cs</span>
+<span class="kw">public static</span> <span class="cls">Faker</span>&lt;<span class="cls">User</span>&gt; <span class="mth">Create</span>(<span class="kw">int</span> seed = <span class="num">1337</span>) =&gt;
+    <span class="kw">new</span> <span class="cls">Faker</span>&lt;<span class="cls">User</span>&gt;()
+        .<span class="mth">UseSeed</span>(seed)                               <span class="cmt">// фиксируем seed → детерминизм</span>
+        .<span class="mth">RuleFor</span>(u =&gt; u.Id,        f =&gt; f.Random.<span class="mth">Guid</span>())
+        .<span class="mth">RuleFor</span>(u =&gt; u.Username,  f =&gt; f.Internet.<span class="mth">UserName</span>())   <span class="cmt">// "john.doe42"</span>
+        .<span class="mth">RuleFor</span>(u =&gt; u.Email,     f =&gt; f.Internet.<span class="mth">Email</span>())       <span class="cmt">// "john@example.com"</span>
+        .<span class="mth">RuleFor</span>(u =&gt; u.FirstName, f =&gt; f.Name.<span class="mth">FirstName</span>())      <span class="cmt">// "Alice"</span>
+        .<span class="mth">RuleFor</span>(u =&gt; u.LastName,  f =&gt; f.Name.<span class="mth">LastName</span>());       <span class="cmt">// "Smith"</span>
+
+<span class="cls">UserFaker</span>.<span class="mth">Single</span>(seed: <span class="num">1337</span>)        <span class="cmt">// один пользователь</span>
+<span class="cls">UserFaker</span>.<span class="mth">Many</span>(<span class="num">10</span>, seed: <span class="num">42</span>)          <span class="cmt">// список из 10</span></pre>
+
+<h3>Детерминизм — ключевой момент</h3>
+<pre><span class="kw">var</span> user1 = <span class="cls">UserFaker</span>.<span class="mth">Single</span>(seed: <span class="num">999</span>);
+<span class="kw">var</span> user2 = <span class="cls">UserFaker</span>.<span class="mth">Single</span>(seed: <span class="num">999</span>);
+<span class="cls">Assert</span>.<span class="mth">Equal</span>(user1.Username, user2.Username); <span class="cmt">// всегда одинаковые</span></pre>
+
+<div class="warn">
+  <strong>Ловушка:</strong> <code>Randomizer.Seed = new Random(1337)</code> — глобальное состояние, ломает параллельные тесты.<br>
+  <strong>Правильно:</strong> <code>new Faker&lt;T&gt;().UseSeed(1337)</code> — per-instance seed, изолированный.
+</div>
+
+<h3>AutoFixture + AutoMoq</h3>
+<pre><span class="cmt">// FixtureFactory.cs</span>
+<span class="kw">var</span> fixture = <span class="kw">new</span> <span class="cls">Fixture</span>();
+fixture.<span class="mth">Customize</span>(<span class="kw">new</span> <span class="cls">AutoMoqCustomization</span> { ConfigureMembers = <span class="kw">true</span> });
+
+<span class="cmt">// Автоматически создаёт объекты и подставляет моки для всех интерфейсов</span>
+<span class="kw">var</span> service = fixture.<span class="mth">Create</span>&lt;<span class="cls">UserService</span>&gt;();</pre>
+
+<!-- ================================================================ -->
+<h1>7. Тестирование контроллеров — статус коды</h1>
+
+<p>Контроллеры тестируем без HTTP запросов, напрямую вызывая методы:</p>
+<pre><span class="cmt">// AuthControllerTests.cs</span>
+<span class="kw">public</span> <span class="cls">AuthControllerTests</span>()
+{
+    _authMock = <span class="kw">new</span> <span class="cls">Mock</span>&lt;<span class="cls">IAuthService</span>&gt;();
+    _userMock = <span class="kw">new</span> <span class="cls">Mock</span>&lt;<span class="cls">IUserService</span>&gt;();
+    _sut = <span class="kw">new</span> <span class="cls">AuthController</span>(_authMock.Object, _userMock.Object, <span class="cls">NullLogger</span>&lt;<span class="cls">AuthController</span>&gt;.Instance);
+    <span class="cmt">// Нужен DefaultHttpContext для Response.Cookies.Append</span>
+    _sut.ControllerContext = <span class="kw">new</span> <span class="cls">ControllerContext</span> { HttpContext = <span class="kw">new</span> <span class="cls">DefaultHttpContext</span>() };
+}
+
+[<span class="att">Fact</span>]
+<span class="kw">public async</span> <span class="cls">Task</span> <span class="mth">Login_ValidCredentials_ReturnsOkWithToken</span>()
+{
+    <span class="cmt">// Arrange</span>
+    <span class="kw">var</span> user = <span class="cls">UserFaker</span>.<span class="mth">Single</span>();
+    _userMock.<span class="mth">Setup</span>(s =&gt; s.<span class="mth">FindUserByUsernameAsync</span>(user.Username)).<span class="mth">ReturnsAsync</span>(user);
+    _authMock.<span class="mth">Setup</span>(s =&gt; s.<span class="mth">ValidateUserCredentials</span>(user, <span class="str">"correct"</span>)).<span class="mth">Returns</span>(<span class="kw">true</span>);
+    _authMock.<span class="mth">Setup</span>(s =&gt; s.<span class="mth">GenerateJwtToken</span>(user)).<span class="mth">Returns</span>(<span class="str">"jwt.token.value"</span>);
+
+    <span class="cmt">// Act</span>
+    <span class="kw">var</span> result = <span class="kw">await</span> _sut.<span class="mth">Login</span>(<span class="kw">new</span> <span class="cls">LoginDto</span> { Username = user.Username, Password = <span class="str">"correct"</span> });
+
+    <span class="cmt">// Assert</span>
+    <span class="kw">var</span> ok = <span class="cls">Assert</span>.<span class="mth">IsType</span>&lt;<span class="cls">OkObjectResult</span>&gt;(result);
+    <span class="cls">Assert</span>.<span class="mth">NotNull</span>(ok.Value);
+    _authMock.<span class="mth">Verify</span>(s =&gt; s.<span class="mth">GenerateJwtToken</span>(user), <span class="cls">Times</span>.Once);
+}</pre>
+
+<table>
+  <tbody><tr><th>Assert</th><th>HTTP статус</th></tr>
+  <tr><td><code>Assert.IsType&lt;OkObjectResult&gt;(result)</code></td><td>200 OK</td></tr>
+  <tr><td><code>Assert.IsType&lt;BadRequestObjectResult&gt;(result)</code></td><td>400 Bad Request</td></tr>
+  <tr><td><code>Assert.IsType&lt;UnauthorizedObjectResult&gt;(result)</code></td><td>401 Unauthorized</td></tr>
+  <tr><td><code>Assert.IsType&lt;NotFoundResult&gt;(result)</code></td><td>404 Not Found</td></tr>
+  <tr><td><code>Assert.IsType&lt;ObjectResult&gt;(r); Assert.Equal(500, r.StatusCode)</code></td><td>500 Server Error</td></tr>
+</tbody></table>
+
+<!-- ================================================================ -->
+<h1>8. Валидация DTO и Error Handling</h1>
+
+<pre><span class="cmt">// ControllerErrorHandlingTests.cs — все ошибочные пути в одном файле</span>
+[<span class="att">Fact</span>]
+<span class="kw">public async</span> <span class="cls">Task</span> <span class="mth">UserController_UploadAvatar_NoFile_Returns400</span>()
+{
+    <span class="kw">var</span> result = <span class="kw">await</span> sut.<span class="mth">UploadAvatar</span>(<span class="kw">null</span>!);
+    <span class="cls">Assert</span>.<span class="mth">IsType</span>&lt;<span class="cls">BadRequestObjectResult</span>&gt;(result);
+}
+
+[<span class="att">Fact</span>]
+<span class="kw">public async</span> <span class="cls">Task</span> <span class="mth">UserController_UploadAvatar_ServiceFails_Returns500</span>()
+{
+    avatarMock.<span class="mth">Setup</span>(s =&gt; s.<span class="mth">UpdateUserAvatarAsync</span>(...)).<span class="mth">ReturnsAsync</span>((<span class="kw">string</span>?)<span class="kw">null</span>);
+    <span class="kw">var</span> result = <span class="kw">await</span> sut.<span class="mth">UploadAvatar</span>(file.Object);
+    <span class="kw">var</span> obj = <span class="cls">Assert</span>.<span class="mth">IsType</span>&lt;<span class="cls">ObjectResult</span>&gt;(result);
+    <span class="cls">Assert</span>.<span class="mth">Equal</span>(<span class="num">500</span>, obj.StatusCode);
+}</pre>
+
+<table>
+  <tbody><tr><th>Сценарий</th><th>Ожидаемый статус</th></tr>
+  <tr><td>null файл для аватара</td><td>400</td></tr>
+  <tr><td>Неверный MIME тип (PDF вместо image/)</td><td>400</td></tr>
+  <tr><td>Файл больше 5MB</td><td>400</td></tr>
+  <tr><td>Сервис вернул null (ошибка загрузки)</td><td>500</td></tr>
+  <tr><td>Пустой поисковый запрос</td><td>400</td></tr>
+  <tr><td>Дубликат username при регистрации</td><td>400</td></tr>
+  <tr><td>Добавить себя в контакты</td><td>400</td></tr>
+  <tr><td>Неверный пароль при логине</td><td>401</td></tr>
+</tbody></table>
+
+<!-- ================================================================ -->
+<h1>9. Debugging и ITestOutputHelper</h1>
+
+<pre><span class="cmt">// DebuggingShowcaseTests.cs</span>
+<span class="kw">public class</span> <span class="cls">DebuggingShowcaseTests</span>(<span class="cls">ITestOutputHelper</span> output)
+{
+    <span class="kw">private readonly</span> <span class="cls">TestLogger</span> _log = <span class="kw">new</span>(output);
+
+    [<span class="att">Fact</span>]
+    <span class="kw">public void</span> <span class="mth">MockInteraction_LogsCallsForDebugging</span>()
+    {
+        <span class="kw">var</span> contactsMock = <span class="kw">new</span> <span class="cls">Mock</span>&lt;<span class="cls">IContactsService</span>&gt;();
+        contactsMock.<span class="mth">Setup</span>(c =&gt; c.<span class="mth">IsContact</span>(userId, contactId)).<span class="mth">Returns</span>(<span class="kw">true</span>);
+
+        _log.<span class="mth">Log</span>(<span class="str">"Calling IsContact with userId={0}"</span>, userId);  <span class="cmt">// видно в Test Explorer</span>
+
+        <span class="kw">var</span> result = contactsMock.Object.<span class="mth">IsContact</span>(userId, contactId);
+
+        _log.<span class="mth">Log</span>(<span class="str">"Result: {0}"</span>, result);
+        <span class="cls">Assert</span>.<span class="mth">True</span>(result);
+        contactsMock.<span class="mth">Verify</span>(c =&gt; c.<span class="mth">IsContact</span>(userId, contactId), <span class="cls">Times</span>.Once);
+    }
+}</pre>
+
+<div class="note">
+  <code>Console.WriteLine</code> не работает в Test Explorer. Используй <code>ITestOutputHelper</code> — вывод виден только при упавшем тесте.
+</div>
+
+<h3>Debugging Playbook — 4 типичные ошибки</h3>
+<table>
+  <tbody><tr><th>Проблема</th><th>Симптом</th><th>Решение</th></tr>
+  <tr><td><strong>Неверный Setup</strong></td><td>мок возвращает null/default вместо значения</td><td>Проверь что matcher совпадает с реальным вызовом (аргументы, типы)</td></tr>
+  <tr><td><strong>Fixture leakage</strong></td><td>тест проходит один, падает в suite</td><td>Не мутируй fixture. IClassFixture — только чтение</td></tr>
+  <tr><td><strong>Async timing</strong></td><td>intermittent failures</td><td>Всегда <code>await</code>, никогда <code>.Result</code> или <code>.Wait()</code></td></tr>
+  <tr><td><strong>Non-deterministic data</strong></td><td>флaky тесты на разных машинах</td><td>Используй <code>UseSeed()</code> в Bogus</td></tr>
+</tbody></table>
+
+<h3>Демонстрация неверного Setup</h3>
+<pre>[<span class="att">Fact</span>]
+<span class="kw">public async</span> <span class="cls">Task</span> <span class="mth">WrongMockSetupDiagnosis_IncorrectArgMatcher_MockReturnsDefault</span>()
+{
+    <span class="kw">var</span> specificId = <span class="cls">Guid</span>.<span class="mth">NewGuid</span>();
+    <span class="cmt">// Setup только для specificId</span>
+    userRepoMock.<span class="mth">Setup</span>(r =&gt; r.<span class="mth">GetAsync</span>(specificId, ...)).<span class="mth">ReturnsAsync</span>(user);
+
+    <span class="cmt">// Вызов с ДРУГИМ id — мок не матчит, возвращает null</span>
+    <span class="kw">var</span> differentId = <span class="cls">Guid</span>.<span class="mth">NewGuid</span>();
+    <span class="kw">var</span> result = <span class="kw">await</span> repo.<span class="mth">GetAsync</span>(differentId);
+
+    <span class="cls">Assert</span>.<span class="mth">Null</span>(result); <span class="cmt">// null потому что setup не совпал — типичная ловушка!</span>
+    <span class="cmt">// Исправление: использовать It.IsAny&lt;Guid&gt;() вместо specificId</span>
+}</pre>
+
+<!-- ================================================================ -->
+<h1>10. Manual API Validation (Swagger / Postman)</h1>
+
+<h3>Чеклист для каждого эндпоинта</h3>
+<table>
+  <tbody><tr><th>Что проверять</th><th>Как</th></tr>
+  <tr><td>Success case</td><td>правильные данные → ожидаемый статус и тело ответа</td></tr>
+  <tr><td>Failure case</td><td>неверные credentials → 401</td></tr>
+  <tr><td>Negative payload</td><td>пустое поле, неверный тип → 400</td></tr>
+  <tr><td>Auth required</td><td>без токена → 401</td></tr>
+  <tr><td>Domain conflict</td><td>дубликат данных → 400 / 409</td></tr>
+</tbody></table>
+
+<h3>Примеры из runbook</h3>
+<pre><span class="cmt">// 1. Успешная регистрация → 200</span>
+POST /api/auth/register
+{ <span class="str">"username"</span>: <span class="str">"testuser"</span>, <span class="str">"password"</span>: <span class="str">"P@ssw0rd1"</span> }
+→ <span class="num">200</span>: { <span class="str">"message"</span>: <span class="str">"Registration successful"</span> }
+
+<span class="cmt">// 2. Дубликат username → 400</span>
+POST /api/auth/register
+{ <span class="str">"username"</span>: <span class="str">"testuser"</span>, <span class="str">"password"</span>: <span class="str">"anything"</span> }
+→ <span class="num">400</span>: { <span class="str">"message"</span>: <span class="str">"Username already exists"</span> }
+
+<span class="cmt">// 3. Успешный логин → 200 + токен</span>
+POST /api/auth/login
+{ <span class="str">"username"</span>: <span class="str">"testuser"</span>, <span class="str">"password"</span>: <span class="str">"P@ssw0rd1"</span> }
+→ <span class="num">200</span>: { <span class="str">"token"</span>: <span class="str">"&lt;jwt&gt;"</span> }  +  Set-Cookie: auth-token=...
+
+<span class="cmt">// 4. Неверный пароль → 401</span>
+POST /api/auth/login
+{ <span class="str">"username"</span>: <span class="str">"testuser"</span>, <span class="str">"password"</span>: <span class="str">"WRONG"</span> }
+→ <span class="num">401</span>: { <span class="str">"message"</span>: <span class="str">"Invalid credentials"</span> }
+
+<span class="cmt">// 5. Запрос без токена → 401</span>
+GET /api/chats   <span class="cmt">(без Authorization header)</span>
+→ <span class="num">401</span> Unauthorized</pre>
+
+<!-- ================================================================ -->
+<h1>11. Шпаргалка — Assert API (xUnit)</h1>
+
+<pre><span class="cls">Assert</span>.<span class="mth">True</span>(x)  /  <span class="cls">Assert</span>.<span class="mth">False</span>(x)
+<span class="cls">Assert</span>.<span class="mth">Equal</span>(expected, actual)  /  <span class="cls">Assert</span>.<span class="mth">NotEqual</span>(a, b)
+<span class="cls">Assert</span>.<span class="mth">Null</span>(x)  /  <span class="cls">Assert</span>.<span class="mth">NotNull</span>(x)
+<span class="cls">Assert</span>.<span class="mth">Empty</span>(list)  /  <span class="cls">Assert</span>.<span class="mth">Single</span>(list)
+<span class="cls">Assert</span>.<span class="mth">IsType</span>&lt;<span class="cls">OkObjectResult</span>&gt;(result)
+<span class="cls">Assert</span>.<span class="mth">Contains</span>(list, x =&gt; x.Id == id)
+<span class="cls">Assert</span>.<span class="mth">DoesNotContain</span>(list, x =&gt; x.Id == id)
+<span class="cls">Assert</span>.<span class="mth">Throws</span>&lt;<span class="cls">ArgumentNullException</span>&gt;(() =&gt; sut.<span class="mth">Method</span>(<span class="kw">null</span>))
+<span class="kw">await</span> <span class="cls">Assert</span>.<span class="mth">ThrowsAsync</span>&lt;<span class="cls">Exception</span>&gt;(() =&gt; sut.<span class="mth">AsyncMethod</span>())</pre>
+
+<!-- ================================================================ -->
+<h1>12. Структура проекта</h1>
+
+<pre>WebMessenger.Api.Tests/
+├── Shared/
+│   ├── <span class="cls">AsyncQueryableExtensions.cs</span>  <span class="cmt">← EF Core async поддержка в тестах</span>
+│   ├── <span class="cls">TestLogger.cs</span>                <span class="cmt">← обёртка над ITestOutputHelper</span>
+│   ├── <span class="cls">UserPoolFixture.cs</span>           <span class="cmt">← IClassFixture + ICollectionFixture</span>
+│   ├── Mocks/
+│   │   └── <span class="cls">UnitOfWorkMockHelper.cs</span>  <span class="cmt">← переиспользуемые моки UoW</span>
+│   └── TestData/
+│       ├── <span class="cls">UserFaker.cs</span>             <span class="cmt">← Bogus с UseSeed() — детерминизм</span>
+│       └── <span class="cls">DeterministicBogus.cs</span>    <span class="cmt">← generic хелпер</span>
+├── Unit/
+│   ├── Smoke/<span class="cls">SmokeTests.cs</span>           <span class="cmt">← проверка что xUnit работает</span>
+│   ├── Services/
+│   │   ├── <span class="cls">AuthServiceTests.cs</span>      <span class="cmt">← [Fact], AAA, BCrypt</span>
+│   │   ├── <span class="cls">AuthServiceTheoryTests.cs</span><span class="cmt">← [Theory], IClassFixture</span>
+│   │   ├── <span class="cls">UserServiceTests.cs</span>      <span class="cmt">← Moq Setup/Verify, async EF</span>
+│   │   └── <span class="cls">ContactsServiceTests.cs</span> <span class="cmt">← Moq, sync + async</span>
+│   ├── Controllers/
+│   │   ├── <span class="cls">AuthControllerTests.cs</span>   <span class="cmt">← статус коды, Verify</span>
+│   │   ├── <span class="cls">ContactControllerTests.cs</span>
+│   │   └── <span class="cls">UserControllerTests.cs</span>   <span class="cmt">← IFormFile mock</span>
+│   ├── ErrorHandling/
+│   │   └── <span class="cls">ControllerErrorHandlingTests.cs</span> <span class="cmt">← 400/401/500</span>
+│   └── Debugging/
+│       └── <span class="cls">DebuggingShowcaseTests.cs</span><span class="cmt">← ITestOutputHelper, playbook</span>
+
+WebMessenger.Contracts.Tests/
+└── Unit/Validation/
+    ├── <span class="cls">LoginDtoValidationTests.cs</span>   <span class="cmt">← DTO проверки</span>
+    └── <span class="cls">PagedResultTests.cs</span>         <span class="cmt">← [Theory] граничные значения</span></pre>
+
+<hr>
+<p style="text-align:center;color:#888;font-size:11px;">
+  WebMessenger Testing Guide · .NET 8 · xUnit 2.9 · Moq 4.20 · Bogus 35.6 · AutoFixture 4.18<br>
+  Для конвертации в PDF: открой в браузере → Ctrl+P → «Сохранить как PDF»
+</p>
+
+
+
+</body></html>
