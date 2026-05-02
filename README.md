@@ -57,7 +57,17 @@ cd WebMessenger
 
 ### 2. Prepare environment variables
 
-The project already includes a `.env.docker` file for local Docker startup. Update it only if you need your own credentials or tokens.
+Create your local `.env.docker` file from `.env.docker.example`.
+
+```bash
+# macOS / Linux
+cp .env.docker.example .env.docker
+
+# Windows
+copy .env.docker.example .env.docker
+```
+
+Then open `.env.docker` and fill in the values you need, such as JWT and optional Dropbox credentials.
 
 ### 3. Build and start the app
 
