@@ -90,8 +90,12 @@ namespace WebMessenger.Api.Services
 
         private async Task<IEnumerable<Contact>> GetUserContactsAsync(Guid currentUserId, string query = "")
         {
+            // CA1862: Do not replace ToLower().Contains() with Contains(StringComparison) here.
+            // EF Core cannot translate the Contains(string, StringComparison) overload to SQL and will throw at runtime.
+            #pragma warning disable CA1862
             return await _unitOfWork.ContactRepository.GetAll().Where(x => x.OwnerUserId == currentUserId
                 && x.ContactUser!.Username.ToLower().Contains(query.ToLower())).Include(x => x.ContactUser).ToListAsync();
+            #pragma warning restore CA1862
         }
 
         public bool IsContact(Guid currentUserId, Guid id)
