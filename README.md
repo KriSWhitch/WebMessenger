@@ -44,7 +44,41 @@ It features **instant messaging**, **real-time updates via SignalR**, and a **re
 - **JWT Authentication**
 - **MySQL**
 
-## Deployment and Docker
+## Setup
 
-- Full deployment, environment config, logging, secrets, troubleshooting, and Docker guide:
-	- `docs/guides/.NET Deployment Guide — WebMessenger.html`
+Run the full stack locally with Docker: **MySQL**, **ASP.NET Core API**, and **Next.js client**.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/<your-username>/WebMessenger.git
+cd WebMessenger
+```
+
+### 2. Prepare environment variables
+
+The project already includes a `.env.docker` file for local Docker startup. Update it only if you need your own credentials or tokens.
+
+### 3. Build and start the app
+
+```bash
+docker compose --env-file .env.docker up -d --build
+```
+
+This starts:
+
+- **Client** at `http://localhost:3000`
+- **API** at `http://localhost:5227`
+- **MySQL** at `localhost:3307`
+
+### 4. Stop the app
+
+```bash
+docker compose --env-file .env.docker down
+```
+
+To also remove the database volume and start from a clean state next time:
+
+```bash
+docker compose --env-file .env.docker down -v
+```
