@@ -87,7 +87,7 @@ Requirements:
 1. Clone repository
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/KriSWhitch/WebMessenger.git
 cd WebMessenger
 ```
 
