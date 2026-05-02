@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>.NET Deployment Guide — WebMessenger</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1a1a1a; background: #fff; padding: 40px 60px; max-width: 980px; margin: auto; }
+  h1 { font-size: 26px; color: #0a3d62; border-bottom: 3px solid #0a3d62; padding-bottom: 10px; margin: 30px 0 16px; }
+  h2 { font-size: 20px; color: #1a5276; border-left: 4px solid #2980b9; padding-left: 10px; margin: 28px 0 12px; }
+  h3 { font-size: 15px; color: #2471a3; margin: 20px 0 8px; }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 3px 0; }
+  code { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #f0f4f8; color: #c0392b; padding: 1px 5px; border-radius: 3px; }
+  pre { background: #1e2a3a; color: #abb2bf; font-family: 'Consolas', 'Courier New', monospace; font-size: 11.5px; line-height: 1.55; padding: 14px 18px; border-radius: 6px; margin: 10px 0; overflow-x: auto; border-left: 4px solid #2980b9; white-space: pre-wrap; word-break: break-word; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  th { background: #2471a3; color: #fff; padding: 8px 10px; text-align: left; }
+  td { padding: 7px 10px; border: 1px solid #d5d8dc; }
+  tr:nth-child(even) td { background: #f4f6f8; }
+  .badge { display: inline-block; background: #2980b9; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-right: 4px; }
+  .badge.green { background: #27ae60; }
+  .badge.red { background: #c0392b; }
+  .badge.orange { background: #d35400; }
+  .note { background: #eaf4fb; border-left: 4px solid #2980b9; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .warn { background: #fef9e7; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  hr { border: none; border-top: 1px solid #d5d8dc; margin: 24px 0; }
+  @media print {
+    body { padding: 10px 20px; font-size: 12px; }
+    pre { font-size: 10.5px; }
+    h1 { page-break-before: auto; }
+    h2 { page-break-after: avoid; }
+    pre, table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>.NET Deployment Guide — WebMessenger</h1>
+<p>Practical deployment handbook for ASP.NET Core API and monorepo Docker stack.</p>
+<p style="color:#888;font-size:11px;">Project: WebMessenger.Api + Client + MySQL · .NET 8 · Next.js 15 · Docker Compose</p>
+
+<hr>
+
+<h1>1. Deployment Architecture Overview</h1>
+
+<p>This repository uses a split architecture:</p>
+<ul>
+  <li><strong>Client</strong>: Next.js app in <code>Client/</code></li>
+  <li><strong>Server</strong>: ASP.NET Core API in <code>Server/WebMessenger.Api/</code></li>
+  <li><strong>Database</strong>: MySQL (local host install or Docker container)</li>
+</ul>
+
+<h3>Runtime topology in Docker</h3>
+<pre>Browser
+  -> http://localhost:3000 (Client)
+  -> Client server routes call http://api:8080 (internal docker network)
+  -> API exposed externally on http://localhost:5227
+  -> API uses MySQL at host name db:3306 (internal docker network)
+  -> MySQL also exposed to host on 127.0.0.1:3307 (for tools like Workbench)</pre>
+
+<div class="note">
+  <strong>Why two API URLs exist:</strong><br />
+  <code>PUBLIC_API_URL</code> is used by browser-side code.<br />
+  <code>API_BASE_URL</code> is used by server-side Next.js routes inside the compose network.
+</div>
+
+<hr>
+
+<h1>2. Environment Configuration Model</h1>
+
+<h3>Files used by API</h3>
+<ul>
+  <li><code>Server/WebMessenger.Api/appsettings.json</code></li>
+  <li><code>Server/WebMessenger.Api/appsettings.Development.json</code></li>
+  <li><code>Server/WebMessenger.Api/appsettings.Production.json</code></li>
+</ul>
+
+<h3>Configuration precedence (important for interviews)</h3>
+<ol>
+  <li>appsettings.json</li>
+  <li>appsettings.{Environment}.json</li>
+  <li>User Secrets (Development)</li>
+  <li>Environment variables (highest practical override)</li>
+</ol>
+
+<p>Nested keys in environment variables use double underscore:</p>
+<pre>ConnectionStrings__DefaultConnection
+Jwt__Key
+Serilog__MinimumLevel__Default</pre>
+
+<table>
+  <tr><th>Scope</th><th>Where to keep values</th><th>Examples</th></tr>
+  <tr><td>Development secrets</td><td>User Secrets</td><td>DB password, JWT key, Dropbox token</td></tr>
+  <tr><td>Docker local</td><td>.env.docker</td><td>WM_MYSQL_*, JWT_*, PUBLIC_API_URL</td></tr>
+  <tr><td>Production</td><td>Host env vars / secret manager</td><td>No secrets in git files</td></tr>
+</table>
+
+<hr>
+
+<h1>3. Logging by Environment</h1>
+
+<p>Logging is powered by Serilog in <code>Program.cs</code> and appsettings.</p>
+
+<h3>Configured sinks</h3>
+<ul>
+  <li>Console sink</li>
+  <li>Rolling file sink in <code>logs/log-.txt</code></li>
+</ul>
+
+<h3>Common deployment logging strategy</h3>
+<table>
+  <tr><th>Environment</th><th>Default level</th><th>Goal</th></tr>
+  <tr><td>Development</td><td>Debug/Information</td><td>Fast diagnostics</td></tr>
+  <tr><td>Production</td><td>Warning/Error</td><td>Noise reduction and cost control</td></tr>
+</table>
+
+<pre># Example environment override
+Serilog__MinimumLevel__Default=Information
+Serilog__MinimumLevel__Override__Microsoft=Warning</pre>
+
+<div class="warn">
+  Keep personally identifiable and secret information out of logs, especially in Production.
+</div>
+
+<hr>
+
+<h1>4. Publishing ASP.NET Core Application</h1>
+
+<h3>Visual Studio path</h3>
+<ol>
+  <li>Right click <code>WebMessenger.Api</code> -> Publish</li>
+  <li>Select profile (folder, IIS, etc.)</li>
+  <li>Use Release configuration for Production targets</li>
+</ol>
+
+<h3>CLI path</h3>
+<pre>cd Server/WebMessenger.Api
+dotnet restore
+dotnet publish -c Release -o ./bin/Release/net8.0/publish</pre>
+
+<h3>Run published build</h3>
+<pre>cd Server/WebMessenger.Api/bin/Release/net8.0/publish
+dotnet WebMessenger.Api.dll</pre>
+
+<table>
+  <tr><th>Mode</th><th>Use case</th></tr>
+  <tr><td>Kestrel standalone</td><td>Simple VM/container runtime</td></tr>
+  <tr><td>IIS + ASP.NET Core Module</td><td>Windows hosting with IIS management</td></tr>
+</table>
+
+<hr>
+
+<h1>5. IIS vs Kestrel</h1>
+
+<h3>Kestrel only</h3>
+<p>API runs directly with <code>dotnet WebMessenger.Api.dll</code>. Reverse proxy is optional.</p>
+
+<h3>IIS hosting in this project</h3>
+<p><code>Server/WebMessenger.Api/web.config</code> configures AspNetCoreModuleV2 and launches the API process.</p>
+
+<div class="note">
+  Your IIS using <code>localhost:8080</code> does not conflict with Docker API in this setup because Docker publishes API on <code>localhost:5227</code>.
+</div>
+
+<hr>
+
+<h1>6. Secrets and Connection Strings</h1>
+
+<h3>Development secrets with user-secrets</h3>
+<pre>cd Server/WebMessenger.Api
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Port=3306;Database=WebMessenger;Uid=root;Pwd=***;"
+dotnet user-secrets set "Jwt:Key" "***"
+dotnet user-secrets set "Dropbox:AccessToken" "***"</pre>
+
+<h3>Docker local secrets</h3>
+<p>Values are loaded from <code>.env.docker</code> by compose.</p>
+
+<h3>Production secrets</h3>
+<ul>
+  <li>Use host environment variables or secret store</li>
+  <li>Do not commit real keys to repository</li>
+  <li>Rotate keys after accidental exposure</li>
+</ul>
+
+<hr>
+
+<h1>7. Docker Configuration from Scratch</h1>
+
+<h2>7.1 Files required</h2>
+<ul>
+  <li><code>Dockerfile.api</code> - builds and runs ASP.NET Core API</li>
+  <li><code>Dockerfile.client</code> - builds and runs Next.js app</li>
+  <li><code>docker-compose.yml</code> - orchestrates db/api/client</li>
+  <li><code>.env.docker</code> - local runtime values</li>
+  <li><code>.dockerignore</code> - reduces build context</li>
+  <li><code>docker/mysql/init/00-import-optional-dump.sh</code> - optional dump import on first db init</li>
+  <li><code>docker/mysql/dumps/</code> - local dump files directory</li>
+</ul>
+
+<h2>7.2 Compose service map</h2>
+<pre>services:
+  db      -> mysql:8.0
+             command: mysqld --lower_case_table_names=1
+             ports: 3307:3306
+             mounts optional init script + dumps directory
+  api     -> build from Dockerfile.api
+             applies EF Core migrations on startup
+  client  -> build from Dockerfile.client
+
+volumes:
+  mysql_data</pre>
+
+<h2>7.3 Deterministic env names</h2>
+<p>Database variables use <code>WM_</code> prefix to avoid collision with machine-wide vars.</p>
+<pre>WM_MYSQL_ROOT_PASSWORD
+WM_MYSQL_DATABASE
+WM_MYSQL_USER
+WM_MYSQL_PASSWORD
+WM_DB_DUMP_FILE</pre>
+
+<h3>Optional dump import behavior</h3>
+<p>The db init script imports a dump file only when all conditions are true:</p>
+<ul>
+  <li><code>WM_DB_DUMP_FILE</code> is set</li>
+  <li>The file exists inside container path</li>
+  <li>The file is non-empty</li>
+</ul>
+<p>Recommended value when file exists in <code>docker/mysql/dumps</code>:</p>
+<pre>WM_DB_DUMP_FILE=/docker-entrypoint-initdb.d/dumps/webmessenger-dump-20260502.sql</pre>
+
+<div class="warn">
+  Generic variable names like <code>MYSQL_USER</code> can be overridden by host environment unexpectedly.
+</div>
+
+<hr>
+
+<h1>8. First Run Checklist</h1>
+
+<h3>Step A: Prepare env file</h3>
+<pre>Copy .env.docker.example to .env.docker
+Fill all required values
+Set WM_DB_DUMP_FILE to a file in docker/mysql/dumps, or keep optional placeholder</pre>
+
+<h3>Step B: If you need first-time dump import, reset DB volume</h3>
+<pre>docker compose --env-file .env.docker down -v</pre>
+<p>Init scripts in <code>/docker-entrypoint-initdb.d</code> run only during first database initialization.</p>
+
+<h3>Step C: Build and start</h3>
+<pre>docker compose --env-file .env.docker up -d --build</pre>
+
+<h3>Step D: Validate</h3>
+<ul>
+  <li>Client: <code>http://localhost:3000</code></li>
+  <li>API Swagger: <code>http://localhost:5227/swagger</code></li>
+  <li>MySQL host access: <code>127.0.0.1:3307</code></li>
+  <li>Containers: all services Up, db Healthy</li>
+</ul>
+
+<h3>Step E: Confirm dump import in db logs</h3>
+<pre>docker compose logs --tail=200 db</pre>
+<p>Expected lines include <code>Optional dump import step</code> and <code>Dump import completed successfully</code>.</p>
+
+<h3>Step F: Stop</h3>
+<pre>docker compose down</pre>
+
+<hr>
+
+<h1>9. Troubleshooting Playbook</h1>
+
+<table>
+  <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
+  <tr><td>POST /api/auth/login returns 500</td><td>Database schema not applied</td><td>Ensure startup migration is enabled and api logs show "Database migration completed"</td></tr>
+  <tr><td>Table 'WebMessenger.Users' doesn't exist</td><td>Fresh DB volume without migrations</td><td>Use fresh init + verify API migration step is active</td></tr>
+  <tr><td>Both users and Users tables exist</td><td>Case-sensitive MySQL table behavior</td><td>Run db with <code>--lower_case_table_names=1</code>, then recreate volume with <code>down -v</code></td></tr>
+  <tr><td>Dump file did not import</td><td>No first init, wrong path, missing file, or empty file</td><td>Check <code>WM_DB_DUMP_FILE</code>, file location in dumps folder, and rerun with <code>down -v</code></td></tr>
+  <tr><td>Connection refused to db</td><td>MySQL not healthy yet</td><td>Wait for db health, inspect db logs</td></tr>
+  <tr><td>Client cannot call API</td><td>Wrong PUBLIC_API_URL/API_BASE_URL</td><td>Correct .env.docker values and recreate containers</td></tr>
+  <tr><td>Port already in use</td><td>Host port conflict</td><td>Change published host port in compose file</td></tr>
+</table>
+
+<h3>Useful diagnostics</h3>
+<pre>docker compose ps
+docker compose logs --tail=200 api
+docker compose logs --tail=200 db
+docker compose config
+docker exec -i webmessenger-db mysql -uroot -p*** -e "SELECT @@lower_case_table_names;"
+docker exec -i webmessenger-db mysql -uroot -p*** -e "USE WebMessenger; SELECT table_name FROM information_schema.tables WHERE table_schema='WebMessenger' AND LOWER(table_name)='users';"</pre>
+
+<hr>
+
+<h1>10. Change Management: Rebuild vs Restart</h1>
+
+<table>
+  <tr><th>What changed</th><th>Action</th></tr>
+  <tr><td>Only runtime env values</td><td>Recreate/restart service</td></tr>
+  <tr><td>Source code in API/Client</td><td>Rebuild image for changed service</td></tr>
+  <tr><td>Dockerfile</td><td>Rebuild required</td></tr>
+  <tr><td>Compose ports/volumes/network</td><td>Recreate compose stack</td></tr>
+</table>
+
+<p>Current setup does not hot-reload source code by default because code is copied into image during build.</p>
+
+<hr>
+
+<h1>11. Docker Desktop Workflow (UI-first)</h1>
+
+<ol>
+  <li>Open Docker Desktop -> Containers</li>
+  <li>Find compose app <code>webmessenger</code></li>
+  <li>Use Start / Stop / Restart at app or service level</li>
+  <li>Open service logs directly in UI</li>
+  <li>Use Exec tab to inspect container internals</li>
+  <li>Use Volumes tab for DB data lifecycle management</li>
+</ol>
+
+<h3>External DB tools (MySQL Workbench)</h3>
+<ul>
+  <li>Host: <code>127.0.0.1</code></li>
+  <li>Port: <code>3307</code></li>
+  <li>User: <code>root</code></li>
+  <li>Password: from <code>WM_MYSQL_ROOT_PASSWORD</code></li>
+  <li>Schema: <code>WebMessenger</code></li>
+</ul>
+
+<div class="note">
+  If your Docker Desktop version does not show a dedicated compose create button, start once via CLI, then manage everything through UI.
+</div>
+
+<hr>
+
+<h1>12. Skill Demonstration Checklist</h1>
+
+<p>To prove deployment competency end-to-end, demonstrate all items below:</p>
+<ol>
+  <li>Publish API with Visual Studio and with dotnet publish</li>
+  <li>Explain environment precedence and override a config via env var</li>
+  <li>Show logging level differences between Development and Production</li>
+  <li>Run API behind Kestrel and explain IIS web.config role</li>
+  <li>Store secrets securely (user-secrets/dev, env vars/prod)</li>
+  <li>Troubleshoot a broken deployment from logs and fix it</li>
+  <li>Build and run full Docker stack and validate reachable endpoints</li>
+</ol>
+
+<hr>
+<p style="text-align:center;color:#888;font-size:11px;">
+  .NET Deployment Guide — WebMessenger · ASP.NET Core 8 · Docker Compose · IIS/Kestrel · Serilog<br />
+  Export as PDF: open in browser -> Ctrl+P -> Save as PDF
+</p>
+
+</body>
+</html>

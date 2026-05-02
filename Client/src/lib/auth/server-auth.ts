@@ -6,8 +6,14 @@ export async function getServerSession() {
 
   if (!token) return null;
 
+  const apiBaseUrl = process.env.API_BASE_URL ?? process.env.PUBLIC_API_URL;
+  if (!apiBaseUrl) {
+    console.error('API_BASE_URL or PUBLIC_API_URL is not configured');
+    return null;
+  }
+
   try {
-    const res = await fetch(`${process.env.PUBLIC_API_URL}/api/auth/verify`, {
+    const res = await fetch(`${apiBaseUrl}/api/auth/verify`, {
       cache: 'no-store',
       headers: { Authorization: `Bearer ${token}` },
     });

@@ -2,9 +2,9 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 function getApiBaseUrl(): string {
-  const url = process.env.PUBLIC_API_URL;
+  const url = process.env.API_BASE_URL ?? process.env.PUBLIC_API_URL;
   if (!url) {
-    throw new Error('PUBLIC_API_URL is not found in .env.*');
+    throw new Error('API_BASE_URL or PUBLIC_API_URL is not found in .env.*');
   }
   return url;
 }

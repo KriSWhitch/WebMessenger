@@ -26,29 +26,76 @@ namespace WebMessenger.Api.Controllers
             if (string.IsNullOrWhiteSpace(query))
                 return BadRequest("Search query is required");
 
-            var users = await _userService.SearchUsersAsync(_currentUser.Id, query, limit);
-            return Ok(users);
+            try
+            {
+                var users = await _userService.SearchUsersAsync(_currentUser.Id, query, limit);
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching users with query {Query} for user {UserId}", query, _currentUser.Id);
+                return StatusCode(500, new { message = "An error occurred while searching users" });
+            }
         }
 
         [HttpGet("profile")]
         public async Task<IActionResult> GetUserProfile()
         {
-            var profile = await _userService.GetUserProfileAsync(_currentUser.Id);
-            return Ok(profile);
+            try
+            {
+                var profile = await _userService.GetUserProfileAsync(_currentUser.Id);
+                return Ok(profile);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Profile not found for user {UserId}", _currentUser.Id);
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching profile for user {UserId}", _currentUser.Id);
+                return StatusCode(500, new { message = "An error occurred while fetching profile" });
+            }
         }
 
         [HttpGet("profile/{id:guid}")]
         public async Task<IActionResult> GetUserProfileById(Guid id)
         {
-            var profile = await _userService.GetUserProfileAsync(id);
-            return Ok(profile);
+            try
+            {
+                var profile = await _userService.GetUserProfileAsync(id);
+                return Ok(profile);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Profile not found for user {UserId}", id);
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching profile for user {UserId}", id);
+                return StatusCode(500, new { message = "An error occurred while fetching profile" });
+            }
         }
 
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateUserProfile([FromBody] UpdateProfileDto updateDto)
         {
-            var result = await _userService.UpdateUserProfileAsync(_currentUser.Id, updateDto);
-            return Ok(result);
+            try
+            {
+                var result = await _userService.UpdateUserProfileAsync(_currentUser.Id, updateDto);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "User not found during profile update for {UserId}", _currentUser.Id);
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating profile for user {UserId}", _currentUser.Id);
+                return StatusCode(500, new { message = "An error occurred while updating profile" });
+            }
         }
 
         [HttpPost("avatar")]
@@ -61,9 +108,23 @@ namespace WebMessenger.Api.Controllers
             if (file.Length > 5 * 1024 * 1024)
                 return BadRequest("File size exceeds 5MB limit");
 
-            var avatarUrl = await _avatarService.UpdateUserAvatarAsync(_currentUser.Id, file);
-            return avatarUrl is null ? StatusCode(500, "An error occurred while uploading avatar")
-                                     : Ok(new { avatarUrl });
+            try
+            {
+                var avatarUrl = await _avatarService.UpdateUserAvatarAsync(_currentUser.Id, file);
+                if (avatarUrl is null)
+                {
+                    _logger.LogWarning("Avatar upload failed for user {UserId}", _currentUser.Id);
+                    return StatusCode(500, new { message = "An error occurred while uploading avatar" });
+                }
+
+                _logger.LogInformation("Avatar updated for user {UserId}", _currentUser.Id);
+                return Ok(new { avatarUrl });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error uploading avatar for user {UserId}", _currentUser.Id);
+                return StatusCode(500, new { message = "An error occurred while uploading avatar" });
+            }
         }
     }
 }

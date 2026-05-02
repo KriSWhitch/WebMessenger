@@ -21,8 +21,16 @@ namespace WebMessenger.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> Index([FromQuery] string query = "")
         {
-            var contacts = await _contactsService.GetContactsAsync(_currentUser.Id, query);
-            return Ok(contacts.ToList());
+            try
+            {
+                var contacts = await _contactsService.GetContactsAsync(_currentUser.Id, query);
+                return Ok(contacts.ToList());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching contacts for user {UserId}", _currentUser.Id);
+                return StatusCode(500, new { message = "An error occurred while fetching contacts" });
+            }
         }
 
         [HttpPost("add")]
@@ -34,8 +42,22 @@ namespace WebMessenger.Api.Controllers
             if (await _contactsService.IsContactAsync(_currentUser.Id, request.ContactUserId))
                 return BadRequest("User is already in your contacts");
 
-            var response = await _contactsService.AddContactAsync(_currentUser.Id, request);
-            return Ok(response);
+            try
+            {
+                var response = await _contactsService.AddContactAsync(_currentUser.Id, request);
+                _logger.LogDebug("Contact {ContactId} added by user {UserId}", request.ContactUserId, _currentUser.Id);
+                return Ok(response);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Invalid operation adding contact {ContactId} for user {UserId}", request.ContactUserId, _currentUser.Id);
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding contact {ContactId} for user {UserId}", request.ContactUserId, _currentUser.Id);
+                return StatusCode(500, new { message = "An error occurred while adding contact" });
+            }
         }
     }
 }

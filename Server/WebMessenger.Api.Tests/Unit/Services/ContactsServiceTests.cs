@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using WebMessenger.Api.Services;
 using WebMessenger.Api.Tests.Shared;
@@ -28,7 +29,7 @@ public class ContactsServiceTests
         _uowMock.Setup(u => u.ContactRepository).Returns(_contactRepoMock.Object);
         _uowMock.Setup(u => u.UserRepository).Returns(_userRepoMock.Object);
 
-        _sut = new ContactsService(_uowMock.Object);
+        _sut = new ContactsService(_uowMock.Object, NullLogger<ContactsService>.Instance);
     }
 
     // -------------------------------------------------------------------------

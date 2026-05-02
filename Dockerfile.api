@@ -1,0 +1,28 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY Server/WebMessenger.Api/WebMessenger.Api.csproj Server/WebMessenger.Api/
+COPY Server/WebMessenger.DAL/WebMessenger.DAL.csproj Server/WebMessenger.DAL/
+COPY Server/WebMessenger.Contracts/WebMessenger.Contracts.csproj Server/WebMessenger.Contracts/
+
+RUN dotnet restore Server/WebMessenger.Api/WebMessenger.Api.csproj
+
+COPY Server/ Server/
+
+RUN dotnet publish Server/WebMessenger.Api/WebMessenger.Api.csproj \
+    -c Release \
+    -o /app/publish \
+    --no-restore
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+
+RUN mkdir -p logs
+
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:8080
+
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "WebMessenger.Api.dll"]

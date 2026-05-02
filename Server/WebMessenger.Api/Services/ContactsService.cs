@@ -6,9 +6,10 @@ using WebMessenger.DAL.Interfaces;
 
 namespace WebMessenger.Api.Services
 {
-    public class ContactsService(IUnitOfWork unitOfWork) : IContactsService
+    public class ContactsService(IUnitOfWork unitOfWork, ILogger<ContactsService> logger) : IContactsService
     {
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
+        private readonly ILogger<ContactsService> _logger = logger;
 
         public async Task<AddContactResponse> AddContactAsync(Guid currentUserId, AddContactRequest request)
         {
@@ -31,6 +32,7 @@ namespace WebMessenger.Api.Services
             await _unitOfWork.ContactRepository.InsertAsync(contact);
             await _unitOfWork.CommitAsync();
 
+            _logger.LogInformation("User {OwnerId} added contact {ContactId}", currentUserId, request.ContactUserId);
             return new AddContactResponse
             {
                 ContactId = contact.Id
@@ -89,7 +91,7 @@ namespace WebMessenger.Api.Services
         private async Task<IEnumerable<Contact>> GetUserContactsAsync(Guid currentUserId, string query = "")
         {
             return await _unitOfWork.ContactRepository.GetAll().Where(x => x.OwnerUserId == currentUserId
-                && x.ContactUser.Username.ToLower().Contains(query.ToLower())).Include(x => x.ContactUser).ToListAsync();
+                && x.ContactUser!.Username.ToLower().Contains(query.ToLower())).Include(x => x.ContactUser).ToListAsync();
         }
 
         public bool IsContact(Guid currentUserId, Guid id)

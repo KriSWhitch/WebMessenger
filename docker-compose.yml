@@ -1,0 +1,65 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: webmessenger-db
+    command: ["mysqld", "--lower_case_table_names=1"]
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${WM_MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${WM_MYSQL_DATABASE:-webmessenger}
+      MYSQL_USER: ${WM_MYSQL_USER:-webmessenger}
+      MYSQL_PASSWORD: ${WM_MYSQL_PASSWORD:-webmessenger}
+      WM_DB_DUMP_FILE: ${WM_DB_DUMP_FILE:-/docker-entrypoint-initdb.d/dumps/optional-dump.sql}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init/00-import-optional-dump.sh:/docker-entrypoint-initdb.d/00-import-optional-dump.sh:ro
+      - ./docker/mysql/dumps:/docker-entrypoint-initdb.d/dumps:ro
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: webmessenger-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Server=db;Port=3306;Database=${WM_MYSQL_DATABASE:-webmessenger};Uid=${WM_MYSQL_USER:-webmessenger};Pwd=${WM_MYSQL_PASSWORD:-webmessenger};
+      Jwt__Key: ${JWT_KEY:-replace_with_64_plus_characters}
+      Jwt__Issuer: ${JWT_ISSUER:-WebMessenger}
+      Jwt__Audience: ${JWT_AUDIENCE:-WebMessengerClients}
+      Dropbox__AccessToken: ${DROPBOX_ACCESS_TOKEN:-}
+      Dropbox__ClientId: ${DROPBOX_CLIENT_ID:-}
+      Dropbox__ClientSecret: ${DROPBOX_CLIENT_SECRET:-}
+    volumes:
+      - ./Server/WebMessenger.Api/logs:/app/logs
+    ports:
+      - "5227:8080"
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: webmessenger-client
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: development
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:5227}
+      API_BASE_URL: ${API_BASE_URL:-http://api:8080}
+    ports:
+      - "3000:3000"
+
+volumes:
+  mysql_data:

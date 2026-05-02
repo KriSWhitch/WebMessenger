@@ -154,7 +154,7 @@ public class DebuggingShowcaseTests(ITestOutputHelper output)
         var config  = new ConfigurationBuilder().AddInMemoryCollection(inMemory).Build();
         var auth    = new AuthService(config, NullLogger<AuthService>.Instance);
         var contacts = new Mock<IContactsService>().Object;
-        var svc      = new UserService(uowMock.Object, contacts, auth);
+        var svc      = new UserService(uowMock.Object, contacts, auth, NullLogger<UserService>.Instance);
 
         _log.Log("Awaiting FindUserByUsernameAsync...");
 

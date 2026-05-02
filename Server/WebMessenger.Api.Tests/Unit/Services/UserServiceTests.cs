@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using WebMessenger.Api.Services;
 using WebMessenger.Api.Services.Interfaces;
@@ -32,7 +33,7 @@ public class UserServiceTests
 
         _uowMock.Setup(u => u.UserRepository).Returns(_userRepoMock.Object);
 
-        _sut = new UserService(_uowMock.Object, _contactsMock.Object, _authMock.Object);
+        _sut = new UserService(_uowMock.Object, _contactsMock.Object, _authMock.Object, NullLogger<UserService>.Instance);
     }
 
     // -------------------------------------------------------------------------

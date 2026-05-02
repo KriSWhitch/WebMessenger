@@ -27,6 +27,7 @@ Client/.env.local            # Local overrides
 Client/.env.development.local
 Client/.env.test.local
 Client/.env.production.local
+.env.docker
 
 ### Logs ###
 Client/npm-debug.log*        # NPM/Yarn/PNPM debug logs
@@ -57,6 +58,9 @@ obj/
 # NuGet
 packages/
 *.nupkg
+
+# Logs
+logs/
 
 ### Internal Planning Docs ###
 docs/plans/

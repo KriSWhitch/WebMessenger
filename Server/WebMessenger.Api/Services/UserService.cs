@@ -6,11 +6,12 @@ using WebMessenger.Contracts.Models;
 
 namespace WebMessenger.Api.Services;
 
-public class UserService(IUnitOfWork unitOfWork, IContactsService contactsService, IAuthService authService) : IUserService
+public class UserService(IUnitOfWork unitOfWork, IContactsService contactsService, IAuthService authService, ILogger<UserService> logger) : IUserService
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IContactsService _contactsService = contactsService;
     private readonly IAuthService _authService = authService;
+    private readonly ILogger<UserService> _logger = logger;
 
     public async Task<bool> IsUsernameExistsAsync(string username)
     {
@@ -29,6 +30,7 @@ public class UserService(IUnitOfWork unitOfWork, IContactsService contactsServic
         await _unitOfWork.UserRepository.InsertAsync(user);
         await _unitOfWork.CommitAsync();
 
+        _logger.LogInformation("User registered: {Username}", registerDto.Username);
         return user;
     }
 
@@ -100,6 +102,7 @@ public class UserService(IUnitOfWork unitOfWork, IContactsService contactsServic
         await _unitOfWork.UserRepository.UpdateAsync(user);
         await _unitOfWork.CommitAsync();
 
+        _logger.LogInformation("Profile updated for user {UserId}", userId);
         return await GetUserProfileAsync(userId);
     }
 

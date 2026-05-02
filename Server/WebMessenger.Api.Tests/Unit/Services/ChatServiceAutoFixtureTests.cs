@@ -1,5 +1,6 @@
 ﻿using AutoFixture;
 using AutoFixture.AutoMoq;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using WebMessenger.Api.Hubs.Events.Interfaces;
 using WebMessenger.Api.Services;
@@ -45,7 +46,7 @@ public class ChatServiceAutoFixtureTests
         // -- WAY 1: manually (the old approach) --------------------------------
         var uowManual    = new Mock<IUnitOfWork>();
         var eventsManual = new Mock<IChatEvents>();
-        var serviceManual = new ChatService(uowManual.Object, eventsManual.Object);
+        var serviceManual = new ChatService(uowManual.Object, eventsManual.Object, NullLogger<ChatService>.Instance);
         // If a new constructor parameter is added -- the test breaks;
         // every test must be updated manually.
 

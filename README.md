@@ -43,3 +43,8 @@ It features **instant messaging**, **real-time updates via SignalR**, and a **re
 - **SignalR**
 - **JWT Authentication**
 - **MySQL**
+
+## Deployment and Docker
+
+- Full deployment, environment config, logging, secrets, troubleshooting, and Docker guide:
+	- `docs/guides/.NET Deployment Guide — WebMessenger.html`
