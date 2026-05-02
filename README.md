@@ -9,18 +9,18 @@
 https://github.com/user-attachments/assets/a3900797-dd0a-4b3f-8523-06d577ee1a45
 </details>
 
-## Overview
+## 🚀 Overview
 
 WebMessenger is a real-time full-stack messenger built as a portfolio project.
 It includes authentication, contact management, chat history, and live updates powered by SignalR.
 
-## Why This Project
+## 🎯 Why This Project
 
 - Demonstrates end-to-end product thinking: auth, messaging flow, realtime behavior, and UX.
 - Shows modern full-stack architecture with clear client/server boundaries.
 - Runs locally with Docker in a repeatable way without installing local runtimes.
 
-## Highlights
+## ✨ Highlights
 
 - JWT authentication with protected routes
 - Real-time messaging via SignalR
@@ -30,7 +30,7 @@ It includes authentication, contact management, chat history, and live updates p
 - Profile and avatar support (Dropbox integration)
 - Responsive UI for desktop and mobile
 
-## User Flow
+## 🔄 User Flow
 
 1. User logs in via auth endpoints and receives `auth-token` cookie.
 2. Client loads chat list and chat headers from API.
@@ -38,7 +38,7 @@ It includes authentication, contact management, chat history, and live updates p
 4. Server persists message and broadcasts realtime update.
 5. Client updates chat list, message thread, unread/read state.
 
-## Architecture
+## 🏗️ Architecture
 
 - Client: Next.js 15 (App Router) + React 19 + TypeScript
 - API: ASP.NET Core 8 Web API + SignalR Hub
@@ -51,7 +51,7 @@ Communication model:
 - REST: Next.js route handlers in `Client/src/app/api/**` proxy requests to ASP.NET API.
 - SignalR: browser client connects to `/hubs/chat` for `MessageCreated`, `Typing`, `ReadReceipt`.
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 Frontend:
 
@@ -78,7 +78,7 @@ Quality and testing:
 - AutoFixture + AutoMoq
 - Bogus
 
-## Quick Start (Docker)
+## 🐳 Quick Start (Docker)
 
 Requirements:
 
@@ -130,7 +130,7 @@ Stop and reset DB volume:
 docker compose --env-file .env.docker down -v
 ```
 
-## Testing
+## 🧪 Testing
 
 - API tests: `Server/WebMessenger.Api.Tests`
 - Contracts tests: `Server/WebMessenger.Contracts.Tests`
@@ -141,7 +141,7 @@ Run all backend tests:
 dotnet test Server/WebMessenger.sln
 ```
 
-## Repository Map
+## 🗺️ Repository Map
 
 - `Client/` - Next.js app (UI, hooks, API route handlers)
 - `Server/WebMessenger.Api/` - ASP.NET API, controllers, SignalR hub
@@ -152,7 +152,7 @@ dotnet test Server/WebMessenger.sln
 - `docker/` - MySQL init script and optional SQL dumps
 - `docs/CODEBASE_MAP.md` - detailed codebase navigation map
 
-## Notes
+## 📝 Notes
 
 - This project is optimized for Docker-based local development.
 - You do not need local Node.js, .NET runtime, or MySQL installation to run the stack.
