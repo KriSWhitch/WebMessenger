@@ -49,7 +49,7 @@
 <ul>
   <li><strong>Client</strong>: Next.js app in <code>Client/</code></li>
   <li><strong>Server</strong>: ASP.NET Core API in <code>Server/WebMessenger.Api/</code></li>
-  <li><strong>Database</strong>: MySQL (local host install or Docker container)</li>
+  <li><strong>Database</strong>: MySQL (Docker container in the local workflow)</li>
 </ul>
 
 <h3>Runtime topology in Docker</h3>
@@ -193,7 +193,8 @@ dotnet user-secrets set "Dropbox:AccessToken" "***"</pre>
   <li><code>Dockerfile.api</code> - builds and runs ASP.NET Core API</li>
   <li><code>Dockerfile.client</code> - builds and runs Next.js app</li>
   <li><code>docker-compose.yml</code> - orchestrates db/api/client</li>
-  <li><code>.env.docker</code> - local runtime values</li>
+  <li><code>.env.docker.example</code> - committed template for local env values</li>
+  <li><code>.env.docker</code> - local runtime values (created from template, not committed)</li>
   <li><code>.dockerignore</code> - reduces build context</li>
   <li><code>docker/mysql/init/00-import-optional-dump.sh</code> - optional dump import on first db init</li>
   <li><code>docker/mysql/dumps/</code> - local dump files directory</li>
@@ -239,7 +240,12 @@ WM_DB_DUMP_FILE</pre>
 <h1>8. First Run Checklist</h1>
 
 <h3>Step A: Prepare env file</h3>
-<pre>Copy .env.docker.example to .env.docker
+<pre># macOS / Linux
+cp .env.docker.example .env.docker
+
+# Windows
+copy .env.docker.example .env.docker
+
 Fill all required values
 Set WM_DB_DUMP_FILE to a file in docker/mysql/dumps, or keep optional placeholder</pre>
 
@@ -259,11 +265,11 @@ Set WM_DB_DUMP_FILE to a file in docker/mysql/dumps, or keep optional placeholde
 </ul>
 
 <h3>Step E: Confirm dump import in db logs</h3>
-<pre>docker compose logs --tail=200 db</pre>
+<pre>docker compose --env-file .env.docker logs --tail=200 db</pre>
 <p>Expected lines include <code>Optional dump import step</code> and <code>Dump import completed successfully</code>.</p>
 
 <h3>Step F: Stop</h3>
-<pre>docker compose down</pre>
+<pre>docker compose --env-file .env.docker down</pre>
 
 <hr>
 
@@ -281,10 +287,10 @@ Set WM_DB_DUMP_FILE to a file in docker/mysql/dumps, or keep optional placeholde
 </table>
 
 <h3>Useful diagnostics</h3>
-<pre>docker compose ps
-docker compose logs --tail=200 api
-docker compose logs --tail=200 db
-docker compose config
+<pre>docker compose --env-file .env.docker ps
+docker compose --env-file .env.docker logs --tail=200 api
+docker compose --env-file .env.docker logs --tail=200 db
+docker compose --env-file .env.docker config
 docker exec -i webmessenger-db mysql -uroot -p*** -e "SELECT @@lower_case_table_names;"
 docker exec -i webmessenger-db mysql -uroot -p*** -e "USE WebMessenger; SELECT table_name FROM information_schema.tables WHERE table_schema='WebMessenger' AND LOWER(table_name)='users';"</pre>
 
