@@ -9,55 +9,89 @@
 https://github.com/user-attachments/assets/a3900797-dd0a-4b3f-8523-06d577ee1a45
 </details>
 
-## 🚀 About
+## Overview
 
-A modern real-time web messenger application built as a full-stack portfolio project.
+WebMessenger is a real-time full-stack messenger built as a portfolio project.
+It includes authentication, contact management, chat history, and live updates powered by SignalR.
 
-It features **instant messaging**, **real-time updates via SignalR**, and a **responsive UI** optimized for both desktop and mobile.
+## Why This Project
 
-## ✨ Features
+- Demonstrates end-to-end product thinking: auth, messaging flow, realtime behavior, and UX.
+- Shows modern full-stack architecture with clear client/server boundaries.
+- Runs locally with Docker in a repeatable way without installing local runtimes.
 
-- JWT-based authorization and authentication system
-- User search
-- Contact management functionality
-- Dynamic chat creation
-- Real-time messaging with SignalR
-- Unread message indicator
-- Responsive design
-- Image handling using Dropbox
+## Highlights
 
-## 🛠 Technologies
+- JWT authentication with protected routes
+- Real-time messaging via SignalR
+- Dynamic direct chats and chat list updates
+- Read state and unread counters
+- User search and contact management
+- Profile and avatar support (Dropbox integration)
+- Responsive UI for desktop and mobile
 
-### **Frontend**
+## User Flow
 
-- **Next.js 15** 
-- **React 19**
-- **TypeScript**
-- **Tailwind CSS**
-- **SignalR**
+1. User logs in via auth endpoints and receives `auth-token` cookie.
+2. Client loads chat list and chat headers from API.
+3. User sends a message in direct chat.
+4. Server persists message and broadcasts realtime update.
+5. Client updates chat list, message thread, unread/read state.
 
-### **Backend**
+## Architecture
 
-- **ASP.NET Core 8**
-- **Entity Framework Core**
-- **SignalR**
-- **JWT Authentication**
-- **MySQL**
+- Client: Next.js 15 (App Router) + React 19 + TypeScript
+- API: ASP.NET Core 8 Web API + SignalR Hub
+- Data: EF Core + MySQL
+- Contracts: shared DTOs in `Server/WebMessenger.Contracts`
+- Dev runtime: Docker Compose (client + api + db)
 
-## Setup
+Communication model:
 
-Run the full stack locally with Docker: **MySQL**, **ASP.NET Core API**, and **Next.js client**.
+- REST: Next.js route handlers in `Client/src/app/api/**` proxy requests to ASP.NET API.
+- SignalR: browser client connects to `/hubs/chat` for `MessageCreated`, `Typing`, `ReadReceipt`.
 
-### 1. Clone the repository
+## Tech Stack
+
+Frontend:
+
+- Next.js 15
+- React 19
+- TypeScript
+- Tailwind CSS
+- SignalR
+
+Backend:
+
+- ASP.NET Core 8
+- Entity Framework Core
+- MySQL
+- SignalR
+- Serilog
+- Swagger (Swashbuckle)
+- Dropbox.Api (file storage integration)
+
+Quality and testing:
+
+- xUnit
+- Moq
+- AutoFixture + AutoMoq
+- Bogus
+
+## Quick Start (Docker)
+
+Requirements:
+
+- Docker Desktop
+
+1. Clone repository
 
 ```bash
-git clone https://github.com/<your-username>/WebMessenger.git
+git clone <your-repository-url>
 cd WebMessenger
 ```
 
-### 2. Prepare environment variables
-
-Create your local `.env.docker` file from `.env.docker.example`.
+2. Create local env file from template
 
 ```bash
 # macOS / Linux
@@ -67,28 +101,59 @@ cp .env.docker.example .env.docker
 copy .env.docker.example .env.docker
 ```
 
-Then open `.env.docker` and fill in the values you need, such as JWT and optional Dropbox credentials.
+3. Fill required values in `.env.docker`
 
-### 3. Build and start the app
+- `JWT_KEY`
+- Optional: `DROPBOX_ACCESS_TOKEN`, `DROPBOX_CLIENT_ID`, `DROPBOX_CLIENT_SECRET`
+
+4. Build and run
 
 ```bash
 docker compose --env-file .env.docker up -d --build
 ```
 
-This starts:
+5. Open app
 
-- **Client** at `http://localhost:3000`
-- **API** at `http://localhost:5227`
-- **MySQL** at `localhost:3307`
+- Client: http://localhost:3000
+- API: http://localhost:5227
+- MySQL: localhost:3307
 
-### 4. Stop the app
+Stop stack:
 
 ```bash
 docker compose --env-file .env.docker down
 ```
 
-To also remove the database volume and start from a clean state next time:
+Stop and reset DB volume:
 
 ```bash
 docker compose --env-file .env.docker down -v
 ```
+
+## Testing
+
+- API tests: `Server/WebMessenger.Api.Tests`
+- Contracts tests: `Server/WebMessenger.Contracts.Tests`
+
+Run all backend tests:
+
+```bash
+dotnet test Server/WebMessenger.sln
+```
+
+## Repository Map
+
+- `Client/` - Next.js app (UI, hooks, API route handlers)
+- `Server/WebMessenger.Api/` - ASP.NET API, controllers, SignalR hub
+- `Server/WebMessenger.DAL/` - entities, DbContext, migrations, repository/UoW
+- `Server/WebMessenger.Contracts/` - shared DTOs and realtime constants
+- `Server/WebMessenger.Api.Tests/` - API unit tests
+- `Server/WebMessenger.Contracts.Tests/` - contract/validation tests
+- `docker/` - MySQL init script and optional SQL dumps
+- `docs/CODEBASE_MAP.md` - detailed codebase navigation map
+
+## Notes
+
+- This project is optimized for Docker-based local development.
+- You do not need local Node.js, .NET runtime, or MySQL installation to run the stack.
+- SQL dump import is supported on first DB initialization via `docker/mysql/init/00-import-optional-dump.sh`.
