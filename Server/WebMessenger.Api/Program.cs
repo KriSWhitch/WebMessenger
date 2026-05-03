@@ -56,12 +56,20 @@ try
         };
     });
 
-    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
+    {
         options.UseMySql(
             builder.Configuration.GetConnectionString("DefaultConnection"),
             new MySqlServerVersion(new Version(8, 0, 42)),
             mysqlOptions => { mysqlOptions.EnableRetryOnFailure(); }
-        ));
+        );
+
+        if (sp.GetRequiredService<IHostEnvironment>().IsDevelopment())
+        {
+            options.EnableSensitiveDataLogging();
+            options.EnableDetailedErrors();
+        }
+    });
 
     builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
     builder.Services.AddScoped<IUserService, UserService>();

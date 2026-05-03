@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Entity Framework Core (Level 1) — WebMessenger</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1a1a1a; background: #fff; padding: 40px 60px; max-width: 980px; margin: auto; }
+  h1 { font-size: 26px; color: #0a3d62; border-bottom: 3px solid #0a3d62; padding-bottom: 10px; margin: 30px 0 16px; }
+  h2 { font-size: 20px; color: #1a5276; border-left: 4px solid #2980b9; padding-left: 10px; margin: 28px 0 12px; }
+  h3 { font-size: 15px; color: #2471a3; margin: 20px 0 8px; }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 3px 0; }
+  code { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #f0f4f8; color: #c0392b; padding: 1px 5px; border-radius: 3px; }
+  pre { background: #1e2a3a; color: #abb2bf; font-family: 'Consolas', 'Courier New', monospace; font-size: 11.5px; line-height: 1.55; padding: 14px 18px; border-radius: 6px; margin: 10px 0; overflow-x: auto; border-left: 4px solid #2980b9; white-space: pre-wrap; word-break: break-word; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  th { background: #2471a3; color: #fff; padding: 8px 10px; text-align: left; }
+  td { padding: 7px 10px; border: 1px solid #d5d8dc; }
+  tr:nth-child(even) td { background: #f4f6f8; }
+  .badge { display: inline-block; background: #2980b9; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-right: 4px; }
+  .badge.green { background: #27ae60; }
+  .badge.orange { background: #d35400; }
+  .note { background: #eaf4fb; border-left: 4px solid #2980b9; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .warn { background: #fef9e7; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .gap { background: #fdecea; border-left: 4px solid #c0392b; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  hr { border: none; border-top: 1px solid #d5d8dc; margin: 24px 0; }
+  @media print {
+    body { padding: 10px 20px; font-size: 12px; }
+    pre { font-size: 10.5px; }
+    h1 { page-break-before: auto; }
+    h2 { page-break-after: avoid; }
+    pre, table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Entity Framework Core (Level 1) — WebMessenger</h1>
+<p>Practical skill guide to EF Core patterns, based on the current WebMessenger implementation.</p>
+<p style="color:#888;font-size:11px;">Project: ASP.NET Core 8 + EF Core 8 + MySQL + Pomelo.EntityFrameworkCore.MySql 8.0.3 + Code-First approach</p>
+
+<hr>
+
+<h1>1. Environment and Tooling</h1>
+
+<h3>Current setup in WebMessenger</h3>
+<ul>
+  <li><strong>Provider:</strong> Pomelo.EntityFrameworkCore.MySql v8.0.3 (MySQL 8.0+)</li>
+  <li><strong>DbContext registration:</strong> in <code>Program.cs</code> with options builder</li>
+  <li><strong>Approach:</strong> Code-first (entities define schema, migrations follow)</li>
+  <li><strong>Connection string:</strong> from <code>appsettings.json</code> section <code>ConnectionStrings:DefaultConnection</code></li>
+  <li><strong>Migration strategy:</strong> Applied at startup in retry loop</li>
+</ul>
+
+<pre>// Program.cs
+builder.Services.AddDbContext&lt;ApplicationDbContext&gt;((sp, options) =&gt;
+{
+  options.UseMySql(
+    builder.Configuration.GetConnectionString("DefaultConnection"),
+    new MySqlServerVersion(new Version(8, 0, 42)),
+    mysqlOptions =&gt; { mysqlOptions.EnableRetryOnFailure(); }
+  );
+
+  if (sp.GetRequiredService&lt;IHostEnvironment&gt;().IsDevelopment())
+  {
+    options.EnableSensitiveDataLogging();
+    options.EnableDetailedErrors();
+  }
+});</pre>
+
+<h3>Key concepts</h3>
+<ul>
+  <li><strong>DbContext lifetime:</strong> scoped per request (best practice for web)</li>
+  <li><strong>Connection pooling:</strong> Pomelo handles this automatically</li>
+  <li><strong>Retry on failure:</strong> enabled for transient network issues</li>
+  <li><strong>Dev diagnostics:</strong> detailed EF errors and sensitive SQL parameter logging enabled only in Development</li>
+  <li><strong>Migrations in git:</strong> all migrations tracked and applied deterministically</li>
+</ul>
+
+<hr>
+
+<h1>2. DbContext and Entities</h1>
+
+<h3>DbContext as unit of work pattern</h3>
+<p>The <code>ApplicationDbContext</code> serves as both:</p>
+<ul>
+  <li>Gateway to query and save entities</li>
+  <li>Unit of Work for coordinated SaveChangesAsync across multiple operations</li>
+</ul>
+
+<pre>// ApplicationDbContext.cs
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
+{
+    public DbSet&lt;User&gt; Users { get; set; }
+    public DbSet&lt;Chat&gt; Chats { get; set; }
+    public DbSet&lt;Message&gt; Messages { get; set; }
+    public DbSet&lt;ChatMember&gt; ChatMembers { get; set; }
+    public DbSet&lt;Contact&gt; Contacts { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        // Fluent API configuration
+    }
+}</pre>
+
+<h3>DbSet semantics</h3>
+<ul>
+  <li><code>DbSet&lt;T&gt;</code> represents a table mapped to entity type <code>T</code></li>
+  <li>LINQ queries on DbSet are compiled to SQL and executed on the database</li>
+  <li>Navigation properties create relationships without explicit joins in code</li>
+</ul>
+
+<h3>Key conventions</h3>
+<table>
+  <tr><th>Convention</th><th>What it means</th><th>Example in project</th></tr>
+  <tr><td>Property name = Column name (unless overridden)</td><td>User.Username → Users.Username</td><td>User entity properties map directly</td></tr>
+  <tr><td>Id property = Primary Key</td><td>Automatic</td><td>All entities have Guid Id</td></tr>
+  <tr><td>Navigation property + Collection = FK relationship</td><td>User.Contacts creates one-to-many</td><td>Contact has FK to both OwnerUser and ContactUser</td></tr>
+  <tr><td>Required (non-nullable) = NOT NULL</td><td>Enforced in database</td><td>Message.Content is required, EditedAt is nullable</td></tr>
+</table>
+
+<hr>
+
+<h1>3. Basic Modeling (Fluent API + Annotations)</h1>
+
+<h3>Modeling approach in WebMessenger</h3>
+<p>This project uses <strong>Fluent API in OnModelCreating</strong> for database configuration and <strong>Data Annotations on entities</strong> for constraints.</p>
+
+<h3>Examples from ApplicationDbContext</h3>
+<pre>// Timestamps with server-side defaults
+modelBuilder.Entity<User>(entity =>
+{
+    entity.Property(u => u.CreatedAt)
+        .HasColumnType("datetime(6)")
+        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+        .ValueGeneratedOnAdd();
+
+    entity.Property(u => u.LastSeenAt)
+        .HasColumnType("datetime(6)")
+        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+        .ValueGeneratedOnAddOrUpdate();
+});
+
+// Composite unique index (user can only add another user as contact once)
+modelBuilder.Entity<Contact>(entity =>
+{
+    entity.HasIndex(c => new { c.OwnerUserId, c.ContactUserId }).IsUnique();
+
+    // Relationship with Restrict behavior (no cascading deletes of users)
+    entity.HasOne(c => c.OwnerUser)
+        .WithMany(u => u.Contacts)
+        .HasForeignKey(c => c.OwnerUserId)
+        .OnDelete(DeleteBehavior.Restrict);
+});</pre>
+
+<h3>Simple vs complex relationships</h3>
+<table>
+  <tr><th>Relationship</th><th>Type</th><th>Example in WebMessenger</th></tr>
+  <tr><td>One-to-Many</td><td>User has many Contacts</td><td>User.Contacts → Contact[].OwnerUserId</td></tr>
+  <tr><td>Many-to-Many (via join table)</td><td>User has many Chats (through ChatMember)</td><td>User → ChatMember → Chat</td></tr>
+  <tr><td>One-to-One implicit</td><td>Message.Sender → User</td><td>Each Message has one Sender</td></tr>
+</table>
+
+<h3>Required vs Optional</h3>
+<ul>
+  <li><strong>Required (not nullable):</strong> <code>Message.Content</code> (enforced by <code>[Required]</code> annotation and non-null C# property)</li>
+  <li><strong>Optional (nullable):</strong> <code>Message.EditedAt</code> (nullable C# property maps to NULL column)</li>
+  <li><strong>Foreign keys:</strong> always required (if relationship is required)</li>
+</ul>
+
+<hr>
+
+<h1>4. Basic Querying</h1>
+
+<h3>LINQ basics and materialization</h3>
+
+<h4>Query that returns a list:</h4>
+<pre>// From Repository.cs
+public IQueryable<T> GetAll(params string[] navigationProperties)
+{
+    var query = _dbSet.AsNoTracking();
+    foreach (var navProp in navigationProperties)
+    {
+        query = query.Include(navProp);
+    }
+    return query;  // Not materialized yet — still IQueryable
+}
+
+// Service layer — materialization
+var users = await _unitOfWork.UserRepository.GetAll()
+    .Where(x => x.Username.ToLower().Contains(queryLower))
+    .OrderBy(u => u.Username)
+    .Take(limit)
+    .ToListAsync();  // Materialization happens here</pre>
+
+<h4>Find by primary key:</h4>
+<pre>// Fast lookup by ID
+var user = await _dbSet.FindAsync(new object[] { id }, ct);
+// FindAsync checks local cache first, then database</pre>
+
+<h4>FirstOrDefault and SingleOrDefault:</h4>
+<pre>// FirstOrDefault — first match, or null
+var chat = await _uow.ChatRepository.GetAll()
+    .FirstOrDefaultAsync(c => c.Id == chatId);
+
+// SingleOrDefault — exactly one match, or null (throws if >1)
+var chatInfo = await _uow.ChatRepository.GetAll()
+    .AsNoTracking()
+    .Where(c => c.Id == chatId)
+    .SingleOrDefaultAsync(ct);</pre>
+
+<h4>Projections (select specific columns):</h4>
+<pre>// UserService.cs — EF-translatable projection to DTO
+var profile = await _unitOfWork.UserRepository.GetAll()
+  .Where(u => u.Id == userId)
+  .Select(UserProjections.ToProfileDto)
+  .FirstOrDefaultAsync();
+
+// ChatService.cs — centralized message projection
+var items = await q
+  .OrderByDescending(m => m.SentAt)
+  .Take(take)
+  .Select(MessageProjections.ToChatMessageDto)
+  .ToListAsync();</pre>
+
+<h4>Pagination:</h4>
+<pre>// Cursor-based pagination (used in chats/messages listing)
+var baseQuery = _uow.MessageRepository.GetAll();
+
+if (before.HasValue)
+    baseQuery = baseQuery.Where(m => m.SentAt < before.Value);
+
+var items = await baseQuery
+    .OrderByDescending(m => m.SentAt)
+    .Take(limit)
+    .ToListAsync();</pre>
+
+<hr>
+
+<h1>5. Loading Related Data (Include/ThenInclude)</h1>
+
+<h3>Eager loading with Include</h3>
+<pre>// From ContactsService.cs
+var contacts = await _unitOfWork.ContactRepository.GetAll()
+    .Where(x => x.OwnerUserId == currentUserId && x.ContactUser!.Username.ToLower().Contains(query.ToLower()))
+    .Include(x => x.ContactUser)  // Eager load the related user
+    .ToListAsync();
+// Single query with JOIN instead of N+1 problem</pre>
+
+<h3>Multi-level loading with ThenInclude</h3>
+<div class="note">
+  <strong>Currently not used in this project, but recommended:</strong>
+</div>
+<pre>// Example (not yet in WebMessenger):
+var chats = await _dbContext.Chats
+    .Include(c => c.Members)
+        .ThenInclude(cm => cm.User)  // Load users within members
+    .Where(c => c.Id == chatId)
+    .ToListAsync();
+// Loads: Chat → ChatMembers → Users in a single query</pre>
+
+<h3>AsNoTracking for read-only queries</h3>
+<p>Used throughout the repository to improve performance on queries that don't modify entities:</p>
+<pre>var query = _dbSet.AsNoTracking();  // Skip change tracking overhead</pre>
+
+<h3>Avoiding N+1 queries</h3>
+<table>
+  <tr><th>Pattern</th><th>Problem</th><th>Solution</th></tr>
+  <tr><td>Loop + separate query per item</td><td>N+1 queries (1 + N)</td><td>Use Include before the loop</td></tr>
+  <tr><td>foreach (var item in list) { db.Get(item.Id) }</td><td>If list has 100 items: 101 queries</td><td>Materialize all first, then reference in memory</td></tr>
+  <tr><td>Per-chat unread count query</td><td>N queries for N chats</td><td>Use grouped batch query + dictionary map (implemented in ChatService)</td></tr>
+</table>
+
+<div class="note">
+  <strong>Implemented optimization:</strong> <code>ChatService.GetUserChatsAsync</code> now batch-loads chat read states, unread counts, and DM peer info, then builds maps in memory instead of querying per chat.
+</div>
+
+<hr>
+
+<h1>6. Saving Data (Add/Update/Remove + SaveChanges)</h1>
+
+<h3>Change tracking and state management</h3>
+
+<h4>Adding:</h4>
+<pre>// From Repository.cs
+public async Task InsertAsync(T entity, CancellationToken ct = default)
+{
+    if (entity == null) throw new ArgumentNullException(nameof(entity));
+    await _dbSet.AddAsync(entity, ct);  // Entity state = Added
+    // Not committed yet — waiting for SaveChangesAsync
+}</pre>
+
+<h4>Updating:</h4>
+<pre>// From Repository.cs
+public Task UpdateAsync(T entity, CancellationToken ct = default)
+{
+    if (entity == null) throw new ArgumentNullException(nameof(entity));
+    _dbSet.Attach(entity);
+    _context.Entry(entity).State = EntityState.Modified;  // Mark as modified
+    return Task.CompletedTask;
+}</pre>
+
+<h4>Removing:</h4>
+<pre>// From Repository.cs
+public async Task DeleteAsync(Guid id, CancellationToken ct = default)
+{
+    var entity = await _dbSet.FindAsync(new object[] { id }, ct);
+    if (entity == null) throw new KeyNotFoundException($"Entity not found");
+    _dbSet.Remove(entity);  // Entity state = Deleted
+}</pre>
+
+<h4>SaveChanges (Unit of Work pattern):</h4>
+<pre>// From UnitOfWork.cs
+public async Task CommitAsync(CancellationToken ct = default)
+{
+    await _context.SaveChangesAsync(ct);
+    // All tracked changes (Add/Update/Remove) are batched and sent in single transaction
+}</pre>
+
+<h3>Common exceptions</h3>
+<table>
+  <tr><th>Exception</th><th>When it occurs</th><th>How to handle</th></tr>
+  <tr><td>DbUpdateException</td><td>FK violation, unique constraint failure, or other DB error</td><td>Catch and log; return 400 or 409 to client</td></tr>
+  <tr><td>DbUpdateConcurrencyException</td><td>Optimistic concurrency conflict (rare without explicit concurrency tokens)</td><td>Reload entity and retry or return conflict response</td></tr>
+  <tr><td>OperationCanceledException</td><td>Query/save cancelled via CancellationToken</td><td>Handle gracefully in middleware</td></tr>
+</table>
+
+<hr>
+
+<h1>7. Basic Migrations</h1>
+
+<h3>Creating migrations</h3>
+<pre>// CLI command
+dotnet ef migrations add AddBasicModels -p Server/WebMessenger.DAL -s Server/WebMessenger.Api
+
+// Creates two files:
+// - 20250717131146_AddBasicModels.cs (Up/Down methods)
+// - 20250717131146_AddBasicModels.Designer.cs (snapshot, auto-generated)</pre>
+
+<h3>Migration structure</h3>
+<pre>// AddBasicModels.cs — Up method (schema changes to apply)
+protected override void Up(MigrationBuilder migrationBuilder)
+{
+    migrationBuilder.CreateTable(
+        name: "Chats",
+        columns: table => new
+        {
+            Id = table.Column<Guid>(type: "char(36)", nullable: false),
+            Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
+            IsGroup = table.Column<bool>(type: "tinyint(1)", nullable: false),
+            CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false, 
+                defaultValueSql: "CURRENT_TIMESTAMP(6)")
+        },
+        constraints: table =>
+        {
+            table.PrimaryKey("PK_Chats", x => x.Id);
+        });
+}
+
+// Down method (undo the changes — for rollback)
+protected override void Down(MigrationBuilder migrationBuilder)
+{
+    migrationBuilder.DropTable(name: "Chats");
+}</pre>
+
+<h3>Applying migrations</h3>
+<pre>// At startup (Program.cs)
+var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+db.Database.Migrate();  // Applies all pending migrations</pre>
+
+<h3>Reverting migrations</h3>
+<div class="warn">
+  <strong>Only for development</strong> — in production, always create new migrations to undo changes.
+</div>
+<pre>// CLI
+dotnet ef database update RemoveUniqueIndexFromEmail  // Revert to specific migration
+dotnet ef database update 0                           // Remove all migrations</pre>
+
+<hr>
+
+<h1>8. Value Conversions</h1>
+
+<h3>When to use value converters</h3>
+<p>Value converters transform property values between CLR type and database representation.</p>
+
+<h3>Common scenarios</h3>
+<table>
+  <tr><th>CLR Type</th><th>Database Type</th><th>Use Case</th></tr>
+  <tr><td>enum</td><td>int or string</td><td>Store enum as integer or name</td></tr>
+  <tr><td>bool</td><td>bit or char(1)</td><td>Database-specific boolean</td></tr>
+  <tr><td>DateTime</td><td>VARCHAR + timezone conversion</td><td>UTC storage with local display</td></tr>
+  <tr><td>List&lt;T&gt;</td><td>JSON string</td><td>Store collection as JSON column</td></tr>
+</table>
+
+<div class="gap">
+  <strong>Not currently used in WebMessenger</strong>, but a recommended next step for handling enum status fields or JSON arrays in future features.
+</div>
+
+<h3>Theoretical example</h3>
+<pre>// Example: store enum as string in database
+public enum MessageStatus { Sent, Delivered, Read }
+
+modelBuilder.Entity<Message>()
+    .Property(m => m.Status)
+    .HasConversion(
+        v => v.ToString(),                    // To database
+        v => Enum.Parse<MessageStatus>(v)     // From database
+    );</pre>
+
+<hr>
+
+<h1>9. Logging and Diagnostics</h1>
+
+<h3>Current state in WebMessenger</h3>
+<div class="note">
+  <strong>Partially implemented:</strong> EF diagnostics are enabled in Development via <code>EnableDetailedErrors()</code> and <code>EnableSensitiveDataLogging()</code> in <code>Program.cs</code>.
+</div>
+<pre>// Program.cs
+if (sp.GetRequiredService&lt;IHostEnvironment&gt;().IsDevelopment())
+{
+    options.EnableSensitiveDataLogging();
+    options.EnableDetailedErrors();
+}</pre>
+
+<h3>Optional next step: SQL command logging</h3>
+<div class="gap">
+  <strong>Still not configured:</strong> <code>LogTo(...)</code> for raw SQL command logging.
+</div>
+<pre>// Example optional addition
+options.LogTo(Console.WriteLine, LogLevel.Information);
+</pre>
+
+<h3>Sensitive logging awareness</h3>
+<p>By default, EF Core logs parameter values in SQL. In production, disable this:</p>
+<pre>// Disable sensitive logging in production
+.EnableSensitiveDataLogging(isDevelopment)</pre>
+
+<h3>Query tags for diagnostics</h3>
+<div class="gap">
+  <strong>Not currently used</strong>, but recommended for tracing queries:
+</div>
+<pre>// Tag queries for easier debugging
+var users = await _userRepository.GetAll()
+    .TagWith("GetUsersBySearchQuery")
+    .Where(u => u.Username.Contains(query))
+    .ToListAsync();
+// Tagged query appears in logs with the string</pre>
+
+<hr>
+
+<h1>10. Performance Fundamentals</h1>
+
+<h3>Reducing round trips</h3>
+<ul>
+  <li><strong>Batch operations:</strong> use <code>AddRangeAsync</code> instead of loop + Add</li>
+  <li><strong>Include related data:</strong> load chats + members in one query vs separate queries</li>
+  <li><strong>Use pagination:</strong> don't load all 10K messages at once</li>
+</ul>
+
+<h3>Async database operations</h3>
+<p>All DAL queries use async operators to avoid blocking:</p>
+<table>
+  <tr><th>Sync (avoid)</th><th>Async (use)</th></tr>
+  <tr><td>.ToList()</td><td>.ToListAsync()</td></tr>
+  <tr><td>.FirstOrDefault()</td><td>.FirstOrDefaultAsync()</td></tr>
+  <tr><td>.Count()</td><td>.CountAsync()</td></tr>
+  <tr><td>.Any()</td><td>.AnyAsync()</td></tr>
+  <tr><td>.Single()</td><td>.SingleAsync()</td></tr>
+</table>
+
+<h3>Projection for memory efficiency</h3>
+<pre>// Centralized projection expressions (implemented)
+// Server/WebMessenger.Api/Projections/Users/UserProjections.cs
+public static readonly Expression&lt;Func&lt;User, UserProfileDto&gt;&gt; ToProfileDto = ...;
+
+// Usage from UserService.cs
+return await _unitOfWork.UserRepository.GetAll()
+    .Where(u => u.Id == userId)
+    .Select(UserProjections.ToProfileDto)
+    .FirstOrDefaultAsync();</pre>
+
+<div class="note">
+  This pattern is now used in <code>UserService</code>, <code>ChatService</code>, and <code>ContactsService</code> through <code>UserProjections</code>, <code>MessageProjections</code>, and <code>ContactProjections</code>.
+</div>
+
+<h3>Avoiding heavy eager loading</h3>
+<ul>
+  <li>Don't include all related collections by default</li>
+  <li>Use <code>AsNoTracking()</code> for read-only queries</li>
+  <li>Explicit loading when needed, not automatic</li>
+</ul>
+
+<hr>
+
+<h1>11. Security Fundamentals</h1>
+
+<h3>SQL parameterization</h3>
+<p>LINQ to Entities automatically parameterizes all queries — no manual escaping needed:</p>
+<pre>// SAFE — parameters are automatically bound
+var username = userInput;  // Could contain ' or malicious SQL
+var user = await _userRepository.GetAll()
+    .FirstOrDefaultAsync(u => u.Username == username);
+// EF Core sends: SELECT ... WHERE Username = @p0, with value as separate parameter</pre>
+
+<h3>What NOT to do — raw SQL concatenation</h3>
+<pre>// DANGEROUS — never do this
+string sql = $"SELECT * FROM Users WHERE Username = '{userInput}'";  // SQL injection risk
+var users = await _dbContext.Users.FromSqlRaw(sql).ToListAsync();
+
+// SAFE — use parameterization
+var users = await _dbContext.Users
+    .FromSqlInterpolated($"SELECT * FROM Users WHERE Username = {userInput}")
+    .ToListAsync();</pre>
+
+<h3>Permission boundaries</h3>
+<p>In WebMessenger, business logic enforces:</p>
+<ul>
+  <li>Users can only view chats they're members of</li>
+  <li>Users can only update their own profile</li>
+  <li>Contacts can only be managed by the owner</li>
+</ul>
+
+<pre>// Service-level check (required + contact ownership)
+if (!isMember)
+    throw new UnauthorizedAccessException("Not a member of this chat");
+
+var cm = await _uow.ChatMemberRepository.GetAll()
+    .FirstOrDefaultAsync(x => x.ChatId == chatId && x.UserId == me);
+// Only the current user can fetch their own read state</pre>
+
+<hr>
+
+<h1>12. Practical Skill Demonstration Checklist</h1>
+
+<ol>
+  <li>Explain the role of DbContext as both gateway and Unit of Work.</li>
+  <li>Show a DbSet mapped to entities in ApplicationDbContext.</li>
+  <li>Demonstrate Fluent API configuration (indexes, relationships, timestamps).</li>
+  <li>Write a LINQ query with Where, OrderBy, Take — show materialization with ToListAsync.</li>
+  <li>Show a migration file with Up (create table) and Down (drop table) methods.</li>
+  <li>Explain Include and ThenInclude for eager loading related data.</li>
+  <li>Demonstrate AsNoTracking for read-only optimization.</li>
+  <li>Show Add/Update/Remove in repository and SaveChangesAsync in UnitOfWork.</li>
+  <li>Explain the N+1 problem and how Include solves it.</li>
+  <li>Show parameterized LINQ query (safe from SQL injection).</li>
+  <li>Demonstrate pagination cursor pattern (before + limit).</li>
+  <li>Explain CancellationToken usage in async DAL operations.</li>
+</ol>
+
+<hr>
+
+<h1>13. Recommended Next Steps for Level 2</h1>
+
+<ul>
+  <li><strong>Explicit loading:</strong> load related data on demand via <code>LoadAsync()</code></li>
+  <li><strong>Value converters:</strong> for enums, JSON columns, or custom type mappings</li>
+  <li><strong>Owned entities:</strong> embed value objects without separate tables</li>
+  <li><strong>Query filters:</strong> global filters for tenant/soft-delete patterns</li>
+  <li><strong>Concurrency tokens:</strong> optimistic locking for conflict detection</li>
+  <li><strong>Shadow properties:</strong> properties not in the CLR entity</li>
+  <li><strong>Complex types (8.0+):</strong> structured value types as complex properties</li>
+</ul>
+
+<hr>
+<p style="text-align:center;color:#888;font-size:11px;">
+  Entity Framework Core (Level 1) — WebMessenger · EF Core 8 · Pomelo MySQL · Code-First · Fluent API<br />
+  Export to PDF: open in browser -> Ctrl+P -> Save as PDF
+</p>
+
+</body>
+</html>

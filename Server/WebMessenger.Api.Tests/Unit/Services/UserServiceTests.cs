@@ -26,10 +26,10 @@ public class UserServiceTests
 
     public UserServiceTests()
     {
-        _uowMock       = UnitOfWorkMockHelper.Create();
-        _contactsMock  = new Mock<IContactsService>();
-        _authMock      = new Mock<IAuthService>();
-        _userRepoMock  = new Mock<IRepository<User>>();
+        _uowMock      = UnitOfWorkMockHelper.Create();
+        _contactsMock = new Mock<IContactsService>();
+        _authMock     = new Mock<IAuthService>();
+        _userRepoMock = new Mock<IRepository<User>>();
 
         _uowMock.Setup(u => u.UserRepository).Returns(_userRepoMock.Object);
 
@@ -144,7 +144,8 @@ public class UserServiceTests
         var other = UserFaker.Single(seed: 2);
         _userRepoMock.Setup(r => r.GetAll(It.IsAny<string[]>()))
             .Returns(new[] { me, other }.AsAsyncQueryable());
-        _contactsMock.Setup(c => c.IsContact(me.Id, other.Id)).Returns(false);
+        _contactsMock.Setup(c => c.GetContactIdsAsync(me.Id))
+            .ReturnsAsync(new HashSet<Guid>());
 
         // Act
         var results = (await _sut.SearchUsersAsync(me.Id, other.Username, 10)).ToList();
@@ -162,8 +163,8 @@ public class UserServiceTests
     {
         // Arrange
         var user = UserFaker.Single();
-        _userRepoMock.Setup(r => r.GetAsync(user.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(user);
+        _userRepoMock.Setup(r => r.GetAll(It.IsAny<string[]>()))
+            .Returns(new[] { user }.AsAsyncQueryable());
 
         // Act
         var profile = await _sut.GetUserProfileAsync(user.Id);
@@ -177,8 +178,8 @@ public class UserServiceTests
     public async Task GetUserProfileAsync_UnknownUser_ThrowsInvalidOperationException()
     {
         // Arrange
-        _userRepoMock.Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((User?)null);
+        _userRepoMock.Setup(r => r.GetAll(It.IsAny<string[]>()))
+            .Returns(Enumerable.Empty<User>().AsAsyncQueryable());
 
         // Act / Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -196,6 +197,8 @@ public class UserServiceTests
         var user = UserFaker.Single();
         _userRepoMock.Setup(r => r.GetAsync(user.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
+        _userRepoMock.Setup(r => r.GetAll(It.IsAny<string[]>()))
+            .Returns(new[] { user }.AsAsyncQueryable());
         _userRepoMock.Setup(r => r.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 

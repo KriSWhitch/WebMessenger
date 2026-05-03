@@ -1,6 +1,7 @@
 ﻿using WebMessenger.DAL.Entities;
 using WebMessenger.DAL.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using WebMessenger.Api.Projections.Users;
 using WebMessenger.Api.Services.Interfaces;
 using WebMessenger.Contracts.Models;
 
@@ -45,22 +46,15 @@ public class UserService(IUnitOfWork unitOfWork, IContactsService contactsServic
         if (string.IsNullOrWhiteSpace(query))
             throw new ArgumentException("Search query is required");
 
-        var users = await SearchUsersAsync(query, limit);
+        var queryLower = query.ToLower();
+        var contactSet = await _contactsService.GetContactIdsAsync(currentUserId);
 
-        var results = users
-            .Where(u => u.Id != currentUserId)
-            .Select(u => new UserSearchResultDto
-            {
-                Id = u.Id,
-                Username = u.Username,
-                FirstName = u.FirstName,
-                LastName = u.LastName,
-                AvatarUrl = u.AvatarUrl,
-                IsOnline = u.IsOnline,
-                IsContact = _contactsService.IsContact(currentUserId, u.Id)
-            });
-
-        return results;
+        return await _unitOfWork.UserRepository.GetAll()
+            .Where(u => u.Id != currentUserId && u.Username.ToLower().Contains(queryLower))
+            .OrderBy(u => u.Username)
+            .Take(limit)
+            .Select(UserProjections.ToSearchResult(contactSet))
+            .ToListAsync();
     }
 
     public async Task<Guid?> GetUserIdFromAuthHeader(string authHeader)
@@ -75,19 +69,11 @@ public class UserService(IUnitOfWork unitOfWork, IContactsService contactsServic
 
     public async Task<UserProfileDto> GetUserProfileAsync(Guid userId)
     {
-        var user = await _unitOfWork.UserRepository.GetAsync(userId) ?? throw new InvalidOperationException("User not found");
-        return new UserProfileDto
-        {
-            Id = user.Id,
-            Username = user.Username,
-            Email = user.Email,
-            PhoneNumber = user.PhoneNumber,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Bio = user.Bio,
-            AvatarUrl = user.AvatarUrl,
-            IsOnline = user.IsOnline
-        };
+        return await _unitOfWork.UserRepository.GetAll()
+            .Where(u => u.Id == userId)
+            .Select(UserProjections.ToProfileDto)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException("User not found");
     }
 
     public async Task<UserProfileDto> UpdateUserProfileAsync(Guid userId, UpdateProfileDto updateDto)
@@ -104,15 +90,5 @@ public class UserService(IUnitOfWork unitOfWork, IContactsService contactsServic
 
         _logger.LogInformation("Profile updated for user {UserId}", userId);
         return await GetUserProfileAsync(userId);
-    }
-
-    private async Task<IEnumerable<User>> SearchUsersAsync(string query, int limit = 10)
-    {
-        var queryLower = query.ToLower();
-        return await _unitOfWork.UserRepository.GetAll()
-            .Where(x => x.Username.ToLower().Contains(queryLower))
-            .OrderBy(u => u.Username)
-            .Take(limit)
-            .ToListAsync();
     }
 }

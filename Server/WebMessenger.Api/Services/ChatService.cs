@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using WebMessenger.Api.Projections.Messages;
+using WebMessenger.Api.Projections.Users;
 using WebMessenger.Contracts.Models;
 using WebMessenger.DAL.Entities;
 using WebMessenger.DAL.Interfaces;
@@ -50,36 +52,66 @@ namespace WebMessenger.Api.Services
 
                 var chatIds = rows.Select(r => r.Chat.Id).ToArray();
 
-                var lastReads = _uow.ChatMemberRepository.GetAll()
+                // Batch-fetch last reads for all chats in one query
+                var lastReadMap = await _uow.ChatMemberRepository.GetAll()
                     .Where(cm => cm.UserId == me && chatIds.Contains(cm.ChatId))
                     .Select(cm => new { cm.ChatId, cm.LastReadAt })
-                    .ToList();
+                    .ToDictionaryAsync(x => x.ChatId, x => x.LastReadAt);
+
+                // Batch-fetch unread counts per chat in one query
+                var minReadTimes = chatIds.ToDictionary(
+                    id => id,
+                    id => lastReadMap.TryGetValue(id, out var r) ? r ?? DateTime.MinValue : DateTime.MinValue);
+
+                var unreadCounts = await _uow.MessageRepository.GetAll()
+                    .Where(m => chatIds.Contains(m.ChatId) && m.SenderId != me)
+                    .GroupBy(m => m.ChatId)
+                    .Select(g => new { ChatId = g.Key, Messages = g.Select(m => new { m.SentAt }).ToList() })
+                    .ToListAsync();
+
+                var unreadMap = unreadCounts.ToDictionary(
+                    g => g.ChatId,
+                    g => g.Messages.Count(m => m.SentAt > minReadTimes[g.ChatId]));
+
+                // Batch-fetch peer user data for all DM chats in one query
+                var peerIds = rows
+                    .Where(r => !r.Chat.IsGroup)
+                    .Select(r => r.Chat.Members.Select(m => m.UserId).FirstOrDefault(uid => uid != me))
+                    .Where(uid => uid != Guid.Empty)
+                    .Distinct()
+                    .ToArray();
+
+                Dictionary<Guid, (string Username, string? AvatarUrl)> peerMap;
+                if (peerIds.Length > 0)
+                {
+                    peerMap = (await _uow.UserRepository.GetAll()
+                        .Where(u => peerIds.Contains(u.Id))
+                        .Select(u => new { u.Id, u.Username, u.AvatarUrl })
+                        .ToListAsync())
+                        .ToDictionary(u => u.Id, u => (u.Username, u.AvatarUrl));
+                }
+                else
+                {
+                    peerMap = [];
+                }
 
                 var items = rows.Select(r =>
                 {
-                    var readAt = lastReads.FirstOrDefault(x => x.ChatId == r.Chat.Id)?.LastReadAt ?? DateTime.MinValue;
-
-                    var unread = _uow.MessageRepository.GetAll()
-                        .Count(m => m.ChatId == r.Chat.Id && m.SenderId != me && m.SentAt > readAt);
-
                     Guid? peerId = null;
                     string? peerName = null;
                     string? peerAvatar = null;
 
                     if (!r.Chat.IsGroup)
                     {
-                        var memberIds = r.Chat.Members.Select(m => m.UserId).ToArray();
-                        peerId = memberIds.FirstOrDefault(x => x != me);
-                        if (peerId.HasValue)
+                        peerId = r.Chat.Members.Select(m => m.UserId).FirstOrDefault(uid => uid != me);
+                        if (peerId.HasValue && peerId != Guid.Empty && peerMap.TryGetValue(peerId.Value, out var peer))
                         {
-                            var peer = _uow.UserRepository.GetAll().FirstOrDefault(u => u.Id == peerId.Value);
-                            if (peer != null)
-                            {
-                                peerName = peer.Username;
-                                peerAvatar = peer.AvatarUrl;
-                            }
+                            peerName = peer.Username;
+                            peerAvatar = peer.AvatarUrl;
                         }
                     }
+
+                    var unread = unreadMap.TryGetValue(r.Chat.Id, out var cnt) ? cnt : 0;
 
                     return new ChatListItemDto
                     {
@@ -133,8 +165,9 @@ namespace WebMessenger.Api.Services
 
                     var other = await _uow.UserRepository
                         .GetAll()
-                        .Select(u => new { u.Id, u.Username, u.AvatarUrl, u.IsOnline })
-                        .FirstOrDefaultAsync(u => u.Id == otherId);
+                        .Where(u => u.Id == otherId)
+                        .Select(UserProjections.ToProfileDto)
+                        .FirstOrDefaultAsync();
                     if (other == null) return null;
 
                     return new DirectChatHeaderDto
@@ -179,7 +212,7 @@ namespace WebMessenger.Api.Services
         {
             var otherUser = await _uow.UserRepository.GetAll()
                 .Where(u => u.Id == other)
-                .Select(u => new { u.Id, u.Username, u.AvatarUrl, u.IsOnline })
+                .Select(UserProjections.ToProfileDto)
                 .FirstOrDefaultAsync()
                 ?? throw new InvalidOperationException("User not found");
 
@@ -218,15 +251,7 @@ namespace WebMessenger.Api.Services
                 var items = await q
                     .OrderByDescending(m => m.SentAt)
                     .Take(take)
-                    .Select(m => new ChatMessageDto
-                    {
-                        Id = m.Id,
-                        ChatId = m.ChatId,
-                        SenderId = m.SenderId,
-                        Content = m.Content,
-                        SentAt = m.SentAt,
-                        EditedAt = m.EditedAt
-                    })
+                    .Select(MessageProjections.ToChatMessageDto)
                     .ToListAsync();
 
                 items.Reverse();
@@ -277,15 +302,7 @@ namespace WebMessenger.Api.Services
 
             _logger.LogDebug("Message {MessageId} sent to chat {ChatId} by user {SenderId}", message.Id, chatId, me);
 
-            var dto = new ChatMessageDto
-            {
-                Id = message.Id,
-                ChatId = message.ChatId,
-                SenderId = message.SenderId,
-                Content = message.Content,
-                SentAt = message.SentAt,
-                EditedAt = message.EditedAt
-            };
+            var dto = MessageProjections.ToChatMessageDtoFunc(message);
 
             await _events.MessageCreatedAsync(chatId.Value, dto, other, ct);
 

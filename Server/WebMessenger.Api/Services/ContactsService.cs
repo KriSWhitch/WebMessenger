@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using WebMessenger.Api.Projections.Contacts;
 using WebMessenger.Api.Services.Interfaces;
 using WebMessenger.Contracts.Models;
 using WebMessenger.DAL.Entities;
@@ -22,9 +23,9 @@ namespace WebMessenger.Api.Services
             var contact = new Contact
             {
                 OwnerUserId = currentUserId,
-                OwnerUser = await _unitOfWork.UserRepository.GetAsync(currentUserId),
+                OwnerUser = null!,
                 ContactUserId = request.ContactUserId,
-                ContactUser = await _unitOfWork.UserRepository.GetAsync(request.ContactUserId),
+                ContactUser = null!,
                 Nickname = request.Nickname,
                 AddedAt = DateTime.UtcNow
             };
@@ -42,60 +43,16 @@ namespace WebMessenger.Api.Services
         public async Task<IEnumerable<ContactDto>> GetContactsAsync(Guid currentUserId, string query = "")
         {
             var contacts = await GetUserContactsAsync(currentUserId, query);
-
-            return contacts.Select(ConvertToContactDto);
+            return contacts.Select(ContactProjections.ToContactDto);
         }
 
-        private ContactDto ConvertToContactDto(Contact contact)
+        public async Task<HashSet<Guid>> GetContactIdsAsync(Guid currentUserId)
         {
-            return new ContactDto
-            {
-                Id = contact.Id,
-                UserId = contact.ContactUserId,
-                Nickname = GetDisplayNickname(contact),
-                AvatarUrl = contact.ContactUser?.AvatarUrl,
-                IsOnline = contact.ContactUser?.IsOnline ?? false,
-                AddedAt = contact.AddedAt,
-                ContactUser = contact.ContactUser != null ? ConvertToUserDto(contact.ContactUser) : null,
-                ContactUserId = contact.ContactUserId,
-                OwnerUserId = contact.OwnerUserId
-            };
-        }
-
-        private static UserDto ConvertToUserDto(User user)
-        {
-            return new UserDto
-            {
-                Id = user.Id,
-                Username = user.Username,
-                Email = user.Email,
-                PhoneNumber = user.PhoneNumber,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Bio = user.Bio,
-                AvatarUrl = user.AvatarUrl,
-                IsOnline = user.IsOnline,
-                LastSeenAt = user.LastSeenAt,
-                CreatedAt = user.CreatedAt,
-                LastLoginAt = user.LastLoginAt
-            };
-        }
-
-        private static string GetDisplayNickname(Contact contact)
-        {
-            return !string.IsNullOrWhiteSpace(contact.Nickname)
-                ? contact.Nickname
-                : $"{contact.ContactUser?.FirstName} {contact.ContactUser?.LastName}";
-        }
-
-        private async Task<IEnumerable<Contact>> GetUserContactsAsync(Guid currentUserId, string query = "")
-        {
-            // CA1862: Do not replace ToLower().Contains() with Contains(StringComparison) here.
-            // EF Core cannot translate the Contains(string, StringComparison) overload to SQL and will throw at runtime.
-            #pragma warning disable CA1862
-            return await _unitOfWork.ContactRepository.GetAll().Where(x => x.OwnerUserId == currentUserId
-                && x.ContactUser!.Username.ToLower().Contains(query.ToLower())).Include(x => x.ContactUser).ToListAsync();
-            #pragma warning restore CA1862
+            return (await _unitOfWork.ContactRepository.GetAll()
+                .Where(c => c.OwnerUserId == currentUserId)
+                .Select(c => c.ContactUserId)
+                .ToListAsync())
+                .ToHashSet();
         }
 
         public bool IsContact(Guid currentUserId, Guid id)
@@ -106,6 +63,16 @@ namespace WebMessenger.Api.Services
         public async Task<bool> IsContactAsync(Guid currentUserId, Guid id)
         {
             return await _unitOfWork.ContactRepository.GetAll().AnyAsync(x => x.OwnerUserId == currentUserId && x.ContactUserId == id);
+        }
+
+        private async Task<IEnumerable<Contact>> GetUserContactsAsync(Guid currentUserId, string query = "")
+        {
+            // CA1862: Do not replace ToLower().Contains() with Contains(StringComparison) here.
+            // EF Core cannot translate the Contains(string, StringComparison) overload to SQL and will throw at runtime.
+            #pragma warning disable CA1862
+            return await _unitOfWork.ContactRepository.GetAll().Where(x => x.OwnerUserId == currentUserId
+                && x.ContactUser!.Username.ToLower().Contains(query.ToLower())).Include(x => x.ContactUser).ToListAsync();
+            #pragma warning restore CA1862
         }
     }
 }

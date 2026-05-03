@@ -152,7 +152,7 @@ public class DebuggingShowcaseTests(ITestOutputHelper output)
             Issuer   = "test-issuer",
             Audience = "test-audience"
         });
-        var auth    = new AuthService(jwtOptions, NullLogger<AuthService>.Instance);
+        var auth     = new AuthService(jwtOptions, NullLogger<AuthService>.Instance);
         var contacts = new Mock<IContactsService>().Object;
         var svc      = new UserService(uowMock.Object, contacts, auth, NullLogger<UserService>.Instance);
 
