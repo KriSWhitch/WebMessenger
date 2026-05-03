@@ -17,9 +17,6 @@ namespace WebMessenger.DAL.Data
 
             modelBuilder.Entity<User>(entity =>
             {
-                entity.HasIndex(u => u.Email);
-                entity.HasIndex(u => u.Username).IsUnique();
-
                 entity.Property(u => u.CreatedAt)
                     .HasColumnType("datetime(6)")
                     .HasDefaultValueSql(currentTimestamp)
@@ -40,20 +37,10 @@ namespace WebMessenger.DAL.Data
                     .HasColumnType("datetime(6)")
                     .HasDefaultValueSql(currentTimestamp)
                     .ValueGeneratedOnAdd();
-
-                entity.Property(c => c.Name)
-                    .HasMaxLength(100);
-
-                entity.Property(c => c.AvatarUrl)
-                    .HasMaxLength(255);
             });
 
             modelBuilder.Entity<Message>(entity =>
             {
-                entity.Property(m => m.Content)
-                    .IsRequired()
-                    .HasMaxLength(5000);
-
                 entity.Property(m => m.SentAt)
                     .HasColumnType("datetime(6)")
                     .HasDefaultValueSql(currentTimestamp)
@@ -62,6 +49,7 @@ namespace WebMessenger.DAL.Data
                 entity.Property(m => m.EditedAt)
                     .HasColumnType("datetime(6)");
 
+                // Composite index for efficient chat history queries
                 entity.HasIndex(m => new { m.ChatId, m.SentAt });
             });
 
@@ -75,6 +63,7 @@ namespace WebMessenger.DAL.Data
                 entity.Property(cm => cm.LastReadAt)
                     .HasColumnType("datetime(6)");
 
+                // Composite unique index — a user can only be a member of a chat once
                 entity.HasIndex(cm => new { cm.UserId, cm.ChatId }).IsUnique();
             });
 
@@ -85,9 +74,7 @@ namespace WebMessenger.DAL.Data
                     .HasDefaultValueSql(currentTimestamp)
                     .ValueGeneratedOnAdd();
 
-                entity.Property(c => c.Nickname)
-                    .HasMaxLength(50);
-
+                // Composite unique index — a user can only add another user as a contact once
                 entity.HasIndex(c => new { c.OwnerUserId, c.ContactUserId }).IsUnique();
 
                 entity.HasOne(c => c.OwnerUser)
@@ -100,12 +87,6 @@ namespace WebMessenger.DAL.Data
                     .HasForeignKey(c => c.ContactUserId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
-
-            modelBuilder.Entity<Chat>()
-                .HasIndex(c => c.IsGroup);
-
-            modelBuilder.Entity<User>()
-                .HasIndex(u => u.IsOnline);
         }
     }
 }

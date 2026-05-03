@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>.NET Web Development - WebMessenger</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1a1a1a; background: #fff; padding: 40px 60px; max-width: 980px; margin: auto; }
+  h1 { font-size: 26px; color: #0a3d62; border-bottom: 3px solid #0a3d62; padding-bottom: 10px; margin: 30px 0 16px; }
+  h2 { font-size: 20px; color: #1a5276; border-left: 4px solid #2980b9; padding-left: 10px; margin: 28px 0 12px; }
+  h3 { font-size: 15px; color: #2471a3; margin: 20px 0 8px; }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 3px 0; }
+  code { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #f0f4f8; color: #c0392b; padding: 1px 5px; border-radius: 3px; }
+  pre { background: #1e2a3a; color: #abb2bf; font-family: 'Consolas', 'Courier New', monospace; font-size: 11.5px; line-height: 1.55; padding: 14px 18px; border-radius: 6px; margin: 10px 0; overflow-x: auto; border-left: 4px solid #2980b9; white-space: pre-wrap; word-break: break-word; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  th { background: #2471a3; color: #fff; padding: 8px 10px; text-align: left; }
+  td { padding: 7px 10px; border: 1px solid #d5d8dc; }
+  tr:nth-child(even) td { background: #f4f6f8; }
+  .badge { display: inline-block; background: #2980b9; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-right: 4px; }
+  .badge.green { background: #27ae60; }
+  .badge.orange { background: #d35400; }
+  .badge.red { background: #c0392b; }
+  .note { background: #eaf4fb; border-left: 4px solid #2980b9; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .warn { background: #fef9e7; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .gap { background: #fdecea; border-left: 4px solid #c0392b; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  hr { border: none; border-top: 1px solid #d5d8dc; margin: 24px 0; }
+  @media print {
+    body { padding: 10px 20px; font-size: 12px; }
+    pre { font-size: 10.5px; }
+    h1 { page-break-before: auto; }
+    h2 { page-break-after: avoid; }
+    pre, table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>.NET Web Development - WebMessenger</h1>
+<p>Practical skill guide based only on the current WebMessenger repository implementation.</p>
+<p style="color:#888;font-size:11px;">Project: ASP.NET Core 8 API + EF Core + MySQL + SignalR + Serilog + Swagger + Dropbox SDK</p>
+
+<hr>
+
+<h1>1. Skill Coverage Map</h1>
+
+<table>
+  <tr><th>Skill</th><th>Status in current repo</th><th>Where to look</th></tr>
+  <tr><td>Basic ASP.NET Core app setup</td><td><span class="badge green">Implemented</span></td><td><code>Server/WebMessenger.Api/Program.cs</code>, controllers, services, DAL projects</td></tr>
+  <tr><td>Configuration model (env files, env vars, user-secrets)</td><td><span class="badge green">Implemented</span></td><td><code>appsettings*.json</code>, <code>WebMessenger.Api.csproj</code>, Docker env flow</td></tr>
+  <tr><td>IOptions&lt;T&gt;</td><td><span class="badge green">Implemented</span></td><td><code>Options/JwtOptions.cs</code>, <code>Options/DropboxOptions.cs</code>, <code>Program.cs</code>, <code>AuthService</code>, <code>DropboxFileStorage</code></td></tr>
+  <tr><td>REST API design in practice</td><td><span class="badge green">Implemented</span></td><td><code>AuthController</code>, <code>UserController</code>, <code>ChatController</code>, <code>ContactController</code></td></tr>
+  <tr><td>ORM setup and usage (EF Core)</td><td><span class="badge green">Implemented</span></td><td><code>ApplicationDbContext</code>, entities, migrations, repository/UoW</td></tr>
+  <tr><td>Input validation via Data Annotations</td><td><span class="badge green">Implemented</span></td><td><code>WebMessenger.Contracts/Models</code> DTO attributes + entity annotations in <code>WebMessenger.DAL/Entities</code></td></tr>
+  <tr><td>Error handling (ProblemDetails + middleware)</td><td><span class="badge green">Implemented baseline</span></td><td><code>AddProblemDetails</code>, <code>UseExceptionHandler</code>, controller try/catch blocks</td></tr>
+  <tr><td>Logging strategy</td><td><span class="badge green">Implemented</span></td><td>Serilog config + <code>ILogger&lt;T&gt;</code> usage</td></tr>
+  <tr><td>Authentication/Authorization</td><td><span class="badge green">Implemented</span></td><td>JWT bearer + <code>[Authorize]</code> + claims extraction</td></tr>
+  <tr><td>Roles/claims authorization</td><td><span class="badge orange">Partial (claims used, roles not configured)</span></td><td><code>AuthService</code>, <code>CurrentUser</code></td></tr>
+  <tr><td>Async/await and CancellationToken</td><td><span class="badge green">Implemented</span></td><td>Controllers, services, repository/UoW, hub events</td></tr>
+  <tr><td>Swagger/OpenAPI</td><td><span class="badge green">Implemented</span></td><td><code>AddSwaggerGen</code>, <code>UseSwagger</code>, <code>UseSwaggerUI</code></td></tr>
+  <tr><td>External integrations (HTTP/SDK)</td><td><span class="badge green">Implemented via SDK</span></td><td><code>DropboxFileStorage</code> with <code>Dropbox.Api</code></td></tr>
+  <tr><td>IHttpClientFactory / typed clients</td><td><span class="badge orange">Not present yet</span></td><td>No <code>AddHttpClient</code> in current API code</td></tr>
+</table>
+
+<hr>
+
+<h1>2. Create a Basic ASP.NET Core Application</h1>
+
+<h3>What is already in this project</h3>
+<ul>
+  <li>Web entry point and pipeline in <code>Program.cs</code></li>
+  <li>Dependency Injection registration for app services and infrastructure</li>
+  <li>Controllers-based API pattern with <code>[ApiController]</code> and route attributes</li>
+  <li>Clear solution split:
+    <ul>
+      <li><code>WebMessenger.Api</code> - HTTP layer, hubs, services</li>
+      <li><code>WebMessenger.DAL</code> - EF Core, entities, UoW/repository</li>
+      <li><code>WebMessenger.Contracts</code> - shared DTOs/models</li>
+    </ul>
+  </li>
+</ul>
+
+<pre>// Program.cs (trimmed)
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IFileStorage, DropboxFileStorage>();
+
+app.MapControllers();
+app.MapHub&lt;ChatHub&gt;("/hubs/chat");</pre>
+
+<div class="note">
+  For interview/demo: explain why API, DAL, and Contracts are separated. This shows maintainable architecture and clear boundaries.
+</div>
+
+<hr>
+
+<h1>3. Configure an Application</h1>
+
+<h3>Current configuration model in WebMessenger</h3>
+<ol>
+  <li><code>appsettings.json</code> - base defaults (Serilog, JWT, Dropbox keys placeholders)</li>
+  <li><code>appsettings.Development.json</code> - dev log level overrides</li>
+  <li><code>appsettings.Production.json</code> - production overrides</li>
+  <li>User secrets enabled via <code>&lt;UserSecretsId&gt;webmessenger-api-secrets&lt;/UserSecretsId&gt;</code></li>
+  <li>Environment variables override all previous sources at runtime</li>
+  <li>Strongly typed options are bound and validated on startup via <code>IOptions&lt;T&gt;</code></li>
+</ol>
+
+<pre>// Program.cs configuration examples
+builder.Configuration.GetConnectionString("DefaultConnection")
+
+builder.Services
+    .AddOptions&lt;JwtOptions&gt;()
+    .BindConfiguration(JwtOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services
+    .AddOptions&lt;DropboxOptions&gt;()
+    .BindConfiguration(DropboxOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();</pre>
+
+<h3>IOptions&lt;T&gt; status in this repo</h3>
+<div class="note">
+  <code>AuthService</code> now consumes <code>IOptions&lt;JwtOptions&gt;</code>, and <code>DropboxFileStorage</code> consumes <code>IOptions&lt;DropboxOptions&gt;</code>. This makes configuration strongly typed and validated at startup.
+</div>
+
+<div class="note">
+  Practical speaking point: this repository demonstrates both configuration precedence and production-friendly options validation in one setup.
+</div>
+
+<hr>
+
+<h1>4. Design REST APIs in Practice</h1>
+
+<h3>Routing and endpoint design examples</h3>
+<pre>[Route("api/auth")]          // AuthController
+[HttpPost("register")]
+[HttpPost("login")]
+[HttpGet("verify")]
+
+[Route("api/chats")]         // ChatController
+[HttpGet]
+[HttpGet("{chatId:guid}/messages")]
+[HttpPost("direct/{userId:guid}/messages")]
+[HttpPost("{chatId:guid}/read")]
+
+[Route("api/users")]         // UserController
+[HttpGet]
+[HttpGet("profile")]
+[HttpPut("profile")]
+[HttpPost("avatar")]</pre>
+
+<h3>Request/response shaping and status codes used now</h3>
+<table>
+  <tr><th>Scenario</th><th>Status code in current implementation</th></tr>
+  <tr><td>Successful login/register</td><td>200 OK</td></tr>
+  <tr><td>Invalid credentials</td><td>401 Unauthorized</td></tr>
+  <tr><td>Duplicate username / invalid input</td><td>400 Bad Request</td></tr>
+  <tr><td>Resource or user not found</td><td>404 Not Found</td></tr>
+  <tr><td>Forbidden chat access</td><td>403 Forbid</td></tr>
+  <tr><td>Unexpected failure</td><td>500 Internal Server Error</td></tr>
+</table>
+
+<div class="note">
+  API shape uses DTOs from <code>WebMessenger.Contracts</code>, which helps keep transport models separate from EF entities.
+</div>
+
+<hr>
+
+<h1>5. Configure and Work with an ORM (EF Core)</h1>
+
+<h3>What is implemented</h3>
+<ul>
+  <li><code>ApplicationDbContext</code> with DbSets: Users, Chats, Messages, ChatMembers, Contacts</li>
+  <li>Entity relationships and constraints in <code>OnModelCreating</code></li>
+  <li>Indexes for common access paths (username, message timeline, contact uniqueness, online flag)</li>
+  <li>Migrations committed in <code>WebMessenger.DAL/Migrations</code></li>
+  <li>CRUD via repository + Unit of Work abstraction</li>
+</ul>
+
+<pre>// Examples from ApplicationDbContext
+entity.HasIndex(u =&gt; u.Username).IsUnique();
+entity.HasIndex(m =&gt; new { m.ChatId, m.SentAt });
+entity.HasIndex(c =&gt; new { c.OwnerUserId, c.ContactUserId }).IsUnique();
+
+entity.HasOne(c =&gt; c.OwnerUser)
+      .WithMany(u =&gt; u.Contacts)
+      .HasForeignKey(c =&gt; c.OwnerUserId)
+      .OnDelete(DeleteBehavior.Restrict);</pre>
+
+<h3>CRUD, pagination and filtering in services</h3>
+<ul>
+  <li>Create: <code>InsertAsync</code>, <code>CreateRangeAsync</code> (users, chat members, messages)</li>
+  <li>Read/filter: LINQ with <code>Where</code>, <code>OrderBy</code>, <code>Take</code>, <code>AnyAsync</code></li>
+  <li>Pagination style: cursor-like <code>before</code> + <code>limit</code> in chat/message endpoints</li>
+  <li>Update: <code>UpdateAsync</code> + <code>CommitAsync</code></li>
+</ul>
+
+<h3>Migrations in runtime pipeline</h3>
+<pre>// Program.cs startup migration step
+db.Database.Migrate();
+Log.Information("Database migration completed");</pre>
+
+<hr>
+
+<h1>6. Validate Input Data (Data Annotations)</h1>
+
+<h3>Current validation approach in this repo</h3>
+<ul>
+  <li>DTO-level DataAnnotations in <code>WebMessenger.Contracts/Models</code>:
+    <ul>
+      <li><code>LoginDto</code>: <code>[Required]</code>, <code>[MaxLength]</code></li>
+      <li><code>RegisterDto</code>: <code>[Required]</code>, <code>[MinLength]</code>, <code>[MaxLength]</code></li>
+      <li><code>UpdateProfileDto</code>: <code>[EmailAddress]</code>, <code>[Phone]</code>, <code>[Url]</code>, <code>[MaxLength]</code></li>
+      <li><code>SendMessageRequest</code>, <code>AddContactRequest</code>: <code>[Required]</code>, <code>[MaxLength]</code></li>
+    </ul>
+  </li>
+  <li>Entity-level DataAnnotations in <code>WebMessenger.DAL/Entities</code>:
+    <ul>
+      <li><code>User</code>: <code>[Required]</code>, <code>[EmailAddress]</code>, <code>[Phone]</code>, <code>[Url]</code>, <code>[MaxLength]</code></li>
+      <li><code>Chat</code>, <code>Message</code>, <code>Contact</code>: key string constraints and required content</li>
+    </ul>
+  </li>
+  <li>Manual guards in controllers/services remain for business rules:
+    <ul>
+      <li>empty query check in <code>UserController.Index</code></li>
+      <li>avatar MIME/size checks in <code>UserController.UploadAvatar</code></li>
+      <li>self-contact prevention in <code>ContactsService.AddContactAsync</code></li>
+      <li>empty message guard in <code>ChatService.SendMessageToUserAsync</code></li>
+    </ul>
+  </li>
+</ul>
+
+<div class="note">
+  Because controllers use <code>[ApiController]</code>, invalid annotated request models are automatically rejected with 400 responses before action logic runs.
+</div>
+
+<hr>
+
+<h1>7. Handle Errors (ProblemDetails + Middleware)</h1>
+
+<h3>Existing global setup</h3>
+<pre>builder.Services.AddProblemDetails(options =&gt;
+{
+    options.CustomizeProblemDetails = context =&gt;
+    {
+        context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+    };
+});
+
+app.UseExceptionHandler();</pre>
+
+<h3>Controller-level handling pattern</h3>
+<ul>
+  <li>Expected domain exceptions are mapped to 400/404/403</li>
+  <li>Unexpected exceptions are logged and returned as 500</li>
+  <li>Consistent <code>try/catch + ILogger</code> style across major controllers</li>
+</ul>
+
+<div class="note">
+  This is a valid baseline for production APIs: centralized exception handler + contextual controller logs.
+</div>
+
+<hr>
+
+<h1>8. Log Effectively</h1>
+
+<h3>Serilog and environment-specific levels</h3>
+<table>
+  <tr><th>Environment file</th><th>Default log level</th><th>Purpose</th></tr>
+  <tr><td><code>appsettings.Development.json</code></td><td>Debug</td><td>Detailed diagnostics while developing</td></tr>
+  <tr><td><code>appsettings.json</code></td><td>Information</td><td>Balanced default behavior</td></tr>
+  <tr><td><code>appsettings.Production.json</code></td><td>Warning</td><td>Noise reduction in production</td></tr>
+</table>
+
+<h3>Sinks and practical logging style</h3>
+<ul>
+  <li>Console sink for container/cloud logs</li>
+  <li>Rolling file sink: <code>logs/log-.txt</code></li>
+  <li>Structured placeholders: <code>{UserId}</code>, <code>{ChatId}</code>, <code>{Username}</code></li>
+</ul>
+
+<pre>// example style in controllers/services
+_logger.LogWarning("Failed login attempt for username: {Username}", loginDto.Username);
+_logger.LogError(ex, "Error sending message from user {SenderId} to user {ReceiverId}", _currentUser.Id, userId);</pre>
+
+<hr>
+
+<h1>9. Basic Authentication and Authorization</h1>
+
+<h3>What is implemented</h3>
+<ul>
+  <li>JWT Bearer authentication in <code>Program.cs</code></li>
+  <li>Token issuance in <code>AuthService.GenerateJwtToken</code></li>
+  <li>Protected endpoints via <code>[Authorize]</code></li>
+  <li>SignalR token extraction for <code>/hubs/chat</code> from query/cookie</li>
+  <li>Current user resolution from claims via <code>CurrentUser</code></li>
+</ul>
+
+<pre>// JWT claim examples in AuthService
+new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
+new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())</pre>
+
+<div class="gap">
+  Role-based authorization is not configured yet (no explicit role claims or role policies in current API).
+</div>
+
+<hr>
+
+<h1>10. Asynchronous Programming Practices</h1>
+
+<h3>Current async usage</h3>
+<ul>
+  <li>Async all the way through controllers, services, repository and UoW</li>
+  <li>EF Core async operators: <code>ToListAsync</code>, <code>AnyAsync</code>, <code>FirstOrDefaultAsync</code>, <code>CountAsync</code></li>
+  <li>CancellationToken passed in message and read-receipt flows</li>
+  <li>SignalR events support optional <code>CancellationToken</code></li>
+</ul>
+
+<pre>// Controller examples
+public async Task&lt;ActionResult&lt;SendMessageResponse&gt;&gt; SendMessage(..., CancellationToken ct)
+public async Task&lt;IActionResult&gt; MarkRead(..., CancellationToken ct)
+
+// Service and DAL examples
+await _uow.MessageRepository.InsertAsync(message, ct);
+await _uow.CommitAsync(ct);
+await _context.SaveChangesAsync(ct);</pre>
+
+<div class="warn">
+  Small note: startup migration retry loop currently uses <code>Thread.Sleep</code>. It works, but async delay would be more scalable under heavy startup orchestration.
+</div>
+
+<hr>
+
+<h1>11. Document APIs (Swagger/OpenAPI)</h1>
+
+<h3>Existing setup</h3>
+<pre>builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}</pre>
+
+<p>This gives interactive endpoint exploration and quick manual validation during local development.</p>
+
+<div class="note">
+  In this project, Swagger is intentionally enabled only in Development.
+</div>
+
+<hr>
+
+<h1>12. Integrate with External Services (HTTP/SDK)</h1>
+
+<h3>Implemented integration: Dropbox SDK</h3>
+<ul>
+  <li>Package: <code>Dropbox.Api</code> in API project</li>
+  <li>Adapter: <code>DropboxFileStorage : IFileStorage</code></li>
+  <li>Operations: upload, delete, create/get shared link, direct link conversion</li>
+  <li>Failure handling: catch exceptions, log with context, return null/false</li>
+</ul>
+
+<pre>// construction from strongly typed options
+public DropboxFileStorage(IOptions&lt;DropboxOptions&gt; dropboxOptions, ILogger&lt;DropboxFileStorage&gt; logger)
+{
+  _client = new DropboxClient(dropboxOptions.Value.AccessToken);
+  _logger = logger;
+}
+
+// upload flow
+await _client.Files.UploadAsync(path, WriteMode.Overwrite.Instance, body: fileStream);
+var link = await GetOrCreateSharedLink(path);
+return ConvertToDirectLink(link.Url);</pre>
+
+<div class="gap">
+  Current repository does not yet register typed HTTP clients via <code>IHttpClientFactory</code> and has no explicit retry/timeout policies for generic outbound REST clients.
+</div>
+
+<div class="note">
+  For this project, SDK-based integration is the real implemented case and is fully valid as an external integration example.
+</div>
+
+<hr>
+
+<h1>13. End-to-End Skill Demonstration Checklist</h1>
+
+<ol>
+  <li>Show project structure and explain responsibilities of Api / DAL / Contracts.</li>
+  <li>Walk through DI registrations and middleware pipeline in <code>Program.cs</code>.</li>
+  <li>Explain config precedence and demonstrate one env override (for JWT or Serilog).</li>
+  <li>Demonstrate REST endpoint behavior with correct status codes (200/400/401/403/404/500).</li>
+  <li>Show EF model, relationship mapping, indexes, and one migration file.</li>
+  <li>Demonstrate DataAnnotations-driven validation and show one automatic 400 response from invalid request payload.</li>
+  <li>Show AddProblemDetails + UseExceptionHandler + structured logging in action.</li>
+  <li>Show JWT auth flow from login to protected endpoint and claim extraction.</li>
+  <li>Highlight async + CancellationToken usage in chat send/read operations.</li>
+  <li>Open Swagger and manually test key endpoints.</li>
+  <li>Demonstrate Dropbox avatar upload flow as external SDK integration.</li>
+</ol>
+
+<hr>
+<p style="text-align:center;color:#888;font-size:11px;">
+  .NET Web Development - WebMessenger · ASP.NET Core 8 · EF Core · JWT · Serilog · Swagger · Dropbox SDK<br />
+  Export to PDF: open in browser -> Ctrl+P -> Save as PDF
+</p>
+
+</body>
+</html>

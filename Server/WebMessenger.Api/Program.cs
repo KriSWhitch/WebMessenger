@@ -13,7 +13,7 @@ using WebMessenger.Api.Hubs.Events;
 using WebMessenger.Api.Infrastructure.Interfaces;
 using WebMessenger.Api.Infrastructure;
 using WebMessenger.Api.Services.FileStorage;
-using Microsoft.Extensions.Hosting;
+using WebMessenger.Api.Options;
 using Serilog;
 
 // Bootstrap logger
@@ -35,6 +35,18 @@ try
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
+
+    builder.Services
+        .AddOptions<JwtOptions>()
+        .BindConfiguration(JwtOptions.SectionName)
+        .ValidateDataAnnotations()
+        .ValidateOnStart();
+
+    builder.Services
+        .AddOptions<DropboxOptions>()
+        .BindConfiguration(DropboxOptions.SectionName)
+        .ValidateDataAnnotations()
+        .ValidateOnStart();
 
     builder.Services.AddProblemDetails(options =>
     {
@@ -88,17 +100,18 @@ try
         .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
+            var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+                      ?? throw new InvalidOperationException("JWT configuration is missing");
+
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                ValidAudience = builder.Configuration["Jwt:Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
-                )
+                ValidIssuer = jwt.Issuer,
+                ValidAudience = jwt.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key))
             };
 
             options.Events = new JwtBearerEvents

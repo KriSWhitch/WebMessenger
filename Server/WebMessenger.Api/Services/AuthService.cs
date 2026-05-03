@@ -1,20 +1,22 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using WebMessenger.DAL.Entities;
 using BCrypt.Net;
+using WebMessenger.Api.Options;
 using WebMessenger.Api.Services.Interfaces;
 
 namespace WebMessenger.Api.Services;
 
 public class AuthService(
-    IConfiguration config,
+    IOptions<JwtOptions> jwtOptions,
     ILogger<AuthService> logger) : IAuthService
 {
     private const string UsernameClaimNotFound = "Username claim not found in token";
 
-    private readonly IConfiguration _config = config ?? throw new ArgumentNullException(nameof(config));
+    private readonly JwtOptions _jwt = jwtOptions.Value;
     private readonly ILogger<AuthService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public bool ValidateUserCredentials(User? user, string password)
@@ -44,11 +46,7 @@ public class AuthService(
     {
         ArgumentNullException.ThrowIfNull(user);
 
-        var jwtKey = _config["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured");
-        var issuer = _config["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT Issuer not configured");
-        var audience = _config["Jwt:Audience"] ?? throw new InvalidOperationException("JWT Audience not configured");
-
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Key));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
@@ -61,10 +59,10 @@ public class AuthService(
         };
 
         var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
+            issuer: _jwt.Issuer,
+            audience: _jwt.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(GetTokenLifetime()),
+            expires: DateTime.UtcNow.AddDays(_jwt.ExpireDays),
             signingCredentials: credentials
         );
 
@@ -104,14 +102,5 @@ public class AuthService(
         }
 
         return authHeader["Bearer ".Length..].Trim();
-    }
-
-    private int GetTokenLifetime()
-    {
-        if (int.TryParse(_config["Jwt:TokenLifetimeMinutes"], out var lifetime))
-        {
-            return lifetime;
-        }
-        return 1440;
     }
 }

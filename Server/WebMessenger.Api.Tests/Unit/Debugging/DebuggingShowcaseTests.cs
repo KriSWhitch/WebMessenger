@@ -1,6 +1,7 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
+using WebMessenger.Api.Options;
 using WebMessenger.Api.Services;
 using WebMessenger.Api.Services.Interfaces;
 using WebMessenger.Api.Tests.Shared;
@@ -145,14 +146,13 @@ public class DebuggingShowcaseTests(ITestOutputHelper output)
             .Returns(new[] { user }.AsAsyncQueryable());
         uowMock.Setup(u => u.UserRepository).Returns(userRepoMock.Object);
 
-        var inMemory = new Dictionary<string, string?>
+        var jwtOptions = Microsoft.Extensions.Options.Options.Create(new JwtOptions
         {
-            ["Jwt:Key"]      = "super-secret-test-key-that-is-long-enough-32chars",
-            ["Jwt:Issuer"]   = "test-issuer",
-            ["Jwt:Audience"] = "test-audience"
-        };
-        var config  = new ConfigurationBuilder().AddInMemoryCollection(inMemory).Build();
-        var auth    = new AuthService(config, NullLogger<AuthService>.Instance);
+            Key      = "super-secret-test-key-that-is-long-enough-32chars",
+            Issuer   = "test-issuer",
+            Audience = "test-audience"
+        });
+        var auth    = new AuthService(jwtOptions, NullLogger<AuthService>.Instance);
         var contacts = new Mock<IContactsService>().Object;
         var svc      = new UserService(uowMock.Object, contacts, auth, NullLogger<UserService>.Instance);
 

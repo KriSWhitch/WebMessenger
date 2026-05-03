@@ -1,5 +1,6 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using WebMessenger.Api.Options;
 using WebMessenger.Api.Services;
 using WebMessenger.Api.Tests.Shared;
 using WebMessenger.DAL.Entities;
@@ -22,14 +23,13 @@ public class AuthServiceTheoryTests : IClassFixture<UserPoolFixture>
     {
         _users = fixture.Users;
 
-        var inMemory = new Dictionary<string, string?>
+        var jwtOptions = Microsoft.Extensions.Options.Options.Create(new JwtOptions
         {
-            ["Jwt:Key"]      = "super-secret-test-key-that-is-long-enough-32chars",
-            ["Jwt:Issuer"]   = "test-issuer",
-            ["Jwt:Audience"] = "test-audience"
-        };
-        var config = new ConfigurationBuilder().AddInMemoryCollection(inMemory).Build();
-        _sut = new AuthService(config, NullLogger<AuthService>.Instance);
+            Key      = "super-secret-test-key-that-is-long-enough-32chars",
+            Issuer   = "test-issuer",
+            Audience = "test-audience"
+        });
+        _sut = new AuthService(jwtOptions, NullLogger<AuthService>.Instance);
     }
 
     // -------------------------------------------------------------------------

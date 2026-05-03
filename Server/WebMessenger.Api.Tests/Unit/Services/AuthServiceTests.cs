@@ -1,6 +1,7 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
+using WebMessenger.Api.Options;
 using WebMessenger.Api.Services;
 using WebMessenger.Api.Tests.Shared.TestData;
 using WebMessenger.DAL.Entities;
@@ -14,22 +15,17 @@ namespace WebMessenger.Api.Tests.Unit.Services;
 public class AuthServiceTests
 {
     private readonly AuthService _sut;
-    private readonly IConfiguration _config;
 
     public AuthServiceTests()
     {
-        var inMemory = new Dictionary<string, string?>
+        var jwtOptions = Microsoft.Extensions.Options.Options.Create(new JwtOptions
         {
-            ["Jwt:Key"]      = "super-secret-test-key-that-is-long-enough-32chars",
-            ["Jwt:Issuer"]   = "test-issuer",
-            ["Jwt:Audience"] = "test-audience"
-        };
+            Key      = "super-secret-test-key-that-is-long-enough-32chars",
+            Issuer   = "test-issuer",
+            Audience = "test-audience"
+        });
 
-        _config = new ConfigurationBuilder()
-            .AddInMemoryCollection(inMemory)
-            .Build();
-
-        _sut = new AuthService(_config, NullLogger<AuthService>.Instance);
+        _sut = new AuthService(jwtOptions, NullLogger<AuthService>.Instance);
     }
 
     // -------------------------------------------------------------------------

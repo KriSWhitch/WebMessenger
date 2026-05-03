@@ -1,6 +1,8 @@
 ﻿using Dropbox.Api;
 using Dropbox.Api.Files;
 using Dropbox.Api.Sharing;
+using Microsoft.Extensions.Options;
+using WebMessenger.Api.Options;
 
 namespace WebMessenger.Api.Services.FileStorage
 {
@@ -10,10 +12,9 @@ namespace WebMessenger.Api.Services.FileStorage
         private readonly ILogger<DropboxFileStorage> _logger;
         private const string Folder = "/avatars";
 
-        public DropboxFileStorage(IConfiguration config, ILogger<DropboxFileStorage> logger)
+        public DropboxFileStorage(IOptions<DropboxOptions> dropboxOptions, ILogger<DropboxFileStorage> logger)
         {
-            var token = config["Dropbox:AccessToken"] ?? throw new InvalidOperationException("Dropbox token missing");
-            _client = new DropboxClient(token);
+            _client = new DropboxClient(dropboxOptions.Value.AccessToken);
             _logger = logger;
         }
 
