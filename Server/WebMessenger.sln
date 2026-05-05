@@ -16,10 +16,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{74F3AA1A-47C7-40C7-9F07-B6ADB0F04479}"
 	ProjectSection(SolutionItems) = preProject
 		..\docs\CODEBASE_MAP.md = ..\docs\CODEBASE_MAP.md
-		..\docs\EF_Core_Refactoring_Recommendations.md = ..\docs\EF_Core_Refactoring_Recommendations.md
-		..\docs\guides\SignalR (Level 1) — WebMessenger.html = ..\docs\guides\SignalR (Level 1) — WebMessenger.html
-		..\docs\guides\SignalR (Level 2) — WebMessenger.html = ..\docs\guides\SignalR (Level 2) — WebMessenger.html
-		..\docs\plans\TRELLO-2-add-a-practical-testing-api-validation-showcase-plan.md = ..\docs\plans\TRELLO-2-add-a-practical-testing-api-validation-showcase-plan.md
 	EndProjectSection
 EndProject
 Global
