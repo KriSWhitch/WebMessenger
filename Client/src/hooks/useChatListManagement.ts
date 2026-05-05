@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import * as signalR from '@microsoft/signalr';
 import { getChatConnection } from '@/lib/hubs/chatHubClient';
+import { ChatHubEvents } from '@/lib/hubs/chatHubContracts';
 import { makeDmKey } from '@/lib/utils/makeDmKey';
 import { byDateDesc, mergeUniqueById, normalizePage } from '@/lib/utils/pagination';
 import { dtoToChat } from '@/lib/utils/normalization';
 import type { Chat, ChatListItemDto, MessageCreatedPayload, PagedResult } from '@/types/chat';
+import { ensureConnected } from '@/lib/hubs/chatHubOperations';
 
 const byLastActivityDesc = byDateDesc<Chat>((c) => c.lastMessage?.sentAt ?? c.createdAt);
 
@@ -109,13 +110,7 @@ export function useChatListManagement(params: {
     const conn = getChatConnection();
 
     const start = async () => {
-      if (conn.state === signalR.HubConnectionState.Disconnected) {
-        try {
-          await conn.start();
-        } catch (e) {
-          console.error('Hub start failed:', e);
-        }
-      }
+      await ensureConnected(conn);
     };
 
     const onMessageCreated = (payload: MessageCreatedPayload & { peerUserId?: string }) => {
@@ -242,18 +237,15 @@ export function useChatListManagement(params: {
       setChats((prev) => prev.map((c) => (c.id === p.chatId ? { ...c, unreadCount: 0 } : c)));
     };
 
-    conn.off('MessageCreated', onMessageCreated);
-    conn.on('MessageCreated', onMessageCreated);
-    conn.off('ReadReceipt', onReadReceipt);
-    conn.on('ReadReceipt', onReadReceipt);
+    conn.off(ChatHubEvents.MessageCreated, onMessageCreated);
+    conn.on(ChatHubEvents.MessageCreated, onMessageCreated);
+    conn.off(ChatHubEvents.ReadReceipt, onReadReceipt);
+    conn.on(ChatHubEvents.ReadReceipt, onReadReceipt);
     void start();
 
-    conn.onreconnected(() => {});
-
     return () => {
-      conn.off('MessageCreated', onMessageCreated);
-      conn.off('ReadReceipt', onReadReceipt);
-      conn.onreconnected(() => {});
+      conn.off(ChatHubEvents.MessageCreated, onMessageCreated);
+      conn.off(ChatHubEvents.ReadReceipt, onReadReceipt);
     };
   }, [rememberId, setSelectedChat]);
 

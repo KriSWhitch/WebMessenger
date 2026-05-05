@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SignalR (Level 1) — WebMessenger</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1a1a1a; background: #fff; padding: 40px 60px; max-width: 980px; margin: auto; }
+  h1 { font-size: 26px; color: #0a3d62; border-bottom: 3px solid #0a3d62; padding-bottom: 10px; margin: 30px 0 16px; }
+  h2 { font-size: 20px; color: #1a5276; border-left: 4px solid #2980b9; padding-left: 10px; margin: 28px 0 12px; }
+  h3 { font-size: 15px; color: #2471a3; margin: 20px 0 8px; }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 3px 0; }
+  code { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #f0f4f8; color: #c0392b; padding: 1px 5px; border-radius: 3px; }
+  pre { background: #1e2a3a; color: #abb2bf; font-family: 'Consolas', 'Courier New', monospace; font-size: 11.5px; line-height: 1.55; padding: 14px 18px; border-radius: 6px; margin: 10px 0; overflow-x: auto; border-left: 4px solid #2980b9; white-space: pre-wrap; word-break: break-word; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  th { background: #2471a3; color: #fff; padding: 8px 10px; text-align: left; }
+  td { padding: 7px 10px; border: 1px solid #d5d8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f6f8; }
+  .badge { display: inline-block; background: #2980b9; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-right: 4px; }
+  .badge.green { background: #27ae60; }
+  .badge.orange { background: #d35400; }
+  .badge.red { background: #c0392b; }
+  .note { background: #eaf4fb; border-left: 4px solid #2980b9; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .warn { background: #fef9e7; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .gap { background: #fdecea; border-left: 4px solid #c0392b; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  hr { border: none; border-top: 1px solid #d5d8dc; margin: 24px 0; }
+  @media print {
+    body { padding: 10px 20px; font-size: 12px; }
+    pre { font-size: 10.5px; }
+    h1 { page-break-before: auto; }
+    h2 { page-break-after: avoid; }
+    pre, table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>SignalR (Level 1) — WebMessenger</h1>
+<p>Подробный практический гайд по базовым навыкам SignalR с учетом текущей реализации WebMessenger после рефакторинга 2026 года.</p>
+<p style="color:#888;font-size:11px;">Проект: ASP.NET Core 8 + SignalR + Next.js client (@microsoft/signalr)</p>
+
+<hr>
+
+<h1>1. Где SignalR живет в проекте сейчас</h1>
+
+<ul>
+  <li><strong>Hub endpoint:</strong> <code>/hubs/chat</code> (регистрация в <code>Program.cs</code>)</li>
+  <li><strong>Hub:</strong> <code>ChatHub : Hub&lt;IChatClient&gt;</code></li>
+  <li><strong>Server push из сервисов:</strong> <code>ChatEvents</code> через <code>IHubContext&lt;ChatHub, IChatClient&gt;</code></li>
+  <li><strong>Группы:</strong> <code>SignalRGroups.User/Chat/Direct</code></li>
+  <li><strong>Клиентское соединение:</strong> singleton в <code>chatHubClient.ts</code> с reconnect и guard от гонок старта</li>
+</ul>
+
+<pre>// Program.cs (актуальное состояние)
+builder.Services.AddSignalR(options =&gt;
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+    options.MaximumReceiveMessageSize = 32 * 1024;
+});
+
+app.MapHub&lt;ChatHub&gt;("/hubs/chat").RequireCors("Front");</pre>
+
+<div class="note">
+  В WebMessenger SignalR это realtime-канал поверх REST: REST подтверждает и хранит данные, SignalR доставляет события клиентам быстро и адресно.
+</div>
+
+<hr>
+
+<h1>2. Declared Contracts: что нужно объявлять явно</h1>
+
+<p>Даже на Level 1 важно не оставлять "неявные" контракты. В проекте должны быть явно объявлены:</p>
+<ul>
+  <li>Hub-методы, которые вызывает клиент;</li>
+  <li>server-to-client события;</li>
+  <li>типы payload;</li>
+  <li>правила именования групп;</li>
+  <li>параметры транспорта и reconnect.</li>
+</ul>
+
+<h3>Как это реализовано в WebMessenger</h3>
+<ul>
+  <li><strong>Клиентские константы:</strong> <code>ChatHubEvents</code> и <code>ChatHubMethods</code></li>
+  <li><strong>Серверный клиентский контракт:</strong> <code>IChatClient</code></li>
+  <li><strong>Payload модели:</strong> <code>MessageCreatedPayload</code>, <code>ReadReceiptPayload</code>, <code>TypingPayload</code></li>
+  <li><strong>Группы:</strong> <code>user:{id}</code>, <code>chat:{id}</code>, <code>dm:{a}:{b}</code></li>
+</ul>
+
+<pre>// Пример client-side контрактов
+export const ChatHubEvents = {
+  MessageCreated: 'MessageCreated',
+  Typing: 'Typing',
+  ReadReceipt: 'ReadReceipt',
+} as const;
+
+export const ChatHubMethods = {
+  JoinChat: 'JoinChat',
+  JoinDirect: 'JoinDirect',
+  LeaveChat: 'LeaveChat',
+  LeaveDirect: 'LeaveDirect',
+  Typing: 'Typing',
+  MarkRead: 'MarkRead',
+} as const;</pre>
+
+<div class="warn">
+  Когда контракты не объявлены явно, ошибка обычно не компилируется заранее, а проявляется только в рантайме: "подключено, но событие не приходит".
+</div>
+
+<hr>
+
+<h1>3. Transports: как выбрать и зачем оставлять fallback</h1>
+
+<table>
+  <tr><th>Transport</th><th>Duplex</th><th>Latency</th><th>Нагрузка</th><th>Когда полезен</th></tr>
+  <tr><td>WebSockets</td><td>Полный duplex</td><td>Низкая</td><td>Низкая</td><td>Чат, presence, typing, быстрое обновление UI</td></tr>
+  <tr><td>Server-Sent Events</td><td>Преимущественно server -&gt; client</td><td>Низкая/средняя</td><td>Средняя</td><td>Fallback при ограничениях proxy</td></tr>
+  <tr><td>Long Polling</td><td>Эмуляция realtime</td><td>Средняя/высокая</td><td>Высокая</td><td>Последний fallback для сложных сетей</td></tr>
+</table>
+
+<h3>Почему в WebMessenger включены все 3</h3>
+<ul>
+  <li>WebSocket выбран как основной путь.</li>
+  <li>SSE и Long Polling повышают устойчивость в нестабильной инфраструктуре.</li>
+  <li>Это снижает риск "чат не работает у части пользователей за корпоративным proxy".</li>
+</ul>
+
+<pre>// chatHubClient.ts
+.withUrl(HUB_URL, {
+  accessTokenFactory: async () =&gt; await fetchAccessToken(),
+  transport:
+    signalR.HttpTransportType.WebSockets |
+    signalR.HttpTransportType.ServerSentEvents |
+    signalR.HttpTransportType.LongPolling,
+  withCredentials: false,
+})
+.withAutomaticReconnect(...)</pre>
+
+<hr>
+
+<h1>4. Users, Connections, Groups: базовая модель адресации</h1>
+
+<p>Один пользователь может иметь несколько активных подключений (вкладки, устройства). SignalR адресует события не только пользователю, но и конкретным группам подключений.</p>
+
+<h3>Сущности</h3>
+<ul>
+  <li><strong>User:</strong> доменный пользователь из JWT (Guid).</li>
+  <li><strong>Connection:</strong> конкретная физическая сессия (ConnectionId).</li>
+  <li><strong>Group:</strong> множество ConnectionId, объединенных логикой маршрутизации.</li>
+</ul>
+
+<h3>Паттерны WebMessenger</h3>
+<ul>
+  <li><strong>user-group:</strong> для событий "на все устройства пользователя".</li>
+  <li><strong>chat-group:</strong> для room/группового чата.</li>
+  <li><strong>dm-group:</strong> для direct-пары пользователей.</li>
+</ul>
+
+<pre>// ChatHub.OnConnectedAsync
+await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroups.User(userId.Value));
+
+// Join в конкретный контекст
+await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroups.Chat(chatId), ct);
+await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroups.Direct(me, otherUserId), ct);</pre>
+
+<div class="note">
+  Группа это не хранилище состояния, а routing-структура. Источник истины о правах доступа остается в бизнес-сервисах и БД.
+</div>
+
+<hr>
+
+<h1>5. Hubs и IHubContext: ответственность каждого слоя</h1>
+
+<table>
+  <tr><th>Критерий</th><th>Hub</th><th>IHubContext</th></tr>
+  <tr><td>Принимает вызовы от клиента</td><td>Да</td><td>Нет</td></tr>
+  <tr><td>Имеет Context.ConnectionId/User</td><td>Да</td><td>Нет</td></tr>
+  <tr><td>Может отправлять события</td><td>Да</td><td>Да</td></tr>
+  <tr><td>Где обычно используется</td><td>Realtime endpoint</td><td>Сервисы, контроллеры, background задачи</td></tr>
+</table>
+
+<h3>Как это сделано в проекте</h3>
+<ul>
+  <li><strong>ChatHub:</strong> Join/Leave/Typing/MarkRead и membership check.</li>
+  <li><strong>ChatEvents:</strong> централизованная рассылка событий через <code>IHubContext&lt;ChatHub, IChatClient&gt;</code>.</li>
+</ul>
+
+<pre>// Typed push из сервисного слоя
+await _hub.Clients.Group(chatGroup).MessageCreated(payload, ct);
+await _hub.Clients.Group(chatGroup).ReadReceipt(payload, ct);
+await _hub.Clients.GroupExcept(chatGroup, excludeConnectionId).Typing(payload, ct);</pre>
+
+<div class="note">
+  Хорошая базовая дисциплина: бизнес-операции живут в сервисах, а отправка realtime-событий инкапсулирована в одном месте.
+</div>
+
+<hr>
+
+<h1>6. Strongly Typed Hub в WebMessenger</h1>
+
+<p>В проекте уже включен typed-подход: <code>ChatHub : Hub&lt;IChatClient&gt;</code>. Это важный шаг зрелости даже для Level 1.</p>
+
+<h3>Что это дает</h3>
+<ul>
+  <li>События становятся методами интерфейса, а не строками.</li>
+  <li>Ошибки имен ловятся на этапе компиляции.</li>
+  <li>Проще поддерживать контракт между backend и frontend.</li>
+</ul>
+
+<pre>public interface IChatClient
+{
+    Task MessageCreated(MessageCreatedPayload payload, CancellationToken ct = default);
+    Task ReadReceipt(ReadReceiptPayload payload, CancellationToken ct = default);
+    Task Typing(TypingPayload payload, CancellationToken ct = default);
+}
+
+public class ChatHub : Hub&lt;IChatClient&gt; { ... }</pre>
+
+<div class="warn">
+  Typed hub не отменяет необходимость в строгой версии payload-контрактов. Если поле удалено/переименовано, клиент также нужно обновлять согласованно.
+</div>
+
+<hr>
+
+<h1>7. Lifetime в SignalR: максимально простое объяснение</h1>
+
+<h3>Базовые lifetimes в DI</h3>
+<ul>
+  <li><strong>Transient:</strong> новый объект при каждом запросе зависимости.</li>
+  <li><strong>Scoped:</strong> один объект на scope (обычно HTTP-запрос).</li>
+  <li><strong>Singleton:</strong> один объект на весь жизненный цикл приложения.</li>
+</ul>
+
+<h3>Ключевая мысль про Hub</h3>
+<p>Экземпляр Hub не живет как "сессия пользователя". Он создается для обработки вызовов и не должен хранить долгоживущее изменяемое состояние.</p>
+
+<h3>Что хранить где</h3>
+<table>
+  <tr><th>Тип данных</th><th>Где хранить правильно</th><th>Почему</th></tr>
+  <tr><td>Права доступа, членство в чатах</td><td>БД/сервисы</td><td>Нужно консистентное правило на всех инстансах</td></tr>
+  <tr><td>Временные routing-связи</td><td>SignalR Groups</td><td>Это нативный механизм маршрутизации</td></tr>
+  <tr><td>Кэш, общий для всех запросов</td><td>Thread-safe singleton cache/Redis</td><td>Избегаем дублирования и race-condition</td></tr>
+  <tr><td>Per-request контекст</td><td>Scoped сервис</td><td>Изолирует состояние конкретного запроса</td></tr>
+</table>
+
+<h3>Как сейчас в WebMessenger</h3>
+<ul>
+  <li><code>IChatService</code> - <strong>Scoped</strong> (корректно для бизнес-операций).</li>
+  <li><code>IChatEvents</code> - <strong>Singleton</strong> (допустимо, потому что класс stateless и работает через <code>IHubContext</code>).</li>
+  <li><code>ChatHub</code> не хранит собственный mutable state между вызовами.</li>
+</ul>
+
+<h3>Почему Singleton для ChatEvents сейчас нормален</h3>
+<ul>
+  <li>Внутри нет mutable shared state вроде <code>Dictionary</code> без синхронизации.</li>
+  <li>Нет прямой зависимости на scoped-сервисы в полях singleton.</li>
+  <li>Используется <code>IHubContext</code>, который безопасно инжектится в singleton-слой отправки.</li>
+</ul>
+
+<h3>Где чаще ломают lifetime (и как не ломать)</h3>
+<table>
+  <tr><th>Ошибка</th><th>Почему плохо</th><th>Как исправить</th></tr>
+  <tr><td>Singleton инжектит DbContext/Scoped сервис</td><td>Нарушение DI boundary, runtime ошибки/утечки</td><td>Использовать <code>IServiceScopeFactory</code> и создавать scope в момент вызова</td></tr>
+  <tr><td>Хранить user state в полях Hub</td><td>Потеря состояния после reconnect/redeploy</td><td>Хранить в БД/Redis и вычислять заново</td></tr>
+  <tr><td>Shared mutable список подключений без lock</td><td>Race-condition под нагрузкой</td><td>Concurrent коллекции или внешнее хранилище</td></tr>
+</table>
+
+<pre>// Если singleton все же должен обратиться к scoped-сервису
+public sealed class MySingleton(IServiceScopeFactory scopeFactory)
+{
+    public async Task DoWorkAsync()
+    {
+        using var scope = scopeFactory.CreateScope();
+        var svc = scope.ServiceProvider.GetRequiredService&lt;IMyScopedService&gt;();
+        await svc.RunAsync();
+    }
+}</pre>
+
+<div class="note">
+  Простое правило: singleton может быть stateful только если этот state thread-safe, ограничен по памяти, и действительно должен быть общим для всего приложения.
+</div>
+
+<hr>
+
+<h1>8. Filters (IHubFilter) и их lifetime: подробно</h1>
+
+<p><strong>IHubFilter</strong> это middleware-подобный слой для Hub-методов: валидация, аудит, rate-limit, метрики, корреляция логов.</p>
+
+<h3>Что фильтр перехватывает</h3>
+<ul>
+  <li>вызов hub-метода до выполнения;</li>
+  <li>исключение, если оно выброшено;</li>
+  <li>результат после выполнения;</li>
+  <li>события connect/disconnect (если реализованы соответствующие методы фильтра).</li>
+</ul>
+
+<h3>Где в WebMessenger сейчас</h3>
+<p>На текущий момент фильтры не зарегистрированы, но проект уже зрел для их добавления.</p>
+
+<h3>Какой lifetime выбрать для фильтра</h3>
+<table>
+  <tr><th>Lifetime фильтра</th><th>Когда уместно</th><th>На что смотреть</th></tr>
+  <tr><td>Singleton</td><td>Фильтр stateless, только логирует/метрики</td><td>Никаких mutable полей без thread-safety, не инжектить scoped напрямую</td></tr>
+  <tr><td>Scoped</td><td>Нужен scoped-контекст, например current user/request services</td><td>Больше allocations, но проще безопасно работать с scoped зависимостями</td></tr>
+  <tr><td>Transient</td><td>Редко, если фильтр легкий и без состояния</td><td>На практике обычно singleton/scoped удобнее</td></tr>
+</table>
+
+<h3>Безопасный singleton filter пример</h3>
+<pre>public sealed class HubLoggingFilter(ILogger&lt;HubLoggingFilter&gt; log) : IHubFilter
+{
+    public async ValueTask&lt;object?&gt; InvokeMethodAsync(
+        HubInvocationContext invocationContext,
+        Func&lt;HubInvocationContext, ValueTask&lt;object?&gt;&gt; next)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            var result = await next(invocationContext);
+            sw.Stop();
+            log.LogInformation("Hub {Hub} method {Method} ok in {Ms}ms",
+                invocationContext.Hub.GetType().Name,
+                invocationContext.HubMethodName,
+                sw.ElapsedMilliseconds);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            log.LogWarning(ex, "Hub {Hub} method {Method} failed in {Ms}ms",
+                invocationContext.Hub.GetType().Name,
+                invocationContext.HubMethodName,
+                sw.ElapsedMilliseconds);
+            throw;
+        }
+    }
+}</pre>
+
+<pre>// Регистрация
+builder.Services.AddSingleton&lt;HubLoggingFilter&gt;();
+builder.Services.AddSignalR().AddHubOptions&lt;ChatHub&gt;(opts =&gt;
+{
+    opts.AddFilter&lt;HubLoggingFilter&gt;();
+});</pre>
+
+<h3>Scoped filter пример</h3>
+<pre>public sealed class HubValidationFilter(IMyScopedValidator validator) : IHubFilter
+{
+    public async ValueTask&lt;object?&gt; InvokeMethodAsync(
+        HubInvocationContext ctx,
+        Func&lt;HubInvocationContext, ValueTask&lt;object?&gt;&gt; next)
+    {
+        validator.Validate(ctx.HubMethodArguments);
+        return await next(ctx);
+    }
+}
+
+builder.Services.AddScoped&lt;HubValidationFilter&gt;();</pre>
+
+<div class="warn">
+  Главный practical check: если фильтр singleton и в нем есть mutable поля (счетчики, списки, кэш), они обязаны быть потокобезопасными, иначе под нагрузкой получите нестабильные баги.
+</div>
+
+<hr>
+
+<h1>9. Клиентский lifetime connection: почему singleton connection правильный</h1>
+
+<ul>
+  <li>Один <code>HubConnection</code> на приложение снижает число лишних сокетов и гонок подписок.</li>
+  <li><code>startPromise</code> guard защищает от параллельных <code>start()</code>.</li>
+  <li><code>subscribeChatReconnected</code> с unsubscribe предотвращает накопление обработчиков.</li>
+  <li>Явные <code>serverTimeoutInMilliseconds</code> и <code>keepAliveIntervalInMilliseconds</code> синхронизированы с сервером (30с/15с).</li>
+</ul>
+
+<pre>// Ключевая идея
+if (!startPromise) {
+  startPromise = conn.start().finally(() =&gt; { startPromise = null; });
+}
+await startPromise;</pre>
+
+<div class="note">
+  Для SPA это стандартный надежный шаблон: singleton connection + явный reconnect lifecycle + аккуратная подписка/отписка в хуках.
+</div>
+
+<hr>
+
+<h1>10. Мини-сценарий end-to-end в текущей архитектуре</h1>
+
+<ol>
+  <li>Пользователь открывает чат, клиент вызывает <code>JoinChat</code>.</li>
+  <li>Hub валидирует membership через <code>IChatService</code> и добавляет connection в <code>chat:{id}</code>.</li>
+  <li>При отправке сообщения сервис вызывает <code>IChatEvents.MessageCreatedAsync</code>.</li>
+  <li><code>ChatEvents</code> отправляет typed payload в нужные группы.</li>
+  <li>Клиентские хуки получают событие <code>MessageCreated</code> и обновляют UI списка и активного чата.</li>
+  <li>При reconnect клиент автоматически переподключается и пере-join-ит целевую группу.</li>
+</ol>
+
+<hr>
+
+<h1>11. Чеклист Level 1 для текущего проекта</h1>
+
+<ul>
+  <li><span class="badge green">Done</span> Typed hub и typed payload-контракты внедрены.</li>
+  <li><span class="badge green">Done</span> Таймауты и keepalive выровнены сервер-клиент.</li>
+  <li><span class="badge green">Done</span> Клиентские константы событий/методов вынесены.</li>
+  <li><span class="badge green">Done</span> Reconnect lifecycle на клиенте централизован.</li>
+  <li><span class="badge orange">Next</span> Добавить минимум один HubFilter (логирование + latency).</li>
+  <li><span class="badge orange">Next</span> Добавить rate-limit на частые методы (Typing/Join).</li>
+</ul>
+
+<hr>
+
+<h1>12. Краткий итог</h1>
+
+<p>Level 1 в WebMessenger уже вышел за "базу": у проекта правильная архитектура адресации, typed contracts, устойчивый lifecycle соединения и разделение ответственности между Hub и сервисным слоем. Самые полезные следующие шаги - формализовать filter-политику и ввести операционные guardrails (rate-limit + метрики).</p>
+
+</body>
+</html>

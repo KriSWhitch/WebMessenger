@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SignalR (Level 2) — WebMessenger</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1a1a1a; background: #fff; padding: 40px 60px; max-width: 980px; margin: auto; }
+  h1 { font-size: 26px; color: #0a3d62; border-bottom: 3px solid #0a3d62; padding-bottom: 10px; margin: 30px 0 16px; }
+  h2 { font-size: 20px; color: #1a5276; border-left: 4px solid #2980b9; padding-left: 10px; margin: 28px 0 12px; }
+  h3 { font-size: 15px; color: #2471a3; margin: 20px 0 8px; }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 3px 0; }
+  code { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #f0f4f8; color: #c0392b; padding: 1px 5px; border-radius: 3px; }
+  pre { background: #1e2a3a; color: #abb2bf; font-family: 'Consolas', 'Courier New', monospace; font-size: 11.5px; line-height: 1.55; padding: 14px 18px; border-radius: 6px; margin: 10px 0; overflow-x: auto; border-left: 4px solid #2980b9; white-space: pre-wrap; word-break: break-word; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  th { background: #2471a3; color: #fff; padding: 8px 10px; text-align: left; }
+  td { padding: 7px 10px; border: 1px solid #d5d8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f6f8; }
+  .badge { display: inline-block; background: #2980b9; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-right: 4px; }
+  .badge.green { background: #27ae60; }
+  .badge.orange { background: #d35400; }
+  .badge.red { background: #c0392b; }
+  .note { background: #eaf4fb; border-left: 4px solid #2980b9; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .warn { background: #fef9e7; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .gap { background: #fdecea; border-left: 4px solid #c0392b; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  hr { border: none; border-top: 1px solid #d5d8dc; margin: 24px 0; }
+  @media print {
+    body { padding: 10px 20px; font-size: 12px; }
+    pre { font-size: 10.5px; }
+    h1 { page-break-before: auto; }
+    h2 { page-break-after: avoid; }
+    pre, table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>SignalR (Level 2) — WebMessenger</h1>
+<p>Продвинутый практический гайд по SignalR с учетом текущего состояния WebMessenger: typed contracts, security, token lifecycle, observability, limits и производительность.</p>
+<p style="color:#888;font-size:11px;">Проект: ASP.NET Core 8 + SignalR + Serilog + Next.js client</p>
+
+<hr>
+
+<h1>1. Auth Pipeline: от браузера до Hub метода</h1>
+
+<h3>Как сейчас устроено в WebMessenger</h3>
+<ul>
+  <li>Hub защищен <code>[Authorize]</code>.</li>
+  <li>JWT достается в <code>JwtBearerEvents.OnMessageReceived</code> для пути <code>/hubs/chat</code>.</li>
+  <li>Источник токена: сначала <code>access_token</code> query, потом cookie <code>auth-token</code>.</li>
+</ul>
+
+<pre>// Program.cs
+options.Events = new JwtBearerEvents
+{
+    OnMessageReceived = context =&gt;
+    {
+        var path = context.HttpContext.Request.Path;
+        if (path.StartsWithSegments("/hubs/chat"))
+        {
+            if (context.Request.Query.TryGetValue("access_token", out var tokenFromQuery))
+            {
+                context.Token = tokenFromQuery;
+                return Task.CompletedTask;
+            }
+            if (context.Request.Cookies.TryGetValue("auth-token", out var tokenFromCookie))
+            {
+                context.Token = tokenFromCookie;
+                return Task.CompletedTask;
+            }
+        }
+        return Task.CompletedTask;
+    }
+};</pre>
+
+<h3>End-to-end последовательность</h3>
+<ol>
+  <li>Клиент инициирует <code>negotiate/connect</code> к <code>/hubs/chat</code>.</li>
+  <li>Токен попадает в pipeline через query/cookie.</li>
+  <li>JWT middleware валидирует подпись, issuer, audience, lifetime.</li>
+  <li>Если токен валиден, Hub методы получают доступ к <code>Context.User</code>.</li>
+  <li>Если нет - подключение/вызовы завершаются 401/403.</li>
+</ol>
+
+<div class="note">
+  Это хороший production pattern: единая auth-модель для REST и SignalR.
+</div>
+
+<hr>
+
+<h1>2. Types и contracts: что уже внедрено и зачем это важно</h1>
+
+<h3>Текущее состояние</h3>
+<ul>
+  <li>На сервере: typed hub <code>ChatHub : Hub&lt;IChatClient&gt;</code>.</li>
+  <li>На сервере: payload records (<code>MessageCreatedPayload</code>, <code>ReadReceiptPayload</code>, <code>TypingPayload</code>).</li>
+  <li>На клиенте: единые константы событий/методов + TS payload-типы.</li>
+</ul>
+
+<h3>Почему это Level 2</h3>
+<ul>
+  <li>Снижается число runtime-ошибок из-за строковых опечаток.</li>
+  <li>Контракт становится "проверяемым" компилятором.</li>
+  <li>Проще делать постепенную эволюцию API событий.</li>
+</ul>
+
+<pre>// Серверный контракт клиента
+public interface IChatClient
+{
+    Task MessageCreated(MessageCreatedPayload payload, CancellationToken ct = default);
+    Task ReadReceipt(ReadReceiptPayload payload, CancellationToken ct = default);
+    Task Typing(TypingPayload payload, CancellationToken ct = default);
+}</pre>
+
+<h3>Правила versioning для realtime payload</h3>
+<ul>
+  <li>Добавление nullable-поля обычно безопасно.</li>
+  <li>Переименование/удаление поля требует синхронного релиза клиента.</li>
+  <li>Для несовместимых изменений лучше вводить новую версию события.</li>
+</ul>
+
+<hr>
+
+<h1>3. Access Token Storage: practical security trade-offs</h1>
+
+<h3>Как сделано сейчас</h3>
+<ul>
+  <li>Базовое хранение токена: HttpOnly cookie <code>auth-token</code>.</li>
+  <li>Для SignalR клиент получает токен через route <code>/api/auth/token</code>.</li>
+</ul>
+
+<pre>// route.ts
+const jwt = jar.get('auth-token')?.value;
+if (!jwt) return NextResponse.json({ error: 'No auth token' }, { status: 401 });
+return NextResponse.json({ token: jwt });</pre>
+
+<h3>Плюсы схемы</h3>
+<ul>
+  <li>Основной auth не завязан на localStorage.</li>
+  <li>Cookie удобны для SSR/edge.</li>
+</ul>
+
+<h3>Риски, которые нельзя игнорировать</h3>
+<ul>
+  <li>Токен все равно становится доступным JS после вызова <code>/api/auth/token</code>.</li>
+  <li>При XSS атаке attacker может использовать этот endpoint.</li>
+</ul>
+
+<h3>Минимальный hardening checklist</h3>
+<ul>
+  <li>Строгая CSP без лишних inline/script-src wildcard.</li>
+  <li>Ограничение сторонних скриптов.</li>
+  <li>Редакция логов, чтобы токены не попадали в plain text.</li>
+  <li>Короткий lifetime access token + аккуратный re-auth UX.</li>
+</ul>
+
+<hr>
+
+<h1>4. Access Token Expiration и reconnect стратегия</h1>
+
+<h3>Что важно понять</h3>
+<p>В SignalR проблема истечения токена проявляется не только при первом connect, но и в момент автоматического reconnect после разрыва канала.</p>
+
+<h3>Текущая основа в проекте</h3>
+<ul>
+  <li><code>ValidateLifetime = true</code> на сервере.</li>
+  <li>На клиенте включен <code>withAutomaticReconnect</code>.</li>
+  <li>Добавлен централизованный lifecycle reconnect-подписок.</li>
+</ul>
+
+<h3>Практический сценарий отказа</h3>
+<ol>
+  <li>Соединение было стабильно.</li>
+  <li>Сеть временно пропала и запустился reconnect.</li>
+  <li>К этому моменту JWT уже истек.</li>
+  <li>Reconnect получает 401, пользователь "застревает" без realtime.</li>
+</ol>
+
+<h3>Что обязательно сделать на клиенте</h3>
+<ul>
+  <li>Обработать <code>onclose</code> и классифицировать auth-failure.</li>
+  <li>Показывать пользователю понятное состояние: "сессия истекла".</li>
+  <li>Запускать controlled flow переавторизации.</li>
+</ul>
+
+<pre>// Идея обработки
+connection.onclose((err) =&gt; {
+  if (isAuthError(err)) {
+    redirectToLogin();
+    return;
+  }
+  scheduleReconnectUiState();
+});</pre>
+
+<div class="warn">
+  Automatic reconnect это не замена auth lifecycle. Это только транспортная устойчивость.
+</div>
+
+<hr>
+
+<h1>5. Security Considerations: реальные риски в чат-системе</h1>
+
+<table>
+  <tr><th>Риск</th><th>Как проявляется</th><th>Практическая защита</th></tr>
+  <tr><td>Token leakage</td><td>access_token в URL может попасть в proxy/access logs</td><td>редакция query в логах, не хранить raw URL</td></tr>
+  <tr><td>Hub flood</td><td>частые вызовы Typing/Join от клиента</td><td>rate-limit через filter + debounce на клиенте</td></tr>
+  <tr><td>Oversized payload</td><td>слишком большие сообщения по hub</td><td>лимит <code>MaximumReceiveMessageSize</code> + валидация</td></tr>
+  <tr><td>Unauthorized join</td><td>попытки входа в чужой chat group</td><td>server-side membership check перед AddToGroup</td></tr>
+  <tr><td>Sensitive logs</td><td>утечка PII/content в логи</td><td>structured logs + redaction policy</td></tr>
+</table>
+
+<h3>Что уже правильно в проекте</h3>
+<ul>
+  <li>membership check перед JoinChat;</li>
+  <li>Typed contracts и централизованный ChatEvents слой;</li>
+  <li>ограничение входящего сообщения 32 KB;</li>
+  <li>детальные hub errors только в Development.</li>
+</ul>
+
+<hr>
+
+<h1>6. ConnectionId, ConnectionToken и identity boundary</h1>
+
+<h3>Правильная модель</h3>
+<ul>
+  <li><strong>ConnectionId</strong> это технический ID канала, не user identity.</li>
+  <li><strong>ConnectionToken</strong> это internal protocol artifact, не доменная сущность.</li>
+  <li>Источник прав всегда JWT claims + серверная проверка membership.</li>
+</ul>
+
+<h3>Где ConnectionId полезен</h3>
+<ul>
+  <li>техническая диагностика connect/disconnect;</li>
+  <li>исключение текущего отправителя из broadcast (как в Typing через GroupExcept);</li>
+  <li>корреляция сетевых инцидентов в логах.</li>
+</ul>
+
+<pre>// Текущий паттерн Typing без echo отправителю
+await _chatEvents.TypingAsync(chatId, me.Value, isTyping,
+    excludeConnectionId: Context.ConnectionId, ct: ct);</pre>
+
+<hr>
+
+<h1>7. Logging и observability для SignalR</h1>
+
+<h3>Цель Level 2 наблюдаемости</h3>
+<p>Не просто "логировать побольше", а сделать систему, где можно быстро ответить на вопросы: кто отвалился, почему не пришло событие, где узкое место.</p>
+
+<h3>Что логировать</h3>
+<ul>
+  <li>Lifecycle: connected/disconnected/reconnecting/reconnected.</li>
+  <li>Hub methods: имя метода, длительность, результат.</li>
+  <li>Broadcast: имя события, target type (chat/user/dm), размер payload bucket.</li>
+  <li>Auth failures: счетчик и контекст (без токенов).</li>
+</ul>
+
+<h3>Что не логировать</h3>
+<ul>
+  <li>JWT целиком.</li>
+  <li>Полный текст сообщений в production логах.</li>
+  <li>Любые секреты/PII без redaction.</li>
+</ul>
+
+<h3>Операционные метрики, которые стоит завести</h3>
+<ul>
+  <li>Reconnect success rate.</li>
+  <li>Hub invocation error rate по методам.</li>
+  <li>P95/P99 latency для JoinChat/Typing/MarkRead.</li>
+  <li>Distribution размера входящих payload.</li>
+</ul>
+
+<hr>
+
+<h1>8. Buffer Management и limits: текущие значения и смысл</h1>
+
+<h3>Актуальные серверные настройки</h3>
+<pre>options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+options.MaximumReceiveMessageSize = 32 * 1024;</pre>
+
+<h3>Почему это хороший базовый профиль для чата</h3>
+<ul>
+  <li>15с keepalive помогает быстрее обнаруживать обрыв.</li>
+  <li>30с timeout не слишком агрессивен, но и не "вечный".</li>
+  <li>32 KB защищают от случайного/вредоносного oversized input.</li>
+</ul>
+
+<h3>Client-side alignment</h3>
+<ul>
+  <li><code>connection.serverTimeoutInMilliseconds = 30_000</code></li>
+  <li><code>connection.keepAliveIntervalInMilliseconds = 15_000</code></li>
+</ul>
+
+<div class="note">
+  Когда сервер и клиент согласованы по таймингам, меньше ложных reconnect и сложных edge-cases в нестабильной сети.
+</div>
+
+<hr>
+
+<h1>9. Performance: что дает эффект в реальном чате</h1>
+
+<h3>Приоритеты оптимизации</h3>
+<ol>
+  <li>Снизить частоту лишних событий (typing, read-receipt spam).</li>
+  <li>Отправлять payload только нужным адресатам (минимальный fan-out).</li>
+  <li>Сократить размер payload, не дублировать поля.</li>
+  <li>Убрать лишние subscribe/unsubscribe churn на клиенте.</li>
+  <li>Держать один стабильный singleton connection на приложение.</li>
+</ol>
+
+<h3>Что уже сделано в WebMessenger</h3>
+<ul>
+  <li>start guard от гонок <code>conn.start()</code>;</li>
+  <li>централизованные reconnect callbacks с unsubscribe;</li>
+  <li>константы событий/методов вместо строк;</li>
+  <li>очистка group membership при cleanup хука.</li>
+</ul>
+
+<h3>Следующий разумный шаг</h3>
+<ul>
+  <li>добавить клиентский debounce/throttle для Typing (например, 250-400мс);</li>
+  <li>добавить серверный rate-limit на burst.</li>
+</ul>
+
+<hr>
+
+<h1>10. MessagePack: когда действительно стоит внедрять</h1>
+
+<h3>Что дает MessagePack</h3>
+<ul>
+  <li>более компактный формат по сравнению с JSON;</li>
+  <li>меньше network overhead на большом трафике.</li>
+</ul>
+
+<h3>Когда переход оправдан</h3>
+<ul>
+  <li>метрики показывают, что именно размер/сериализация является bottleneck;</li>
+  <li>высокая частота событий и большой concurrent online;</li>
+  <li>ограниченные каналы (mobile/edge).</li>
+</ul>
+
+<h3>Когда лучше отложить</h3>
+<ul>
+  <li>если основная проблема в неправильном fan-out или event flood;</li>
+  <li>если контракт payload пока нестабилен.</li>
+</ul>
+
+<h3>Безопасный rollout-подход</h3>
+<ol>
+  <li>Сначала стабилизировать и версионировать payload DTO.</li>
+  <li>Ввести feature flag.</li>
+  <li>Запустить canary на небольшой группе пользователей.</li>
+  <li>Сравнить latency/error/CPU до и после.</li>
+  <li>Только после этого масштабировать rollout.</li>
+</ol>
+
+<hr>
+
+<h1>11. Operations Playbook: как диагностировать проблемы быстро</h1>
+
+<table>
+  <tr><th>Симптом</th><th>Проверка</th><th>Обычно причина</th><th>Действие</th></tr>
+  <tr><td>Не приходят события после reconnect</td><td>Логи rejoin и group membership</td><td>target group не пере-joint</td><td>проверить reconnect handlers и join flow</td></tr>
+  <tr><td>Частые 401 при reconnect</td><td>Auth logs + token expiry</td><td>истек access token</td><td>включить re-auth flow и понятный UX</td></tr>
+  <tr><td>Высокая нагрузка на hub</td><td>RPS по Typing/MarkRead</td><td>event flood</td><td>добавить debounce + server rate-limit</td></tr>
+  <tr><td>Вылеты соединения на больших сообщениях</td><td>Размер входящих payload</td><td>превышен 32 KB limit</td><td>ограничить размер на клиенте, передавать большие данные через REST</td></tr>
+</table>
+
+<hr>
+
+<h1>12. Обновленный roadmap для WebMessenger</h1>
+
+<ul>
+  <li><span class="badge green">Done</span> Typed hub, typed payload и client contracts синхронизированы.</li>
+  <li><span class="badge green">Done</span> keepalive/timeout/size limits выровнены сервер-клиент.</li>
+  <li><span class="badge green">Done</span> reconnect lifecycle на клиенте централизован и безопасен.</li>
+  <li><span class="badge orange">Next</span> Ввести HubFilter: audit + latency + error metrics.</li>
+  <li><span class="badge orange">Next</span> Ввести rate-limit policy для burst методов.</li>
+  <li><span class="badge orange">Next</span> Доработать auth-expiration UX на клиенте (единый flow).</li>
+  <li><span class="badge orange">Later</span> Рассмотреть MessagePack только после метрик и canary.</li>
+</ul>
+
+<hr>
+
+<h1>13. Краткий итог</h1>
+
+<p>Текущий WebMessenger уже соответствует крепкому Level 2 фундаменту SignalR: типобезопасные контракты, корректная адресация, выровненные таймауты, управляемый reconnect и разумные ограничения сервера. Следующая зрелость - операционный hardening: filters, rate-limit, метрики и дисциплина token lifecycle.</p>
+
+</body>
+</html>

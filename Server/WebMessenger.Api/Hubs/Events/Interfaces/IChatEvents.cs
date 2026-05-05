@@ -6,7 +6,6 @@ namespace WebMessenger.Api.Hubs.Events.Interfaces
     {
         Task MessageCreatedAsync(Guid chatId, ChatMessageDto message, Guid? peerUserId = null, CancellationToken ct = default);
         Task ReadReceiptAsync(Guid chatId, Guid userId, DateTime lastReadAtUtc, CancellationToken ct = default);
-        Task TypingAsync(Guid chatId, Guid userId, bool isTyping, CancellationToken ct = default);
-
+        Task TypingAsync(Guid chatId, Guid userId, bool isTyping, string? excludeConnectionId = null, CancellationToken ct = default);
     }
 }

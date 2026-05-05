@@ -2,35 +2,21 @@
 
 import { useEffect, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
-import { getChatConnection } from '@/lib/hubs/chatHubClient';
+import { getChatConnection, subscribeChatReconnected } from '@/lib/hubs/chatHubClient';
+import { ChatHubEvents } from '@/lib/hubs/chatHubContracts';
 import { ensureConnected, getJoinTarget, joinTarget, leaveTarget } from '@/lib/hubs/chatHubOperations';
+import type { MessageCreatedPayload, ReadReceiptPayload, TypingPayload } from '@/types/chat';
 
-export type MessageCreated = {
-  chatId: string;
-  peerUserId?: string;
-  message: {
-    id: string;
-    chatId: string;
-    senderId: string;
-    content: string;
-    sentAt: string;
-    editedAt?: string | null;
-    isRead: boolean;
-  };
-};
+export type MessageCreated = MessageCreatedPayload;
 
-export type ReadReceipt = {
-  chatId: string;
-  userId: string;
-  lastReadAt: string;
-};
+export type ReadReceipt = ReadReceiptPayload;
 
 type Params = {
   chatId?: string;
   peerUserId?: string;
   currentUserId?: string;
   onMessage: (m: MessageCreated) => void;
-  onTyping?: (p: { chatId: string; userId: string; isTyping: boolean }) => void;
+  onTyping?: (p: TypingPayload) => void;
   onReadReceipt?: (p: ReadReceipt) => void;
 };
 
@@ -55,18 +41,18 @@ export function useChatRealtime({
     connRef.current = conn;
 
     const handleMessage = (p: MessageCreated) => onMessage(p);
-    const handleTyping = onTyping ? (p: { chatId: string; userId: string; isTyping: boolean }) => onTyping(p) : undefined;
+    const handleTyping = onTyping ? (p: TypingPayload) => onTyping(p) : undefined;
     const handleRead = onReadReceipt ? (p: ReadReceipt) => onReadReceipt(p) : undefined;
 
-    conn.off('MessageCreated', handleMessage);
-    conn.on('MessageCreated', handleMessage);
+    conn.off(ChatHubEvents.MessageCreated, handleMessage);
+    conn.on(ChatHubEvents.MessageCreated, handleMessage);
     if (handleTyping) {
-      conn.off('Typing', handleTyping);
-      conn.on('Typing', handleTyping);
+      conn.off(ChatHubEvents.Typing, handleTyping);
+      conn.on(ChatHubEvents.Typing, handleTyping);
     }
     if (handleRead) {
-      conn.off('ReadReceipt', handleRead);
-      conn.on('ReadReceipt', handleRead);
+      conn.off(ChatHubEvents.ReadReceipt, handleRead);
+      conn.on(ChatHubEvents.ReadReceipt, handleRead);
     }
 
     const joinCurrent = async () => {
@@ -92,15 +78,19 @@ export function useChatRealtime({
 
     void joinCurrent();
 
-    conn.onreconnected(async () => {
+    const unsubscribeReconnected = subscribeChatReconnected(async () => {
       joinedRef.current = null;
       await joinCurrent();
     });
 
     return () => {
-      conn.off('MessageCreated', handleMessage);
-      if (handleTyping) conn.off('Typing', handleTyping);
-      if (handleRead) conn.off('ReadReceipt', handleRead);
+      void leaveTarget(conn, joinedRef.current);
+      joinedRef.current = null;
+
+      conn.off(ChatHubEvents.MessageCreated, handleMessage);
+      if (handleTyping) conn.off(ChatHubEvents.Typing, handleTyping);
+      if (handleRead) conn.off(ChatHubEvents.ReadReceipt, handleRead);
+      unsubscribeReconnected();
     };
   }, [chatId, peerUserId, currentUserId, onMessage, onTyping, onReadReceipt]);
 }

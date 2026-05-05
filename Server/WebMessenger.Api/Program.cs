@@ -77,13 +77,16 @@ try
     builder.Services.AddScoped<IContactsService, ContactsService>();
     builder.Services.AddScoped<IAvatarService, AvatarService>();
     builder.Services.AddScoped<IChatService, ChatService>();
-    builder.Services.AddScoped<IChatEvents, ChatEvents>();
+    builder.Services.AddSingleton<IChatEvents, ChatEvents>();
     builder.Services.AddScoped<ICurrentUser, CurrentUser>();
     builder.Services.AddScoped<IFileStorage, DropboxFileStorage>();
 
     builder.Services.AddSignalR(options =>
     {
-        options.EnableDetailedErrors = true;
+        options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+        options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+        options.MaximumReceiveMessageSize = 32 * 1024; // 32 KB
     });
 
     builder.Services.AddHttpContextAccessor();

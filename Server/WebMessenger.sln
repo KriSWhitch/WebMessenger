@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		..\docs\CODEBASE_MAP.md = ..\docs\CODEBASE_MAP.md
 		..\docs\EF_Core_Refactoring_Recommendations.md = ..\docs\EF_Core_Refactoring_Recommendations.md
+		..\docs\guides\SignalR (Level 1) — WebMessenger.html = ..\docs\guides\SignalR (Level 1) — WebMessenger.html
+		..\docs\guides\SignalR (Level 2) — WebMessenger.html = ..\docs\guides\SignalR (Level 2) — WebMessenger.html
 		..\docs\plans\TRELLO-2-add-a-practical-testing-api-validation-showcase-plan.md = ..\docs\plans\TRELLO-2-add-a-practical-testing-api-validation-showcase-plan.md
 	EndProjectSection
 EndProject

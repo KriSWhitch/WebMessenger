@@ -138,6 +138,18 @@ export type MessageCreatedPayload = {
   };
 };
 
+export type ReadReceiptPayload = {
+  chatId: string;
+  userId: string;
+  lastReadAt: string;
+};
+
+export type TypingPayload = {
+  chatId: string;
+  userId: string;
+  isTyping: boolean;
+};
+
 export type ReadState = {
   lastReadAt: string;
   unreadCount: number;
