@@ -306,11 +306,7 @@ namespace WebMessenger.Api.Services
 
             await _events.MessageCreatedAsync(chatId.Value, dto, other, ct);
 
-            return new SendMessageResponse
-            {
-                ChatId = chatId.Value,
-                Message = dto
-            };
+            return new SendMessageResponse(chatId.Value, dto);
         }
 
         public async Task<ReadStateDto> MarkChatReadAsync(Guid me, Guid chatId, DateTime? atUtc = null)

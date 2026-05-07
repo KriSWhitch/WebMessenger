@@ -34,10 +34,7 @@ namespace WebMessenger.Api.Services
             await _unitOfWork.CommitAsync();
 
             _logger.LogInformation("User {OwnerId} added contact {ContactId}", currentUserId, request.ContactUserId);
-            return new AddContactResponse
-            {
-                ContactId = contact.Id
-            };
+            return new AddContactResponse(contact.Id, ChatId: default);
         }
 
         public async Task<IEnumerable<ContactDto>> GetContactsAsync(Guid currentUserId, string query = "")

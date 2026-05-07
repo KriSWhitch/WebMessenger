@@ -98,7 +98,7 @@ public class ContactControllerTests
         // Arrange
         var otherUserId = Guid.NewGuid();
         var request  = new AddContactRequest { ContactUserId = otherUserId };
-        var response = new AddContactResponse { ContactId = Guid.NewGuid() };
+        var response = new AddContactResponse(Guid.NewGuid(), Guid.Empty);
         _contactsMock.Setup(s => s.IsContactAsync(_userId, otherUserId)).ReturnsAsync(false);
         _contactsMock.Setup(s => s.AddContactAsync(_userId, request)).ReturnsAsync(response);
 

@@ -1,8 +1,3 @@
-﻿namespace WebMessenger.Contracts.Models
-{
-    public class SendMessageResponse
-    {
-        public Guid ChatId { get; set; }
-        public ChatMessageDto Message { get; set; } = new();
-    }
-}
+﻿namespace WebMessenger.Contracts.Models;
+
+public sealed record SendMessageResponse(Guid ChatId, ChatMessageDto Message);

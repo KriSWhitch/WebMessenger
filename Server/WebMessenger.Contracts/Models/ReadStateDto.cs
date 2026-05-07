@@ -1,10 +1,9 @@
-﻿namespace WebMessenger.Contracts.Models
+﻿namespace WebMessenger.Contracts.Models;
+
+public sealed record ReadStateDto
 {
-    public class ReadStateDto
-    {
-        public Guid ChatId { get; set; }
-        public Guid UserId { get; set; }
-        public DateTime LastReadAt { get; set; }
-        public int UnreadCount { get; set; }
-    }
+    public Guid ChatId { get; init; }
+    public Guid UserId { get; init; }
+    public DateTime LastReadAt { get; init; }
+    public int UnreadCount { get; init; }
 }

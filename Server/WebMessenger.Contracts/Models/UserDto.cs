@@ -1,18 +1,17 @@
-﻿namespace WebMessenger.Contracts.Models
+﻿namespace WebMessenger.Contracts.Models;
+
+public sealed record UserDto
 {
-    public class UserDto
-    {
-        public Guid Id { get; set; }
-        public required string Username { get; set; }
-        public string Email { get; set; } = string.Empty;
-        public string PhoneNumber { get; set; } = string.Empty;
-        public string FirstName { get; set; } = string.Empty;
-        public string LastName { get; set; } = string.Empty;
-        public string? Bio { get; set; }
-        public string? AvatarUrl { get; set; }
-        public bool IsOnline { get; set; }
-        public DateTime LastSeenAt { get; set; } = DateTime.UtcNow;
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? LastLoginAt { get; set; }
-    }
+    public Guid Id { get; init; }
+    public required string Username { get; init; }
+    public string Email { get; init; } = string.Empty;
+    public string PhoneNumber { get; init; } = string.Empty;
+    public string FirstName { get; init; } = string.Empty;
+    public string LastName { get; init; } = string.Empty;
+    public string? Bio { get; init; }
+    public string? AvatarUrl { get; init; }
+    public bool IsOnline { get; init; }
+    public DateTime LastSeenAt { get; init; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTime? LastLoginAt { get; init; }
 }

@@ -1,16 +1,15 @@
-﻿namespace WebMessenger.Contracts.Models
+﻿namespace WebMessenger.Contracts.Models;
+
+public sealed record ContactDto
 {
-    public class ContactDto
-    {
-        public Guid Id { get; set; }
-        public Guid UserId { get; set; }
-        public string? Nickname { get; set; }
-        public string? Username { get; set; }
-        public string? AvatarUrl { get; set; }
-        public bool IsOnline { get; set; }
-        public DateTime AddedAt { get; set; }
-        public Guid OwnerUserId { get; set; }
-        public Guid ContactUserId { get; set; }
-        public UserDto? ContactUser { get; set; }
-    }
+    public Guid Id { get; init; }
+    public Guid UserId { get; init; }
+    public string? Nickname { get; init; }
+    public string? Username { get; init; }
+    public string? AvatarUrl { get; init; }
+    public bool IsOnline { get; init; }
+    public DateTime AddedAt { get; init; }
+    public Guid OwnerUserId { get; init; }
+    public Guid ContactUserId { get; init; }
+    public UserDto? ContactUser { get; init; }
 }

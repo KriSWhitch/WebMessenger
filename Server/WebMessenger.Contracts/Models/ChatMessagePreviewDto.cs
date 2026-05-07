@@ -1,10 +1,9 @@
-﻿namespace WebMessenger.Contracts.Models
+﻿namespace WebMessenger.Contracts.Models;
+
+public sealed record ChatMessagePreviewDto
 {
-    public class ChatMessagePreviewDto
-    {
-        public Guid Id { get; set; }
-        public Guid SenderId { get; set; }
-        public string Snippet { get; set; } = string.Empty;
-        public DateTime SentAt { get; set; }
-    }
+    public Guid Id { get; init; }
+    public Guid SenderId { get; init; }
+    public string Snippet { get; init; } = string.Empty;
+    public DateTime SentAt { get; init; }
 }

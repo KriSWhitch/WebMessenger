@@ -1,12 +1,10 @@
-﻿namespace WebMessenger.Contracts.Models
-{
-    public class DirectChatHeaderDto
-    {
-        public Guid OtherUserId { get; set; }
-        public string? Username { get; set; }
-        public string? AvatarUrl { get; set; }
-        public bool IsOnline { get; set; }
-        public Guid? ChatId { get; set; }
+﻿namespace WebMessenger.Contracts.Models;
 
-    }
+public sealed record DirectChatHeaderDto
+{
+    public Guid OtherUserId { get; init; }
+    public string? Username { get; init; }
+    public string? AvatarUrl { get; init; }
+    public bool IsOnline { get; init; }
+    public Guid? ChatId { get; init; }
 }

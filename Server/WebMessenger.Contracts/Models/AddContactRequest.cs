@@ -1,13 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace WebMessenger.Contracts.Models
-{
-    public class AddContactRequest
-    {
-        [Required]
-        public Guid ContactUserId { get; set; }
+namespace WebMessenger.Contracts.Models;
 
-        [MaxLength(50)]
-        public string? Nickname { get; set; }
-    }
+public sealed record AddContactRequest
+{
+    [Required]
+    public Guid ContactUserId { get; init; }
+
+    [MaxLength(50)]
+    public string? Nickname { get; init; }
 }
