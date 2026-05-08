@@ -1,0 +1,4667 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ASP.NET Core (Level 1) — WebMessenger</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1a1a1a; background: #fff; padding: 40px 60px; max-width: 980px; margin: auto; }
+  h1 { font-size: 26px; color: #0a3d62; border-bottom: 3px solid #0a3d62; padding-bottom: 10px; margin: 30px 0 16px; }
+  h2 { font-size: 20px; color: #1a5276; border-left: 4px solid #2980b9; padding-left: 10px; margin: 28px 0 12px; }
+  h3 { font-size: 15px; color: #2471a3; margin: 20px 0 8px; }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 3px 0; }
+  code { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #f0f4f8; color: #c0392b; padding: 1px 5px; border-radius: 3px; }
+  pre { background: #1e2a3a; color: #abb2bf; font-family: 'Consolas', 'Courier New', monospace; font-size: 11.5px; line-height: 1.55; padding: 14px 18px; border-radius: 6px; margin: 10px 0; overflow-x: auto; border-left: 4px solid #2980b9; white-space: pre-wrap; word-break: break-word; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  th { background: #2471a3; color: #fff; padding: 8px 10px; text-align: left; }
+  td { padding: 7px 10px; border: 1px solid #d5d8dc; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f6f8; }
+  .badge { display: inline-block; background: #2980b9; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-right: 4px; }
+  .badge.green { background: #27ae60; }
+  .badge.orange { background: #d35400; }
+  .badge.red { background: #c0392b; }
+  .note { background: #eaf4fb; border-left: 4px solid #2980b9; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .warn { background: #fef9e7; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .gap { background: #fdecea; border-left: 4px solid #c0392b; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  hr { border: none; border-top: 1px solid #d5d8dc; margin: 24px 0; }
+  @media print {
+    body { padding: 10px 20px; font-size: 12px; }
+    pre { font-size: 10.5px; }
+    h1 { page-break-before: auto; }
+    h2 { page-break-after: avoid; }
+    pre, table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>ASP.NET Core (Level 1) — WebMessenger</h1>
+<p>Практический гайд по ASP.NET Core 8 с разбором концепций фреймворка на примерах из реального проекта WebMessenger. Каждый раздел объясняет: что это, как работает, зачем нужно и когда применять.</p>
+<p style="color:#888;font-size:11px;">Проект: ASP.NET Core 8 Web API + EF Core + SignalR + Serilog + JWT</p>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>1. Structure of an ASP.NET Project</h1>
+<!-- ============================================================ -->
+
+<p>Понимание структуры проекта — это фундамент. Прежде чем писать логику, нужно знать, что за файлы лежат рядом, что они делают и что происходит после сборки.</p>
+
+<!-- ============================================================ -->
+<h2>1.1 Solution и Projects — организация кода</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> В экосистеме .NET код организован на двух уровнях: <em>solution</em> (<code>.sln</code>) и <em>project</em> (<code>.csproj</code>). Solution — это контейнер, который объединяет несколько проектов под одним «зонтиком» для совместной сборки и навигации в IDE. Каждый проект — это отдельная единица компиляции со своими зависимостями, типом выходного артефакта и настройками.</p>
+
+<p><strong>Зачем делить на проекты.</strong> Разбиение на проекты даёт:</p>
+<ul>
+  <li><strong>Изоляцию зависимостей</strong> — проект <code>WebMessenger.Contracts</code> не тащит за собой EF Core, потому что он ему не нужен.</li>
+  <li><strong>Переиспользование</strong> — любой другой проект (тесты, другой сервис) может подключить только нужный слой.</li>
+  <li><strong>Контроль видимости</strong> — типы с модификатором <code>internal</code> не выходят за границы проекта.</li>
+  <li><strong>Параллельную сборку</strong> — MSBuild строит независимые проекты одновременно.</li>
+</ul>
+
+<p><strong>Структура WebMessenger.</strong> Solution состоит из четырёх проектов, каждый из которых реализует отдельный слой архитектуры:</p>
+
+<table>
+  <tr>
+    <th>Проект</th>
+    <th>SDK</th>
+    <th>Роль</th>
+  </tr>
+  <tr>
+    <td><code>WebMessenger.Api</code></td>
+    <td><code>Microsoft.NET.Sdk.Web</code></td>
+    <td>Точка входа. HTTP-контроллеры, SignalR-хабы, Middleware, DI-конфигурация, Program.cs</td>
+  </tr>
+  <tr>
+    <td><code>WebMessenger.DAL</code></td>
+    <td><code>Microsoft.NET.Sdk</code></td>
+    <td>Data Access Layer. DbContext, сущности, репозитории, миграции EF Core</td>
+  </tr>
+  <tr>
+    <td><code>WebMessenger.Contracts</code></td>
+    <td><code>Microsoft.NET.Sdk</code></td>
+    <td>Общие контракты. DTO, вспомогательные модели, не зависит от инфраструктуры</td>
+  </tr>
+  <tr>
+    <td><code>WebMessenger.Api.Tests</code></td>
+    <td><code>Microsoft.NET.Sdk</code></td>
+    <td>Тесты для API-слоя. Зависит от <code>WebMessenger.Api</code></td>
+  </tr>
+</table>
+
+<div class="note"><strong>Правило зависимостей:</strong> <code>Api</code> → <code>DAL</code> и <code>Contracts</code>; <code>DAL</code> → <code>Contracts</code>; <code>Contracts</code> ни от кого не зависит. Если <code>Contracts</code> начнёт зависеть от <code>DAL</code> — это сигнал о нарушении архитектуры.</div>
+
+<!-- ============================================================ -->
+<h2>1.2 Файл .csproj — сердце проекта</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Файл <code>.csproj</code> — это XML-манифест проекта в формате MSBuild. Он описывает: на каком SDK основан проект, какой фреймворк таргетируется, какие NuGet-пакеты нужны, ссылки на другие проекты и любые дополнительные инструкции для сборщика.</p>
+
+<p><strong>SDK-стиль (.NET Core+).</strong> Современные проекты используют SDK-стиль (<em>SDK-style project</em>): большинство файлов (<code>*.cs</code>) подключаются автоматически — их не надо явно прописывать. Это резко сокращает объём XML по сравнению с legacy <code>.csproj</code> из .NET Framework.</p>
+
+<pre>// WebMessenger.Api/WebMessenger.Api.csproj — разбор по строкам
+&lt;Project Sdk="Microsoft.NET.Sdk.Web"&gt;
+  // ↑ SDK определяет тип проекта.
+  //   .Sdk.Web добавляет зависимость на Microsoft.AspNetCore.App framework reference,
+  //   Register'ит Kestrel, Middleware-инфраструктуру и пр. автоматически.
+  //   Для библиотек используют Microsoft.NET.Sdk (без .Web).
+
+  &lt;PropertyGroup&gt;
+    &lt;TargetFramework&gt;net8.0&lt;/TargetFramework&gt;
+    // ↑ Монитор версии runtime. net8.0 = .NET 8. Можно указать несколько через ;
+
+    &lt;Nullable&gt;enable&lt;/Nullable&gt;
+    // ↑ Включает Nullable Reference Types (NRT) для всего проекта.
+    //   Компилятор выдаёт предупреждения CS8600-CS8604 при небезопасной работе с null.
+
+    &lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;
+    // ↑ Автоматически добавляет популярные using'и (System, System.Linq и др.)
+    //   через сгенерированный файл в obj/. Не надо писать "using System;" в каждом файле.
+
+    &lt;UserSecretsId&gt;webmessenger-api-secrets&lt;/UserSecretsId&gt;
+    // ↑ ID для хранилища секретов (dotnet user-secrets).
+    //   Секреты хранятся вне репозитория: %APPDATA%/Microsoft/UserSecrets/{id}/secrets.json
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    // Явное исключение папки logs/ из компиляции и контента.
+    // Без этого MSBuild может включать .txt-файлы в артефакты.
+    &lt;Compile Remove="logs\**" /&gt;
+    &lt;Content Remove="logs\**" /&gt;
+  &lt;/ItemGroup&gt;
+
+  &lt;ItemGroup&gt;
+    // NuGet-пакеты. Version — фиксированная или диапазон.
+    &lt;PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" /&gt;
+    &lt;PackageReference Include="Serilog.AspNetCore" Version="8.0.3" /&gt;
+
+    // Design-time only зависимости (генерация кода, тулинг, анализаторы).
+    // PrivateAssets=all означает: пакет не транзитивно переходит к зависимым проектам.
+    &lt;PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.18"&gt;
+      &lt;PrivateAssets&gt;all&lt;/PrivateAssets&gt;
+      &lt;IncludeAssets&gt;runtime; build; native; contentfiles; analyzers; buildtransitive&lt;/IncludeAssets&gt;
+    &lt;/PackageReference&gt;
+  &lt;/ItemGroup&gt;
+
+  &lt;ItemGroup&gt;
+    // Ссылки на другие проекты внутри solution.
+    // MSBuild знает: сначала собрать эти, потом текущий.
+    &lt;ProjectReference Include="..\WebMessenger.Contracts\WebMessenger.Contracts.csproj" /&gt;
+    &lt;ProjectReference Include="..\WebMessenger.DAL\WebMessenger.DAL.csproj" /&gt;
+  &lt;/ItemGroup&gt;
+
+&lt;/Project&gt;</pre>
+
+<h3>Отличие SDK типов</h3>
+
+<table>
+  <tr>
+    <th>SDK</th>
+    <th>Когда использовать</th>
+    <th>Что добавляет неявно</th>
+  </tr>
+  <tr>
+    <td><code>Microsoft.NET.Sdk</code></td>
+    <td>Библиотеки, консольные приложения, тесты</td>
+    <td>Базовые .NET библиотеки</td>
+  </tr>
+  <tr>
+    <td><code>Microsoft.NET.Sdk.Web</code></td>
+    <td>Web API, MVC, Razor Pages, Blazor Server</td>
+    <td><code>Microsoft.AspNetCore.App</code> framework reference, статические файлы, web-специфичные настройки</td>
+  </tr>
+  <tr>
+    <td><code>Microsoft.NET.Sdk.BlazorWebAssembly</code></td>
+    <td>Blazor WebAssembly</td>
+    <td>WASM-тулинг, линковщик</td>
+  </tr>
+  <tr>
+    <td><code>Microsoft.NET.Sdk.Worker</code></td>
+    <td>Фоновые сервисы (Worker Service)</td>
+    <td>IHostedService-инфраструктура</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>1.3 Файл Program.cs — точка входа приложения</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Начиная с .NET 6, точка входа приложения — это файл <code>Program.cs</code> с использованием <em>top-level statements</em>. Вся конфигурация приложения (DI-контейнер, middleware-пайплайн, хосты) живёт здесь. <code>Main()</code> более не нужен явно — компилятор генерирует его автоматически.</p>
+
+<p><strong>Структура Program.cs.</strong> Условно делится на два этапа:</p>
+<ol>
+  <li><strong>Фаза конфигурации (builder phase)</strong> — создаётся <code>WebApplicationBuilder</code>, регистрируются сервисы в DI-контейнере.</li>
+  <li><strong>Фаза запуска (app phase)</strong> — создаётся <code>WebApplication</code>, настраивается HTTP-пайплайн (middleware), маппируются эндпоинты, вызывается <code>app.Run()</code>.</li>
+</ol>
+
+<pre>// WebMessenger.Api/Program.cs — аннотированный разбор
+
+// --- ФАЗА КОНФИГУРАЦИИ ---
+
+var builder = WebApplication.CreateBuilder(args);
+// ↑ Создаёт WebApplicationBuilder — «строитель» приложения.
+//   Внутри уже настроен: Kestrel, конфигурация из appsettings.json,
+//   переменные окружения, ILogger, IHostEnvironment.
+
+builder.Host.UseSerilog(...);
+// ↑ Заменяет встроенный Microsoft.Extensions.Logging на Serilog.
+//   builder.Host даёт доступ к IHostBuilder для настройки хоста.
+
+builder.Services.AddControllers();
+builder.Services.AddSwaggerGen();
+// ↑ builder.Services — это IServiceCollection.
+//   Все вызовы .Add* здесь регистрируют сервисы в DI-контейнере.
+//   AddControllers() регистрирует инфраструктуру MVC-контроллеров.
+
+builder.Services.AddScoped&lt;IUnitOfWork, UnitOfWork&gt;();
+builder.Services.AddSingleton&lt;IChatEvents, ChatEvents&gt;();
+// ↑ Регистрация собственных сервисов.
+
+// --- ПЕРЕХОД ---
+
+var app = builder.Build();
+// ↑ Финализирует DI-контейнер и создаёт WebApplication.
+//   После этой строки добавлять сервисы в builder.Services бессмысленно —
+//   контейнер уже заморожен.
+
+// --- ФАЗА ЗАПУСКА ---
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseExceptionHandler();
+app.UseHttpsRedirection();
+app.UseCors(FrontCors);
+app.UseAuthentication();
+app.UseAuthorization();
+// ↑ Настройка HTTP middleware-пайплайна. ПОРЯДОК КРИТИЧЕН.
+//   Каждый .Use* добавляет звено в цепочку обработки запроса.
+
+app.MapControllers();
+app.MapHub&lt;ChatHub&gt;("/hubs/chat");
+// ↑ Маппинг эндпоинтов: контроллеры и SignalR-хабы.
+
+app.Run();
+// ↑ Запускает Kestrel и блокирует поток до завершения приложения.</pre>
+
+<!-- ============================================================ -->
+<h2>1.4 Файлы конфигурации — appsettings.json</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> ASP.NET Core имеет встроенную систему конфигурации (<code>IConfiguration</code>), которая агрегирует настройки из нескольких источников. Главный файл — <code>appsettings.json</code>. Дополнительно поддерживаются: переменные окружения, командная строка, User Secrets, Azure Key Vault и другие провайдеры.</p>
+
+<p><strong>Принцип слоёв.</strong> Каждый следующий источник конфигурации <em>перекрывает</em> значения предыдущего. Это позволяет иметь безопасные дефолты в <code>appsettings.json</code> и переопределять их в окружениях.</p>
+
+<table>
+  <tr>
+    <th>Источник</th>
+    <th>Приоритет</th>
+    <th>Назначение</th>
+  </tr>
+  <tr>
+    <td><code>appsettings.json</code></td>
+    <td>Низкий (база)</td>
+    <td>Дефолтные настройки. Коммитится в git. Секреты не хранить!</td>
+  </tr>
+  <tr>
+    <td><code>appsettings.{Environment}.json</code></td>
+    <td>Средний</td>
+    <td>Переопределения для конкретного окружения (Development, Production)</td>
+  </tr>
+  <tr>
+    <td>User Secrets</td>
+    <td>Высокий (Development)</td>
+    <td>Локальные секреты разработчика (вне репозитория)</td>
+  </tr>
+  <tr>
+    <td>Environment Variables</td>
+    <td>Очень высокий</td>
+    <td>Настройки в Docker/CI/Production</td>
+  </tr>
+  <tr>
+    <td>Command-line arguments</td>
+    <td>Наивысший</td>
+    <td>Временные переопределения при запуске</td>
+  </tr>
+</table>
+
+<pre>// appsettings.json — базовая конфигурация WebMessenger
+{
+    "ConnectionStrings": {
+        "DefaultConnection": ""     // пустая строка — будет переопределена
+    },
+    "Jwt": {
+        "Key": "",                  // секрет — пустой в базовом файле
+        "Issuer": "WebMessenger",
+        "Audience": "WebMessengerClients",
+        "ExpireDays": 1
+    },
+    "Serilog": {
+        "MinimumLevel": {
+            "Default": "Information",
+            "Override": {
+                "Microsoft": "Warning",
+                "Microsoft.EntityFrameworkCore": "Warning"
+            }
+        }
+    }
+}
+
+// appsettings.Development.json — переопределение только нужных полей
+{
+    "Serilog": {
+        "MinimumLevel": {
+            "Default": "Debug",         // в Development хотим видеть Debug-логи
+            "Override": {
+                "Microsoft": "Information"
+            }
+        }
+    }
+}
+// Итог: в Development MinimumLevel.Default = "Debug",
+// а остальные секции из appsettings.json остаются без изменений.</pre>
+
+<h3>Доступ к конфигурации в коде</h3>
+
+<pre>// Способ 1: прямое чтение через IConfiguration (не рекомендуется для сложных секций)
+var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Способ 2: Options Pattern — типизированное связывание (рекомендуется)
+// WebMessenger.Api/Options/JwtOptions.cs
+public class JwtOptions
+{
+    public const string SectionName = "Jwt";
+
+    [Required]
+    public required string Key { get; init; }
+
+    [Required]
+    public required string Issuer { get; init; }
+
+    [Required]
+    public required string Audience { get; init; }
+
+    public int ExpireDays { get; init; } = 1;
+}
+
+// Регистрация в Program.cs с валидацией при старте:
+builder.Services
+    .AddOptions&lt;JwtOptions&gt;()
+    .BindConfiguration(JwtOptions.SectionName)   // секция "Jwt" из appsettings
+    .ValidateDataAnnotations()                    // проверяет [Required] и др.
+    .ValidateOnStart();                           // падает при старте, не при первом обращении
+
+// Использование в сервисе через IOptions&lt;T&gt;:
+public class AuthService(IOptions&lt;JwtOptions&gt; jwtOptions)
+{
+    private readonly JwtOptions _jwt = jwtOptions.Value;
+    // _jwt.Key, _jwt.Issuer и т.д.
+}</pre>
+
+<div class="warn"><strong>Никогда не храните секреты (пароли, ключи, токены) в <code>appsettings.json</code>!</strong> Этот файл попадает в git. Используйте User Secrets локально и переменные окружения в production.</div>
+
+<!-- ============================================================ -->
+<h2>1.5 launchSettings.json — настройки запуска</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Файл <code>Properties/launchSettings.json</code> описывает профили запуска для IDE (Visual Studio, Rider) и <code>dotnet run</code>. Это <strong>исключительно dev-файл</strong> — он не используется в production и не должен влиять на поведение приложения в реальных окружениях.</p>
+
+<p><strong>Что задаёт.</strong> Каждый профиль может задать: URL-адрес для прослушивания (<code>applicationUrl</code>), переменные окружения (<code>ASPNETCORE_ENVIRONMENT</code>), команду запуска (<code>commandName</code>: Project, IISExpress, Executable).</p>
+
+<pre>// Properties/launchSettings.json
+{
+    "profiles": {
+        "http": {
+            "commandName": "Project",
+            // ↑ "Project" = запустить как dotnet-процесс (Kestrel).
+            //   "IISExpress" = запустить через IIS Express.
+
+            "applicationUrl": "http://localhost:5227",
+            // ↑ Адрес, на котором слушает Kestrel при запуске этого профиля.
+
+            "launchBrowser": true,
+            "launchUrl": "swagger",
+            // ↑ IDE откроет браузер на /swagger после запуска.
+
+            "environmentVariables": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+                // ↑ Устанавливает переменную окружения для этого запуска.
+                //   Приложение читает её через IHostEnvironment.EnvironmentName.
+                //   Это активирует appsettings.Development.json и IsDevelopment() = true.
+            }
+        }
+    }
+}</pre>
+
+<div class="note"><code>ASPNETCORE_ENVIRONMENT</code> — ключевая переменная. Её значение определяет: какой <code>appsettings.{Environment}.json</code> загрузится, что вернёт <code>IHostEnvironment.IsDevelopment()</code>, и какие middleware активируются условно.</div>
+
+<!-- ============================================================ -->
+<h2>1.6 Артефакты сборки — папки bin/ и obj/</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> При компиляции проекта MSBuild создаёт две служебные папки: <code>obj/</code> и <code>bin/</code>. Их содержимое генерируется автоматически — они никогда не коммитятся в git (<code>.gitignore</code> исключает их по умолчанию).</p>
+
+<h3>Папка obj/ — промежуточные артефакты</h3>
+
+<p>Используется MSBuild в процессе компиляции. Содержит:</p>
+<ul>
+  <li><code>*.g.cs</code> — сгенерированный код (например, файл глобальных <code>using</code> от <code>ImplicitUsings</code>)</li>
+  <li><code>project.assets.json</code> — граф всех NuGet-зависимостей (транзитивных включительно)</li>
+  <li><code>*.csproj.nuget.g.props</code> — импортированные MSBuild-свойства из NuGet-пакетов</li>
+  <li><code>*.dll</code> — промежуточные скомпилированные файлы до линковки</li>
+</ul>
+
+<h3>Папка bin/ — финальные артефакты</h3>
+
+<p>Содержит готовый к запуску результат сборки. Структура:</p>
+
+<pre>bin/
+  Debug/
+    net8.0/
+      WebMessenger.Api.dll         ← управляемая сборка (IL-код)
+      WebMessenger.Api.exe         ← нативный лаунчер (Windows)
+      WebMessenger.Api.pdb         ← отладочные символы (Program Debug Base)
+      WebMessenger.DAL.dll         ← зависимый проект скопирован сюда
+      WebMessenger.Contracts.dll   ← то же
+      appsettings.json             ← скопирован MSBuild'ом (CopyToOutputDirectory)
+      appsettings.Development.json ← то же
+      *.deps.json                  ← список всех зависимостей для runtime
+      *.runtimeconfig.json         ← версия runtime и настройки для хоста
+  Release/
+    net8.0/
+      ...                          ← то же, но с оптимизацией и без .pdb</pre>
+
+<table>
+  <tr>
+    <th>Файл</th>
+    <th>Назначение</th>
+  </tr>
+  <tr>
+    <td><code>.dll</code></td>
+    <td>Managed assembly с IL-кодом. Запускается через <code>dotnet WebMessenger.Api.dll</code></td>
+  </tr>
+  <tr>
+    <td><code>.exe</code></td>
+    <td>Нативный лаунчер (только Windows). Оборачивает вызов <code>dotnet run</code></td>
+  </tr>
+  <tr>
+    <td><code>.pdb</code></td>
+    <td>Program Database — отладочные символы. Позволяет отладчику видеть строки кода. В production не нужны</td>
+  </tr>
+  <tr>
+    <td><code>*.deps.json</code></td>
+    <td>Манифест всех управляемых зависимостей для .NET runtime resolver</td>
+  </tr>
+  <tr>
+    <td><code>*.runtimeconfig.json</code></td>
+    <td>Версия runtime и настройки для <code>hostfxr</code>. Обязателен для запуска</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>1.7 Прочие файлы проекта</h2>
+<!-- ============================================================ -->
+
+<h3>web.config</h3>
+
+<p>Файл конфигурации IIS/IIS Express. В ASP.NET Core используется только как мост между IIS и модулем <code>AspNetCoreModule</code> (ANCM), который проксирует запросы в Kestrel. В коде приложения этот файл не читается.</p>
+
+<pre>// WebMessenger.Api/web.config — минимальный вариант для IIS-хостинга
+&lt;configuration&gt;
+  &lt;system.webServer&gt;
+    &lt;handlers&gt;
+      &lt;add name="aspNetCore" path="*" verb="*"
+           modules="AspNetCoreModuleV2"
+           resourceType="Unspecified" /&gt;
+    &lt;/handlers&gt;
+    &lt;aspNetCore processPath="dotnet"
+                arguments=".\WebMessenger.Api.dll"
+                stdoutLogEnabled="false"
+                stdoutLogFile=".\logs\stdout"
+                hostingModel="inprocess" /&gt;
+  &lt;/system.webServer&gt;
+&lt;/configuration&gt;</pre>
+
+<h3>.gitignore и рекомендуемые исключения</h3>
+
+<p>Стандартный <code>.gitignore</code> для .NET проектов исключает:</p>
+<ul>
+  <li><code>bin/</code>, <code>obj/</code> — артефакты сборки</li>
+  <li><code>*.user</code> — пользовательские настройки IDE (<code>.csproj.user</code>)</li>
+  <li><code>.vs/</code> — папка Visual Studio с локальным состоянием</li>
+  <li><code>appsettings.*.json</code> — осторожно! Если в них нет секретов, можно коммитить <code>Development</code>-вариант</li>
+  <li><code>logs/</code> — папка с файлами логов (явно исключена в <code>.csproj</code> через <code>&lt;Compile Remove="logs\**" /&gt;</code>)</li>
+</ul>
+
+<h3>dotnet-tools.json — локальные .NET инструменты</h3>
+
+<pre>// WebMessenger.Api/dotnet-tools.json
+// Файл фиксирует версии локальных инструментов командной строки.
+// Аналог package.json devDependencies, но для .NET CLI-инструментов.
+// Установка: dotnet tool restore
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "dotnet-ef": {
+      "version": "8.0.14",
+      "commands": ["dotnet-ef"]
+      // Используется для: dotnet ef migrations add, dotnet ef database update и т.д.
+    }
+  }
+}</pre>
+
+<!-- ============================================================ -->
+<h2>1.8 Итоговая карта файлов проекта</h2>
+<!-- ============================================================ -->
+
+<table>
+  <tr>
+    <th>Файл / Папка</th>
+    <th>Коммитить?</th>
+    <th>Роль</th>
+  </tr>
+  <tr>
+    <td><code>*.sln</code></td>
+    <td><span class="badge green">Да</span></td>
+    <td>Контейнер solution — ссылки на проекты, конфигурации сборки (Debug/Release)</td>
+  </tr>
+  <tr>
+    <td><code>*.csproj</code></td>
+    <td><span class="badge green">Да</span></td>
+    <td>Манифест проекта: SDK, фреймворк, зависимости</td>
+  </tr>
+  <tr>
+    <td><code>Program.cs</code></td>
+    <td><span class="badge green">Да</span></td>
+    <td>Точка входа: конфигурация DI и HTTP-пайплайна</td>
+  </tr>
+  <tr>
+    <td><code>appsettings.json</code></td>
+    <td><span class="badge green">Да</span></td>
+    <td>Базовые настройки (без секретов)</td>
+  </tr>
+  <tr>
+    <td><code>appsettings.Development.json</code></td>
+    <td><span class="badge green">Да</span></td>
+    <td>Переопределения для Development (без секретов)</td>
+  </tr>
+  <tr>
+    <td><code>appsettings.Production.json</code></td>
+    <td><span class="badge orange">Осторожно</span></td>
+    <td>Только если нет секретов. Чаще секреты идут через env vars</td>
+  </tr>
+  <tr>
+    <td><code>Properties/launchSettings.json</code></td>
+    <td><span class="badge green">Да</span></td>
+    <td>Профили запуска IDE — только для разработки</td>
+  </tr>
+  <tr>
+    <td><code>web.config</code></td>
+    <td><span class="badge green">Да</span></td>
+    <td>Конфигурация IIS-хостинга</td>
+  </tr>
+  <tr>
+    <td><code>dotnet-tools.json</code></td>
+    <td><span class="badge green">Да</span></td>
+    <td>Фиксация версий .NET CLI-инструментов команды</td>
+  </tr>
+  <tr>
+    <td><code>*.csproj.user</code></td>
+    <td><span class="badge red">Нет</span></td>
+    <td>Локальные настройки IDE конкретного разработчика</td>
+  </tr>
+  <tr>
+    <td><code>bin/</code>, <code>obj/</code></td>
+    <td><span class="badge red">Нет</span></td>
+    <td>Артефакты сборки — генерируются автоматически</td>
+  </tr>
+  <tr>
+    <td><code>logs/</code></td>
+    <td><span class="badge red">Нет</span></td>
+    <td>Файлы логов — runtime-артефакты</td>
+  </tr>
+</table>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>2. Servers, Host and Publishing</h1>
+<!-- ============================================================ -->
+
+<p>Прежде чем запрос дойдёт до вашего контроллера, он должен быть принят HTTP-сервером, передан хосту, который управляет жизненным циклом приложения, и весь этот процесс должен быть упакован в артефакт публикации. Этот раздел объясняет инфраструктуру запуска ASP.NET Core «от сети до кода».</p>
+
+<!-- ============================================================ -->
+<h2>2.1 IHost и IHostBuilder — общая модель хоста</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> <code>IHost</code> — это абстракция «хоста» в .NET: долгоживущий объект, который управляет временем жизни приложения, DI-контейнером, конфигурацией и набором <em>hosted services</em> (<code>IHostedService</code>). Он появился в .NET Core 2.1 как обобщённый хост — <em>Generic Host</em>, — чтобы одна и та же инфраструктура работала и для Web API, и для консольных приложений, и для фоновых Worker-сервисов.</p>
+
+<p><strong>Иерархия.</strong></p>
+<ul>
+  <li><code>IHostBuilder</code> — строитель хоста. Настраивает конфигурацию, DI, логирование. Метод <code>.Build()</code> возвращает <code>IHost</code>.</li>
+  <li><code>IHost</code> — запущенный хост. Методы <code>StartAsync()</code> / <code>StopAsync()</code> / <code>RunAsync()</code> управляют временем жизни. Предоставляет <code>IServiceProvider</code>.</li>
+  <li><code>IHostedService</code> — интерфейс для фоновых сервисов, которые запускает и останавливает хост.</li>
+</ul>
+
+<pre>// Концептуальная схема Generic Host (упрощённо)
+// IHostBuilder настраивает хост ДО запуска
+IHostBuilder builder = Host.CreateDefaultBuilder(args)
+    .ConfigureAppConfiguration((context, config) =>
+    {
+        // Добавление источников конфигурации
+        config.AddJsonFile("appsettings.json");
+        config.AddEnvironmentVariables();
+    })
+    .ConfigureServices((context, services) =>
+    {
+        // Регистрация сервисов в DI
+        services.AddHostedService&lt;MyBackgroundWorker&gt;();
+    })
+    .ConfigureLogging(logging =>
+    {
+        logging.AddConsole();
+    });
+
+// Build() фиксирует всё, запускает IHost
+IHost host = builder.Build();
+
+// Run() запускает все IHostedService и блокирует поток
+// до получения сигнала остановки (Ctrl+C, SIGTERM и т.д.)
+await host.RunAsync();
+</pre>
+
+<p><strong>Что делает <code>Host.CreateDefaultBuilder()</code>.</strong> Этот статический метод — удобная точка старта. Он автоматически настраивает:</p>
+<ul>
+  <li>Загрузку конфигурации из <code>appsettings.json</code>, <code>appsettings.{Environment}.json</code>, переменных окружения и аргументов командной строки</li>
+  <li>Логирование через <code>Microsoft.Extensions.Logging</code> (Console, Debug, EventSource)</li>
+  <li>Установку корневой директории как <code>ContentRootPath</code></li>
+  <li>Поддержку User Secrets в Development-окружении</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>2.2 WebApplication и WebApplicationBuilder — Web-специфичный хост</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Начиная с .NET 6, для веб-приложений появился упрощённый API поверх Generic Host: <code>WebApplicationBuilder</code> и <code>WebApplication</code>. Это не замена IHost — под капотом всё равно работает тот же <code>IHost</code>. Это синтаксическое упрощение, которое убирает шаблонный код и позволяет настроить всё в одном файле <code>Program.cs</code>.</p>
+
+<h3>WebApplicationBuilder</h3>
+
+<p>Создаётся через <code>WebApplication.CreateBuilder(args)</code>. Предоставляет единую точку доступа ко всем подсистемам конфигурации хоста:</p>
+
+<table>
+  <tr>
+    <th>Свойство</th>
+    <th>Тип</th>
+    <th>Что настраивает</th>
+  </tr>
+  <tr>
+    <td><code>builder.Services</code></td>
+    <td><code>IServiceCollection</code></td>
+    <td>DI-контейнер: регистрация сервисов</td>
+  </tr>
+  <tr>
+    <td><code>builder.Configuration</code></td>
+    <td><code>ConfigurationManager</code></td>
+    <td>Конфигурация: чтение и добавление источников</td>
+  </tr>
+  <tr>
+    <td><code>builder.Environment</code></td>
+    <td><code>IWebHostEnvironment</code></td>
+    <td>Окружение: имя, ContentRoot, WebRoot</td>
+  </tr>
+  <tr>
+    <td><code>builder.Host</code></td>
+    <td><code>IHostBuilder</code></td>
+    <td>Настройки Generic Host: Serilog, Windows Service и пр.</td>
+  </tr>
+  <tr>
+    <td><code>builder.WebHost</code></td>
+    <td><code>IWebHostBuilder</code></td>
+    <td>Настройки web-хоста: Kestrel, IIS, URL-адреса</td>
+  </tr>
+  <tr>
+    <td><code>builder.Logging</code></td>
+    <td><code>ILoggingBuilder</code></td>
+    <td>Логирование: провайдеры, фильтрация</td>
+  </tr>
+</table>
+
+<pre>// WebMessenger.Api/Program.cs — разбор WebApplicationBuilder
+var builder = WebApplication.CreateBuilder(args);
+// ↑ Внутри: создаёт IHostBuilder, WebHostBuilder, загружает конфигурацию,
+//   настраивает Kestrel как сервер по умолчанию.
+
+// builder.Host даёт доступ к IHostBuilder
+// Здесь мы заменяем стандартный провайдер логирования на Serilog:
+builder.Host.UseSerilog((context, services, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration)
+                 .ReadFrom.Services(services)
+                 .Enrich.FromLogContext());
+// context.Configuration — это уже загруженная конфигурация из appsettings.json
+// ReadFrom.Services — позволяет инжектировать ILogEventSink через DI
+
+// builder.Services — регистрация всех сервисов
+builder.Services.AddControllers();
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    // ↑ builder.Environment доступен на этапе конфигурации,
+    //   можно ветвиться по окружению прямо здесь
+});
+</pre>
+
+<h3>WebApplication</h3>
+
+<p>Создаётся через <code>builder.Build()</code>. Реализует сразу несколько интерфейсов:</p>
+<ul>
+  <li><code>IHost</code> — управление временем жизни</li>
+  <li><code>IApplicationBuilder</code> — настройка middleware-пайплайна через <code>.Use*()</code></li>
+  <li><code>IEndpointRouteBuilder</code> — маппинг эндпоинтов через <code>.Map*()</code></li>
+</ul>
+
+<pre>// WebMessenger.Api/Program.cs — разбор WebApplication
+var app = builder.Build();
+// ↑ После этой строки DI-контейнер заморожен.
+//   Нельзя добавить новые сервисы. Можно только читать.
+
+// app реализует IApplicationBuilder → настройка пайплайна:
+app.UseExceptionHandler();
+app.UseCors(FrontCors);
+app.UseAuthentication();
+app.UseAuthorization();
+
+// app реализует IEndpointRouteBuilder → маппинг:
+app.MapControllers();
+app.MapHub&lt;ChatHub&gt;("/hubs/chat");
+
+// app.Run() = host.RunAsync() + блокировка текущего потока
+app.Run();
+</pre>
+
+<!-- ============================================================ -->
+<h2>2.3 Application Lifetime Events</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> <code>IHostApplicationLifetime</code> — сервис, который позволяет реагировать на события жизненного цикла хоста и программно инициировать остановку. Доступен через DI.</p>
+
+<table>
+  <tr>
+    <th>Токен / Метод</th>
+    <th>Когда срабатывает</th>
+  </tr>
+  <tr>
+    <td><code>ApplicationStarted</code></td>
+    <td>Хост полностью запустился и готов обрабатывать запросы</td>
+  </tr>
+  <tr>
+    <td><code>ApplicationStopping</code></td>
+    <td>Получен сигнал остановки (Ctrl+C, SIGTERM, <code>StopApplication()</code>). Запросы ещё принимаются</td>
+  </tr>
+  <tr>
+    <td><code>ApplicationStopped</code></td>
+    <td>Хост полностью остановлен. Все <code>IHostedService.StopAsync()</code> завершены</td>
+  </tr>
+  <tr>
+    <td><code>StopApplication()</code></td>
+    <td>Программно инициирует graceful shutdown</td>
+  </tr>
+</table>
+
+<pre>// Регистрация обработчиков событий жизненного цикла
+// (абстрактный пример — в WebMessenger не используется напрямую,
+//  т.к. Serilog и EF управляют своими ресурсами самостоятельно)
+
+var app = builder.Build();
+
+var lifetime = app.Services.GetRequiredService&lt;IHostApplicationLifetime&gt;();
+
+lifetime.ApplicationStarted.Register(() =>
+{
+    Console.WriteLine("Application is ready to handle requests");
+    // Здесь можно: прогреть кэш, отправить уведомление о запуске,
+    // зарегистрировать сервис в Service Discovery и т.д.
+});
+
+lifetime.ApplicationStopping.Register(() =>
+{
+    Console.WriteLine("Application is shutting down gracefully...");
+    // Здесь можно: остановить прием новых задач,
+    // дождаться завершения in-flight операций
+});
+
+lifetime.ApplicationStopped.Register(() =>
+{
+    Console.WriteLine("Application has stopped");
+    // Здесь можно: закрыть соединения с внешними системами,
+    // сбросить кэш на диск
+});
+
+app.Run();
+
+// -------------------------------------------------------
+// IHostedService — фоновый сервис, который хост запускает/останавливает
+public class MyWorker : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        // stoppingToken отменяется при ApplicationStopping.
+        // Именно через него реализуется graceful shutdown фоновых задач.
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            await DoWorkAsync();
+            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+        }
+    }
+}
+</pre>
+
+<p><strong>Graceful shutdown в WebMessenger.</strong> В проекте Bootstrap-логгер Serilog оборачивает весь запуск в <code>try/catch/finally</code> — это ручная реализация graceful shutdown для логгера. <code>Log.CloseAndFlush()</code> в блоке <code>finally</code> гарантирует сброс буферов логов даже при аварийном завершении.</p>
+
+<pre>// WebMessenger.Api/Program.cs — обёртка graceful shutdown
+try
+{
+    Log.Information("Starting WebMessenger API");
+    var builder = WebApplication.CreateBuilder(args);
+    // ... конфигурация ...
+    var app = builder.Build();
+    // ... пайплайн ...
+    app.Run();
+    // ↑ Блокирует до сигнала остановки (Ctrl+C / SIGTERM / docker stop)
+}
+catch (Exception ex) when (ex is not HostAbortedException)
+{
+    // HostAbortedException — нормальный сигнал от инструментов (dotnet watch и т.д.)
+    // Его не логируем как fatal
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    // Выполняется всегда: и при нормальной остановке, и при краше
+    Log.CloseAndFlush(); // сброс всех буферов Serilog
+}
+</pre>
+
+<!-- ============================================================ -->
+<h2>2.4 Kestrel — встроенный HTTP-сервер</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Kestrel — это кроссплатформенный HTTP-сервер, встроенный в ASP.NET Core. Он написан на управляемом C# поверх libuv/Socket API и является <strong>сервером по умолчанию</strong> для всех ASP.NET Core приложений. Kestrel не зависит от операционной системы — одинаково работает на Windows, Linux и macOS.</p>
+
+<p><strong>Роль Kestrel.</strong> Kestrel принимает TCP-соединения, разбирает HTTP/1.1, HTTP/2 и HTTP/3, и передаёт объекты <code>HttpContext</code> в ASP.NET Core пайплайн. Это «нижний уровень» — он не знает ничего о контроллерах или middleware.</p>
+
+<h3>Конфигурация Kestrel</h3>
+
+<pre>// Способ 1: через переменную окружения (используется в WebMessenger Docker)
+// docker-compose.yml:
+// environment:
+//   ASPNETCORE_URLS: http://+:8080
+//   ↑ http://+:8080 означает: слушать на порту 8080 на всех сетевых интерфейсах
+//   Dockerfile.api:
+//   ENV ASPNETCORE_URLS=http://+:8080
+
+// Способ 2: через appsettings.json (рекомендуется для сложных настроек)
+{
+    "Kestrel": {
+        "Endpoints": {
+            "Http": {
+                "Url": "http://+:8080"
+            },
+            "Https": {
+                "Url": "https://+:8443",
+                "Certificate": {
+                    "Path": "/certs/cert.pfx",
+                    "Password": "password"
+                }
+            }
+        },
+        "Limits": {
+            "MaxConcurrentConnections": 100,
+            "MaxRequestBodySize": 10485760,   // 10 MB
+            "KeepAliveTimeout": "00:02:00"
+        }
+    }
+}
+
+// Способ 3: программная настройка через builder.WebHost
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(8080);                  // HTTP
+    options.ListenAnyIP(8443, listenOptions =>  // HTTPS
+    {
+        listenOptions.UseHttps("/certs/cert.pfx", "password");
+        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+    });
+
+    options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(15);
+});
+</pre>
+
+<div class="note"><strong>В WebMessenger:</strong> Kestrel настроен через переменную окружения <code>ASPNETCORE_URLS=http://+:8080</code>. Это самый простой способ для Docker-развёртывания. HTTPS-терминация вынесена на уровень реверс-прокси (nginx), поэтому внутри контейнера используется только HTTP.</div>
+
+<!-- ============================================================ -->
+<h2>2.5 IIS как реверс-прокси для ASP.NET Core</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> IIS (Internet Information Services) в контексте ASP.NET Core играет роль <strong>реверс-прокси</strong>, а не самостоятельного HTTP-сервера. Запросы принимает IIS, а затем перенаправляет их в Kestrel через модуль <strong>ASP.NET Core Module (ANCM)</strong>.</p>
+
+<p><strong>Два режима ANCM:</strong></p>
+
+<table>
+  <tr>
+    <th>Режим</th>
+    <th>Как работает</th>
+    <th>Плюсы</th>
+    <th>Минусы</th>
+  </tr>
+  <tr>
+    <td><strong>In-Process</strong> (рекомендуется)</td>
+    <td>ASP.NET Core запускается прямо внутри рабочего процесса IIS (<code>w3wp.exe</code>). Нет сетевого проксирования.</td>
+    <td>Минимальная latency, меньше ресурсов</td>
+    <td>Один AppPool — одно приложение</td>
+  </tr>
+  <tr>
+    <td><strong>Out-of-Process</strong></td>
+    <td>IIS проксирует запросы в отдельный Kestrel-процесс по loopback</td>
+    <td>Изоляция процессов, независимые перезапуски</td>
+    <td>Дополнительный hop, чуть выше latency</td>
+  </tr>
+</table>
+
+<pre>// web.config — конфигурация ANCM для WebMessenger
+// hostingModel="inprocess" — рекомендуемый режим
+&lt;aspNetCore processPath="dotnet"
+            arguments=".\WebMessenger.Api.dll"
+            stdoutLogEnabled="false"
+            hostingModel="inprocess" /&gt;
+
+// Для Out-of-Process:
+// &lt;aspNetCore hostingModel="outofprocess" ... /&gt;
+</pre>
+
+<p><strong>Когда использовать IIS.</strong> IIS актуален при хостинге на Windows Server: он обеспечивает управление процессами (автоперезапуск), интеграцию с Windows Authentication, централизованное управление сертификатами и application pools. В Linux/Docker-окружениях IIS не используется — там Kestrel работает напрямую или за nginx/Caddy.</p>
+
+<table>
+  <tr>
+    <th>Сценарий</th>
+    <th>Рекомендуемая схема</th>
+  </tr>
+  <tr>
+    <td>Windows Server (корпоративная среда)</td>
+    <td>IIS → ANCM → Kestrel (In-Process)</td>
+  </tr>
+  <tr>
+    <td>Linux / Docker</td>
+    <td>nginx/Caddy → Kestrel (реверс-прокси + TLS-терминация)</td>
+  </tr>
+  <tr>
+    <td>Разработка</td>
+    <td>Kestrel напрямую (через launchSettings.json)</td>
+  </tr>
+  <tr>
+    <td>WebMessenger в Docker</td>
+    <td>docker-compose → Kestrel на порту 8080, снаружи маппится на 5227</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>2.6 Publishing Process — dotnet publish</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> <code>dotnet publish</code> — команда CLI, которая подготавливает приложение к развёртыванию. В отличие от <code>dotnet build</code>, которая просто компилирует, <code>publish</code> копирует в выходную папку <em>всё необходимое для запуска</em>: скомпилированные сборки, зависимости, конфигурационные файлы, статические файлы.</p>
+
+<h3>Основные флаги команды</h3>
+
+<pre>// Базовый вызов — Release-конфигурация, framework-dependent deployment:
+dotnet publish Server/WebMessenger.Api/WebMessenger.Api.csproj -c Release -o /app/publish
+
+// Флаги:
+// -c Release            — конфигурация сборки (Debug / Release)
+//                         Release включает оптимизации и убирает отладочный код
+// -o /app/publish       — выходная папка
+// --no-restore          — пропустить dotnet restore (уже выполнен ранее)
+// -r linux-x64          — Runtime Identifier (RID) для self-contained
+// --self-contained      — включить runtime в артефакт
+// --self-contained false— framework-dependent (runtime на хосте)
+// -p:PublishSingleFile=true — упаковать всё в один .exe / бинарник
+// -p:PublishTrimmed=true    — обрезать неиспользуемые части runtime (уменьшает размер)
+</pre>
+
+<h3>Framework-Dependent vs Self-Contained</h3>
+
+<table>
+  <tr>
+    <th>Тип</th>
+    <th>Что включает</th>
+    <th>Размер</th>
+    <th>Требования к хосту</th>
+    <th>Когда использовать</th>
+  </tr>
+  <tr>
+    <td><strong>Framework-Dependent</strong> (FDD)</td>
+    <td>Только код приложения и NuGet-зависимости</td>
+    <td>~5–20 MB</td>
+    <td>Установленный .NET runtime нужной версии</td>
+    <td>Docker (базовый образ <code>dotnet/aspnet</code>), корпоративные серверы</td>
+  </tr>
+  <tr>
+    <td><strong>Self-Contained</strong> (SCD)</td>
+    <td>Код + весь .NET runtime</td>
+    <td>~80–200 MB</td>
+    <td>Ничего не нужно устанавливать</td>
+    <td>Дистрибуция как standalone-приложение, нестандартные окружения</td>
+  </tr>
+</table>
+
+<h3>Многоэтапная Docker-сборка в WebMessenger</h3>
+
+<pre>// Dockerfile.api — классический multi-stage build
+// ЭТАП 1: сборка (используем полный SDK-образ ~800 MB)
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Сначала копируем только .csproj для кэширования слоёв Docker.
+# Если исходный код изменился, но зависимости нет — restore берётся из кэша.
+COPY Server/WebMessenger.Api/WebMessenger.Api.csproj Server/WebMessenger.Api/
+COPY Server/WebMessenger.DAL/WebMessenger.DAL.csproj Server/WebMessenger.DAL/
+COPY Server/WebMessenger.Contracts/WebMessenger.Contracts.csproj Server/WebMessenger.Contracts/
+
+RUN dotnet restore Server/WebMessenger.Api/WebMessenger.Api.csproj
+
+# Теперь копируем весь код (этот слой инвалидируется при изменении кода)
+COPY Server/ Server/
+
+RUN dotnet publish Server/WebMessenger.Api/WebMessenger.Api.csproj \
+    -c Release \          # Release-оптимизации
+    -o /app/publish \     # выходная директория внутри контейнера
+    --no-restore          # restore уже был выше
+
+# ЭТАП 2: runtime-образ (лёгкий ~200 MB, без SDK)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+
+RUN mkdir -p logs
+
+# Копируем только артефакты publish из build-этапа
+# В финальный образ SDK не попадает — это ключевое преимущество multi-stage
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
+# Точка входа: запуск через dotnet (Framework-Dependent Deployment)
+ENTRYPOINT ["dotnet", "WebMessenger.Api.dll"]
+</pre>
+
+<div class="note"><strong>Почему multi-stage?</strong> SDK-образ включает компилятор, NuGet, инструменты и весит ~800 MB. Runtime-образ содержит только то, что нужно для запуска — ~200 MB. Multi-stage позволяет собрать код в тяжёлом SDK-образе, а в production отправить только лёгкий runtime-образ.</div>
+
+<h3>Артефакты dotnet publish</h3>
+
+<pre>// Содержимое /app/publish после dotnet publish -c Release
+publish/
+  WebMessenger.Api.dll            ← основная сборка (IL-код)
+  WebMessenger.Api.exe            ← нативный лаунчер (только Windows)
+  WebMessenger.DAL.dll            ← зависимый проект
+  WebMessenger.Contracts.dll      ← зависимый проект
+  BCrypt.Net-Next.dll             ← NuGet-зависимости
+  Microsoft.EntityFrameworkCore.dll
+  Serilog.dll
+  // ... все транзитивные зависимости ...
+  appsettings.json                ← конфигурация (скопирована MSBuild)
+  appsettings.Production.json     ← конфигурация для Production
+  web.config                      ← конфигурация IIS
+  WebMessenger.Api.deps.json      ← манифест зависимостей для runtime
+  WebMessenger.Api.runtimeconfig.json  ← версия runtime (.NET 8)
+
+// ⚠️ .pdb файлы (отладочные символы) по умолчанию НЕ включаются в Release publish.
+// Если нужны символы для удалённой отладки:
+// dotnet publish -c Release -p:DebugType=pdbonly
+</pre>
+
+<h3>Publish Profiles — .pubxml</h3>
+
+<p>Publish Profiles — это XML-файлы в <code>Properties/PublishProfiles/</code>, которые сохраняют настройки команды <code>dotnet publish</code>. Используются для повторяемых публикаций из IDE или CI/CD.</p>
+
+<pre>// Properties/PublishProfiles/Production.pubxml — профиль WebMessenger
+&lt;Project&gt;
+  &lt;PropertyGroup&gt;
+    &lt;PublishProvider&gt;FileSystem&lt;/PublishProvider&gt;
+    // ↑ Тип цели публикации: FileSystem, FTP, MSDeploy, Azure и т.д.
+
+    &lt;PublishUrl&gt;bin\Release\net8.0\publish\&lt;/PublishUrl&gt;
+    // ↑ Куда публиковать (локальная папка)
+
+    &lt;LastUsedBuildConfiguration&gt;Release&lt;/LastUsedBuildConfiguration&gt;
+    &lt;TargetFramework&gt;net8.0&lt;/TargetFramework&gt;
+
+    &lt;SelfContained&gt;false&lt;/SelfContained&gt;
+    // ↑ Framework-Dependent Deployment
+
+    &lt;EnvironmentName&gt;Production&lt;/EnvironmentName&gt;
+    // ↑ Устанавливает ASPNETCORE_ENVIRONMENT в артефакте:
+    //   активирует appsettings.Production.json
+  &lt;/PropertyGroup&gt;
+&lt;/Project&gt;
+
+// Запуск профиля из CLI:
+dotnet publish --p:PublishProfile=Production
+
+// Или напрямую через MSBuild:
+msbuild /p:DeployOnBuild=true /p:PublishProfile=Production
+</pre>
+
+<!-- ============================================================ -->
+<h2>2.7 Итоговая схема: от кода до запроса</h2>
+<!-- ============================================================ -->
+
+<p>Понимание того, как все эти компоненты связаны, можно выразить в виде последовательности:</p>
+
+<table>
+  <tr>
+    <th>Шаг</th>
+    <th>Что происходит</th>
+    <th>Компонент</th>
+  </tr>
+  <tr>
+    <td>1. Сборка</td>
+    <td><code>dotnet build</code> компилирует IL-код в <code>bin/</code></td>
+    <td>MSBuild / Roslyn</td>
+  </tr>
+  <tr>
+    <td>2. Публикация</td>
+    <td><code>dotnet publish</code> собирает артефакты в одну папку</td>
+    <td>MSBuild</td>
+  </tr>
+  <tr>
+    <td>3. Запуск хоста</td>
+    <td><code>WebApplication.CreateBuilder()</code> + <code>Build()</code> — создаёт <code>IHost</code></td>
+    <td>Generic Host</td>
+  </tr>
+  <tr>
+    <td>4. Старт сервера</td>
+    <td><code>app.Run()</code> запускает Kestrel, начинает слушать порт</td>
+    <td>Kestrel</td>
+  </tr>
+  <tr>
+    <td>5. Входящий запрос</td>
+    <td>Kestrel принимает TCP, парсит HTTP, создаёт <code>HttpContext</code></td>
+    <td>Kestrel</td>
+  </tr>
+  <tr>
+    <td>6. Пайплайн</td>
+    <td><code>HttpContext</code> проходит через цепочку middleware</td>
+    <td>ASP.NET Core Pipeline</td>
+  </tr>
+  <tr>
+    <td>7. Обработка</td>
+    <td>Роутер находит контроллер/хаб, вызывает action-метод</td>
+    <td>Routing / MVC</td>
+  </tr>
+  <tr>
+    <td>8. Остановка</td>
+    <td>SIGTERM/Ctrl+C → <code>ApplicationStopping</code> → drain → <code>ApplicationStopped</code></td>
+    <td>IHostApplicationLifetime</td>
+  </tr>
+</table>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>3. HTTP Pipeline</h1>
+<!-- ============================================================ -->
+
+<p>HTTP Pipeline — это сердце ASP.NET Core. Каждый входящий запрос проходит сквозь цепочку middleware-компонентов, прежде чем попасть к контроллеру. Понимание того, как устроен этот конвейер и как в него встраиваются фильтры, позволяет писать предсказуемый, хорошо структурированный код.</p>
+
+<!-- ============================================================ -->
+<h2>3.1 HttpContext — контекст запроса</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> <code>HttpContext</code> — главный объект в ASP.NET Core. Он создаётся Kestrel'ом для каждого входящего HTTP-запроса и живёт ровно столько, сколько обрабатывается запрос. Это единый контейнер, содержащий всё: данные запроса, объект ответа, информацию о пользователе, DI-скоуп и многое другое.</p>
+
+<h3>Ключевые свойства HttpContext</h3>
+
+<table>
+  <tr>
+    <th>Свойство</th>
+    <th>Тип</th>
+    <th>Назначение</th>
+  </tr>
+  <tr>
+    <td><code>Request</code></td>
+    <td><code>HttpRequest</code></td>
+    <td>Данные входящего запроса: метод, URL, заголовки, тело, cookies</td>
+  </tr>
+  <tr>
+    <td><code>Response</code></td>
+    <td><code>HttpResponse</code></td>
+    <td>Исходящий ответ: статус-код, заголовки, тело, cookies</td>
+  </tr>
+  <tr>
+    <td><code>User</code></td>
+    <td><code>ClaimsPrincipal</code></td>
+    <td>Аутентифицированный пользователь и его claims</td>
+  </tr>
+  <tr>
+    <td><code>Items</code></td>
+    <td><code>IDictionary&lt;object, object?&gt;</code></td>
+    <td>Словарь для передачи данных между middleware в рамках одного запроса</td>
+  </tr>
+  <tr>
+    <td><code>RequestServices</code></td>
+    <td><code>IServiceProvider</code></td>
+    <td>DI-скоуп запроса — все Scoped-сервисы живут пока жив HttpContext</td>
+  </tr>
+  <tr>
+    <td><code>Connection</code></td>
+    <td><code>ConnectionInfo</code></td>
+    <td>IP-адрес клиента и сервера, порт, ID соединения</td>
+  </tr>
+  <tr>
+    <td><code>TraceIdentifier</code></td>
+    <td><code>string</code></td>
+    <td>Уникальный ID запроса для трейсинга (используется в ProblemDetails)</td>
+  </tr>
+  <tr>
+    <td><code>WebSockets</code></td>
+    <td><code>WebSocketManager</code></td>
+    <td>Управление WebSocket-апгрейдом (использует SignalR внутри)</td>
+  </tr>
+  <tr>
+    <td><code>Session</code></td>
+    <td><code>ISession</code></td>
+    <td>Сессионное хранилище (требует <code>AddSession()</code>)</td>
+  </tr>
+  <tr>
+    <td><code>Abort()</code></td>
+    <td>—</td>
+    <td>Немедленно разрывает соединение</td>
+  </tr>
+</table>
+
+<h3>HttpRequest — ключевые свойства</h3>
+
+<pre>// Пример доступа к HttpRequest в middleware или контроллере
+
+// Метод запроса (GET, POST, PUT, DELETE...)
+string method = context.Request.Method;
+
+// Путь: /api/chats
+PathString path = context.Request.Path;
+
+// Query string: ?limit=20&before=2024-01-01
+IQueryCollection query = context.Request.Query;
+string? limit = query["limit"];  // "20"
+
+// Заголовки
+IHeaderDictionary headers = context.Request.Headers;
+string? contentType = headers.ContentType;
+string? authHeader = headers.Authorization;  // "Bearer eyJ..."
+
+// Cookies
+IRequestCookieCollection cookies = context.Request.Cookies;
+string? token = cookies["auth-token"];
+
+// Тело запроса (Stream — читается только один раз!)
+Stream body = context.Request.Body;
+// Для повторного чтения: context.Request.EnableBuffering()
+
+// Является ли запрос HTTPS
+bool isHttps = context.Request.IsHttps;
+
+// Определение пути для SignalR в WebMessenger:
+var path = context.HttpContext.Request.Path;
+if (path.StartsWithSegments("/hubs/chat"))
+{
+    // JWT читается из query string для SignalR (браузерский WebSocket
+    // не поддерживает заголовок Authorization)
+    if (context.Request.Query.TryGetValue("access_token", out var token))
+        context.Token = token;
+}
+</pre>
+
+<h3>HttpResponse — ключевые свойства</h3>
+
+<pre>// Доступ к HttpResponse в middleware
+
+// Статус-код (устанавливать ДО отправки заголовков)
+context.Response.StatusCode = 200;
+
+// Заголовки ответа (только до первой записи тела)
+context.Response.Headers.ContentType = "application/json";
+context.Response.Headers.Append("X-Custom-Header", "value");
+
+// Cookies (используется в AuthController для JWT)
+context.Response.Cookies.Append("auth-token", token, new CookieOptions
+{
+    HttpOnly = true,      // недоступна из JavaScript — защита от XSS
+    Secure = true,        // только по HTTPS
+    SameSite = SameSiteMode.Lax,  // защита от CSRF
+    Expires = DateTimeOffset.UtcNow.AddDays(1)
+});
+
+// Запись тела ответа
+await context.Response.WriteAsync("Hello, World!");
+await context.Response.WriteAsJsonAsync(new { message = "ok" });
+
+// HasStarted — заголовки уже отправлены, изменить статус нельзя
+if (!context.Response.HasStarted)
+    context.Response.StatusCode = 500;
+</pre>
+
+<h3>IHttpContextAccessor — доступ к HttpContext из сервисов</h3>
+
+<p>В контроллере <code>HttpContext</code> доступен напрямую через <code>this.HttpContext</code>. Но в сервисах и репозиториях его нет — там нужен <code>IHttpContextAccessor</code>. WebMessenger активно использует этот паттерн в <code>CurrentUser</code>:</p>
+
+<pre>// WebMessenger.Api/Infrastructure/CurrentUser.cs
+// ICurrentUser — абстракция для получения данных текущего пользователя из JWT
+
+public class CurrentUser(IHttpContextAccessor accessor) : ICurrentUser
+{
+    private readonly IHttpContextAccessor _accessor = accessor;
+
+    // Проверка через ClaimsPrincipal, а не через базу данных — быстро и без лишних запросов
+    public bool IsAuthenticated =>
+        _accessor.HttpContext?.User?.Identity?.IsAuthenticated == true;
+
+    public Guid Id
+    {
+        get
+        {
+            if (!IsAuthenticated)
+                throw new InvalidOperationException("User is not authenticated");
+
+            // Claim NameIdentifier содержит userId (задаётся при генерации JWT)
+            var claim = _accessor.HttpContext!.User.FindFirst(ClaimTypes.NameIdentifier)
+                        ?? throw new InvalidOperationException("NameIdentifier claim not found");
+
+            return Guid.Parse(claim.Value);
+        }
+    }
+
+    public string? Username =>
+        _accessor.HttpContext?.User?.FindFirst(ClaimTypes.Name)?.Value;
+}
+
+// Регистрация в Program.cs:
+builder.Services.AddHttpContextAccessor();  // регистрирует IHttpContextAccessor
+builder.Services.AddScoped&lt;ICurrentUser, CurrentUser&gt;();
+
+// Использование в ChatController:
+// var userId = _currentUser.Id;  // получает Id из JWT без прямого доступа к HttpContext
+</pre>
+
+<div class="note"><strong>Почему не инжектировать IHttpContextAccessor везде.</strong> <code>IHttpContextAccessor</code> хранит <code>HttpContext</code> в <code>AsyncLocal&lt;T&gt;</code> — это поточно-безопасно, но добавляет неявную зависимость от инфраструктуры. Лучше инкапсулировать его в сервис (как <code>ICurrentUser</code>) и инжектировать только этот сервис.</div>
+
+<!-- ============================================================ -->
+<h2>3.2 Middleware — концепция, порядок и настройка</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Middleware — это компоненты обработки HTTP-запроса, выстроенные в цепочку (pipeline). Каждый компонент получает <code>HttpContext</code> и функцию-делегат <code>next</code>, указывающую на следующее звено. Компонент может:</p>
+<ul>
+  <li>Обработать запрос и вызвать <code>next()</code> — передать управление дальше</li>
+  <li>Остановить цепочку, не вызывая <code>next()</code> — короткое замыкание (short-circuit)</li>
+  <li>Выполнить действия до и после вызова <code>next()</code> — оборачивание</li>
+</ul>
+
+<pre>// Концептуальная модель middleware
+
+// Схема пайплайна:
+// Request  →  [MW1] → [MW2] → [MW3] → endpoint (контроллер)
+// Response ←  [MW1] ← [MW2] ← [MW3] ← endpoint
+
+// Каждое middleware — это функция вида:
+// (HttpContext context, RequestDelegate next) => Task
+
+// Три способа добавить middleware через IApplicationBuilder:
+
+// 1. app.Use() — полноценное middleware с доступом к next
+app.Use(async (context, next) =>
+{
+    // Код ДО следующего middleware (на пути запроса)
+    var sw = Stopwatch.StartNew();
+
+    await next(context);  // передаём управление следующему звену
+
+    // Код ПОСЛЕ (на пути ответа)
+    sw.Stop();
+    context.Response.Headers.Append("X-Response-Time", $"{sw.ElapsedMilliseconds}ms");
+});
+
+// 2. app.Run() — терминальное middleware (не вызывает next, всегда замыкает цепочку)
+app.Run(async context =>
+{
+    await context.Response.WriteAsync("This is the end of the pipeline");
+    // next не вызывается — дальше ничего не выполнится
+});
+
+// 3. app.Map() — условное ветвление по пути
+app.Map("/health", healthApp =>
+{
+    healthApp.Run(async context =>
+    {
+        await context.Response.WriteAsync("Healthy");
+    });
+});
+// Запросы на /health уходят в отдельную ветку, остальные идут дальше
+</pre>
+
+<h3>Порядок middleware — КРИТИЧНО</h3>
+
+<p>Порядок вызова <code>.Use*()</code> в <code>Program.cs</code> определяет порядок выполнения middleware. Это один из самых частых источников ошибок в ASP.NET Core.</p>
+
+<pre>// WebMessenger.Api/Program.cs — порядок middleware и почему он именно такой
+
+app.UseSerilogRequestLogging();
+// ↑ 1. Логирование запросов — первым, чтобы логировать ВСЕ запросы,
+//      включая те, что будут отклонены позже
+
+app.UseExceptionHandler();
+// ↑ 2. Обработчик исключений — очень рано, чтобы перехватить исключения
+//      из ЛЮБОГО последующего middleware
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+// ↑ 3. Swagger — только в Development, до редиректа на HTTPS
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+// ↑ 4. Редирект HTTP → HTTPS — до CORS и аутентификации.
+//      В Development и Docker отключён (TLS терминируется снаружи)
+
+app.UseCors(FrontCors);
+// ↑ 5. CORS — ПЕРЕД аутентификацией. Preflight OPTIONS-запросы (браузер
+//      отправляет их автоматически) не несут Authorization-заголовок.
+//      Если поставить CORS после Auth — preflight получит 401.
+
+app.UseAuthentication();
+// ↑ 6. Аутентификация — читает JWT из заголовка/cookie, заполняет
+//      context.User (ClaimsPrincipal). Не отклоняет запрос сама.
+
+app.UseAuthorization();
+// ↑ 7. Авторизация — проверяет [Authorize] атрибуты. ОБЯЗАНА идти
+//      ПОСЛЕ UseAuthentication(), иначе context.User пуст.
+
+app.MapControllers();
+app.MapHub&lt;ChatHub&gt;("/hubs/chat").RequireCors(FrontCors);
+// ↑ 8. Эндпоинты — терминальный шаг. Запрос достигает контроллера
+//      или хаба только если все предыдущие middleware пропустили его.
+</pre>
+
+<div class="warn"><strong>Типичные ошибки порядка:</strong>
+<ul>
+  <li><code>UseAuthorization()</code> перед <code>UseAuthentication()</code> → <code>context.User</code> всегда пуст, авторизация не работает</li>
+  <li><code>UseCors()</code> после <code>UseAuthentication()</code> → Preflight OPTIONS получает 401</li>
+  <li><code>UseExceptionHandler()</code> в середине → исключения из ранних middleware не перехватываются</li>
+</ul>
+</div>
+
+<h3>Написание собственного middleware</h3>
+
+<pre>// Способ 1: класс с соглашением (Convention-based) — рекомендуется для сложных middleware
+public class RequestTimingMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger&lt;RequestTimingMiddleware&gt; _logger;
+
+    // ILogger инжектируется через конструктор (Singleton-lifetime)
+    public RequestTimingMiddleware(RequestDelegate next, ILogger&lt;RequestTimingMiddleware&gt; logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+
+    // Метод ОБЯЗАН называться InvokeAsync или Invoke
+    // Scoped-сервисы инжектируются сюда (не в конструктор — middleware Singleton)
+    public async Task InvokeAsync(HttpContext context)
+    {
+        var sw = Stopwatch.StartNew();
+        await _next(context);
+        sw.Stop();
+
+        _logger.LogInformation("{Method} {Path} completed in {Ms}ms",
+            context.Request.Method,
+            context.Request.Path,
+            sw.ElapsedMilliseconds);
+    }
+}
+
+// Расширение для удобной регистрации:
+public static class RequestTimingMiddlewareExtensions
+{
+    public static IApplicationBuilder UseRequestTiming(this IApplicationBuilder app)
+        => app.UseMiddleware&lt;RequestTimingMiddleware&gt;();
+}
+
+// Использование:
+app.UseRequestTiming();
+
+// Способ 2: inline через app.Use() — для простых однострочных случаев
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    await next(context);
+});
+</pre>
+
+<!-- ============================================================ -->
+<h2>3.3 Стандартные Middleware</h2>
+<!-- ============================================================ -->
+
+<p>ASP.NET Core поставляет набор готовых middleware. Вот наиболее важные:</p>
+
+<table>
+  <tr>
+    <th>Middleware</th>
+    <th>Метод</th>
+    <th>Назначение</th>
+  </tr>
+  <tr>
+    <td>Exception Handler</td>
+    <td><code>UseExceptionHandler()</code></td>
+    <td>Перехватывает необработанные исключения, возвращает ProblemDetails. Используется в WebMessenger.</td>
+  </tr>
+  <tr>
+    <td>Developer Exception Page</td>
+    <td><code>UseDeveloperExceptionPage()</code></td>
+    <td>Показывает детали исключения (стек трейс) в браузере. Только для Development.</td>
+  </tr>
+  <tr>
+    <td>HTTPS Redirection</td>
+    <td><code>UseHttpsRedirection()</code></td>
+    <td>HTTP → HTTPS (301/307). В WebMessenger отключён для Docker.</td>
+  </tr>
+  <tr>
+    <td>HSTS</td>
+    <td><code>UseHsts()</code></td>
+    <td>Добавляет заголовок <code>Strict-Transport-Security</code>. Только для production HTTPS.</td>
+  </tr>
+  <tr>
+    <td>Static Files</td>
+    <td><code>UseStaticFiles()</code></td>
+    <td>Раздаёт файлы из <code>wwwroot/</code> напрямую, не доходя до контроллеров.</td>
+  </tr>
+  <tr>
+    <td>Routing</td>
+    <td><code>UseRouting()</code></td>
+    <td>Сопоставляет URL с эндпоинтами. Неявно включается при <code>MapControllers()</code>.</td>
+  </tr>
+  <tr>
+    <td>CORS</td>
+    <td><code>UseCors()</code></td>
+    <td>Добавляет CORS-заголовки. В WebMessenger: <code>FrontCors</code> политика.</td>
+  </tr>
+  <tr>
+    <td>Authentication</td>
+    <td><code>UseAuthentication()</code></td>
+    <td>Разбирает JWT/Cookie, заполняет <code>context.User</code>.</td>
+  </tr>
+  <tr>
+    <td>Authorization</td>
+    <td><code>UseAuthorization()</code></td>
+    <td>Проверяет политики доступа и атрибут <code>[Authorize]</code>.</td>
+  </tr>
+  <tr>
+    <td>Request Logging (Serilog)</td>
+    <td><code>UseSerilogRequestLogging()</code></td>
+    <td>Логирует каждый запрос: метод, путь, статус, время. Используется в WebMessenger.</td>
+  </tr>
+  <tr>
+    <td>Response Compression</td>
+    <td><code>UseResponseCompression()</code></td>
+    <td>Gzip/Brotli сжатие ответов.</td>
+  </tr>
+  <tr>
+    <td>Response Caching</td>
+    <td><code>UseResponseCaching()</code></td>
+    <td>Кэширование ответов на уровне HTTP.</td>
+  </tr>
+  <tr>
+    <td>Endpoints</td>
+    <td><code>UseEndpoints()</code> / <code>MapControllers()</code></td>
+    <td>Выполняет маппинг запроса на контроллер/хаб/minimal API.</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>3.4 Filters — фильтры MVC</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Filters (фильтры) — механизм перехвата в MVC/Web API пайплайне, который работает <em>после</em> роутинга, но <em>до/после</em> выполнения action-метода. Ключевое отличие от middleware: фильтры работают в контексте MVC и имеют доступ к <code>ActionContext</code>, параметрам метода, результату и типизированным объектам MVC.</p>
+
+<h3>Типы фильтров по роли</h3>
+
+<table>
+  <tr>
+    <th>Тип фильтра</th>
+    <th>Интерфейс</th>
+    <th>Когда срабатывает</th>
+    <th>Типичное использование</th>
+  </tr>
+  <tr>
+    <td><strong>Authorization Filter</strong></td>
+    <td><code>IAuthorizationFilter</code></td>
+    <td>Первым, до всех остальных</td>
+    <td>Кастомная авторизация, проверка ролей/claims</td>
+  </tr>
+  <tr>
+    <td><strong>Resource Filter</strong></td>
+    <td><code>IResourceFilter</code></td>
+    <td>После авторизации, до model binding</td>
+    <td>Кэширование, короткое замыкание запроса</td>
+  </tr>
+  <tr>
+    <td><strong>Action Filter</strong></td>
+    <td><code>IActionFilter</code></td>
+    <td>До и после выполнения action</td>
+    <td>Логирование, трансформация аргументов и результата</td>
+  </tr>
+  <tr>
+    <td><strong>Exception Filter</strong></td>
+    <td><code>IExceptionFilter</code></td>
+    <td>При необработанном исключении в action</td>
+    <td>Централизованная обработка ошибок MVC-уровня</td>
+  </tr>
+  <tr>
+    <td><strong>Result Filter</strong></td>
+    <td><code>IResultFilter</code></td>
+    <td>До и после выполнения IActionResult</td>
+    <td>Изменение/обёртывание ответа, добавление заголовков</td>
+  </tr>
+</table>
+
+<h3>Порядок выполнения фильтров</h3>
+
+<pre>// Полный порядок выполнения при обработке запроса:
+//
+// [Authorization Filters]       → могут short-circuit, возвращая 401/403
+//   ↓
+// [Resource Filters] OnExecuting
+//   ↓
+// [Model Binding]               → заполнение параметров action-метода
+//   ↓
+// [Action Filters] OnActionExecuting
+//   ↓
+// ACTION METHOD выполняется     → возвращает IActionResult
+//   ↓
+// [Action Filters] OnActionExecuted
+//   ↓
+// [Exception Filters]           → срабатывают при исключении
+//   ↓
+// [Result Filters] OnResultExecuting
+//   ↓
+// IActionResult.ExecuteResultAsync() → формирование HTTP-ответа
+//   ↓
+// [Result Filters] OnResultExecuted
+//   ↓
+// [Resource Filters] OnExecuted
+</pre>
+
+<h3>Типы фильтров по области применения (Scope)</h3>
+
+<table>
+  <tr>
+    <th>Scope</th>
+    <th>Как задать</th>
+    <th>На что действует</th>
+  </tr>
+  <tr>
+    <td><strong>Action-level</strong></td>
+    <td>Атрибут на конкретном action-методе</td>
+    <td>Только на один метод</td>
+  </tr>
+  <tr>
+    <td><strong>Controller-level</strong></td>
+    <td>Атрибут на классе контроллера</td>
+    <td>Все action-методы контроллера</td>
+  </tr>
+  <tr>
+    <td><strong>Global</strong></td>
+    <td>Регистрация через <code>AddControllers(o => o.Filters.Add(...))</code></td>
+    <td>Все контроллеры и действия приложения</td>
+  </tr>
+</table>
+
+<pre>// Примеры использования фильтров
+
+// ─── Action Filter — логирование времени выполнения ───
+public class LogExecutionTimeAttribute : ActionFilterAttribute
+{
+    // ActionFilterAttribute реализует IActionFilter и IResultFilter одновременно,
+    // что удобно для простых случаев.
+
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        // Сохраняем момент начала в Items — передача данных внутри запроса
+        context.HttpContext.Items["_start"] = Stopwatch.GetTimestamp();
+    }
+
+    public override void OnActionExecuted(ActionExecutedContext context)
+    {
+        var start = (long)context.HttpContext.Items["_start"]!;
+        var elapsed = Stopwatch.GetElapsedTime(start);
+
+        var logger = context.HttpContext.RequestServices
+            .GetRequiredService&lt;ILogger&lt;LogExecutionTimeAttribute&gt;&gt;();
+
+        logger.LogInformation("{Action} executed in {Ms}ms",
+            context.ActionDescriptor.DisplayName, elapsed.TotalMilliseconds);
+    }
+}
+
+// ─── Authorization Filter — пример кастомной проверки ───
+public class ApiKeyAttribute : Attribute, IAuthorizationFilter
+{
+    public void OnAuthorization(AuthorizationFilterContext context)
+    {
+        var apiKey = context.HttpContext.Request.Headers["X-Api-Key"].FirstOrDefault();
+        if (apiKey != "expected-key")
+        {
+            // Short-circuit: устанавливаем Result — дальнейшие фильтры не выполняются
+            context.Result = new UnauthorizedResult();
+        }
+    }
+}
+
+// ─── Exception Filter — перехват NotFoundException ───
+public class NotFoundExceptionFilter : IExceptionFilter
+{
+    public void OnException(ExceptionContext context)
+    {
+        if (context.Exception is KeyNotFoundException ex)
+        {
+            context.Result = new NotFoundObjectResult(new { message = ex.Message });
+            context.ExceptionHandled = true;  // помечаем: исключение обработано
+        }
+        // Если ExceptionHandled = false — исключение идёт дальше (к UseExceptionHandler)
+    }
+}
+
+// ─── Применение по scope ───
+
+// Action-level: только для метода GetUserProfile
+[HttpGet("profile")]
+[LogExecutionTime]
+public async Task&lt;IActionResult&gt; GetUserProfile() { ... }
+
+// Controller-level: для всего UserController
+[ApiKey]
+[Authorize]
+[ApiController]
+[Route("api/users")]
+public class UserController : ControllerBase { ... }
+
+// Global: для всего приложения
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add&lt;NotFoundExceptionFilter&gt;();
+    options.Filters.Add(new LogExecutionTimeAttribute());
+    // Порядок: Action-level → Controller-level → Global (при выполнении)
+    // При OnActionExecuting: Global → Controller → Action
+    // При OnActionExecuted: Action → Controller → Global (обратный)
+});
+</pre>
+
+<h3>Middleware vs Filters — когда что использовать</h3>
+
+<table>
+  <tr>
+    <th>Аспект</th>
+    <th>Middleware</th>
+    <th>Filters</th>
+  </tr>
+  <tr>
+    <td>Область действия</td>
+    <td>Весь HTTP-пайплайн, включая статику, SignalR, Minimal API</td>
+    <td>Только MVC/Web API контроллеры</td>
+  </tr>
+  <tr>
+    <td>Контекст</td>
+    <td><code>HttpContext</code></td>
+    <td><code>ActionContext</code>, параметры action, <code>IActionResult</code></td>
+  </tr>
+  <tr>
+    <td>DI-lifetime</td>
+    <td>Сам middleware — Singleton; Scoped через InvokeAsync</td>
+    <td>Transient или Scoped через <code>ServiceFilter</code> / <code>TypeFilter</code></td>
+  </tr>
+  <tr>
+    <td>Типичные задачи</td>
+    <td>CORS, Auth, Logging, HTTPS Redirect, Compression</td>
+    <td>Валидация модели, трансформация ответа, exception handling в MVC</td>
+  </tr>
+  <tr>
+    <td>Гранулярность</td>
+    <td>Всё приложение или ветка по пути</td>
+    <td>Глобально / контроллер / конкретный action</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>3.5 WebApplicationFactory — тестирование пайплайна</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> <code>WebApplicationFactory&lt;TProgram&gt;</code> — класс из пакета <code>Microsoft.AspNetCore.Mvc.Testing</code>, позволяющий поднять реальный HTTP-пайплайн приложения в памяти для интеграционных тестов. Никакого реального сетевого соединения не создаётся — <code>TestServer</code> работает через in-memory транспорт.</p>
+
+<p><strong>Зачем.</strong> Интеграционные тесты с <code>WebApplicationFactory</code> проверяют весь стек: роутинг, middleware, авторизацию, DI, контроллеры и сериализацию. Это принципиально отличается от unit-тестов контроллеров с Moq, где тестируется только логика метода.</p>
+
+<pre>// Концептуальный пример WebApplicationFactory
+// (в WebMessenger пока используются unit-тесты контроллеров с Mock,
+//  но WebApplicationFactory — следующий шаг для интеграционных тестов)
+
+// Установка пакета:
+// dotnet add package Microsoft.AspNetCore.Mvc.Testing
+
+// Базовый тест с WebApplicationFactory:
+public class AuthEndpointTests : IClassFixture&lt;WebApplicationFactory&lt;Program&gt;&gt;
+{
+    private readonly HttpClient _client;
+
+    public AuthEndpointTests(WebApplicationFactory&lt;Program&gt; factory)
+    {
+        _client = factory.CreateClient();
+        // CreateClient() создаёт HttpClient, который общается с TestServer
+        // Весь пайплайн Program.cs выполняется в памяти
+    }
+
+    [Fact]
+    public async Task Register_ValidBody_Returns200()
+    {
+        // Act — реальный HTTP-запрос через in-memory транспорт
+        var response = await _client.PostAsJsonAsync("/api/auth/register", new
+        {
+            username = "testuser_" + Guid.NewGuid().ToString("N")[..8],
+            password = "P@ssw0rd!"
+        });
+
+        // Assert
+        response.EnsureSuccessStatusCode();
+    }
+}
+
+// ─── Кастомная WebApplicationFactory для подмены зависимостей ───
+public class TestWebApplicationFactory : WebApplicationFactory&lt;Program&gt;
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureServices(services =>
+        {
+            // Удаляем реальный DbContext
+            var descriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(DbContextOptions&lt;ApplicationDbContext&gt;));
+            if (descriptor != null) services.Remove(descriptor);
+
+            // Подключаем InMemory БД для тестов
+            services.AddDbContext&lt;ApplicationDbContext&gt;(options =>
+                options.UseInMemoryDatabase("TestDb_" + Guid.NewGuid()));
+        });
+
+        // Устанавливаем тестовое окружение
+        builder.UseEnvironment("Test");
+    }
+}
+
+// Использование с переопределением сервисов:
+public class ProtectedEndpointTests : IClassFixture&lt;TestWebApplicationFactory&gt;
+{
+    private readonly HttpClient _client;
+
+    public ProtectedEndpointTests(TestWebApplicationFactory factory)
+    {
+        _client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            // Не следовать редиректам автоматически
+            AllowAutoRedirect = false
+        });
+    }
+
+    [Fact]
+    public async Task GetChats_Unauthorized_Returns401()
+    {
+        // Нет JWT-заголовка — middleware UseAuthentication() не заполнит User
+        // UseAuthorization() обнаружит [Authorize] на контроллере → 401
+        var response = await _client.GetAsync("/api/chats");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetChats_WithValidJwt_Returns200()
+    {
+        // Устанавливаем JWT в заголовок
+        var token = GenerateTestJwt(userId: Guid.NewGuid());
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _client.GetAsync("/api/chats");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+}
+</pre>
+
+<div class="note"><strong>В WebMessenger:</strong> тесты контроллеров написаны как unit-тесты (Moq + <code>DefaultHttpContext</code>), что видно в <code>AuthControllerTests</code>. <code>WebApplicationFactory</code> добавляет ценность для сквозного тестирования маршрутизации, middleware (CORS, Auth) и сериализации — т.е. всего того, что unit-тесты контроллеров не проверяют.</div>
+
+<h3>Unit-тест контроллера vs интеграционный тест с WebApplicationFactory</h3>
+
+<table>
+  <tr>
+    <th>Аспект</th>
+    <th>Unit-тест (Moq + Controller)</th>
+    <th>Интеграционный тест (WebApplicationFactory)</th>
+  </tr>
+  <tr>
+    <td>Что тестируется</td>
+    <td>Логика action-метода</td>
+    <td>Весь стек: роутинг, middleware, DI, контроллер, сериализация</td>
+  </tr>
+  <tr>
+    <td>Скорость</td>
+    <td>Очень быстро (мс)</td>
+    <td>Медленнее (десятки мс на старт TestServer)</td>
+  </tr>
+  <tr>
+    <td>Изоляция</td>
+    <td>Полная — все зависимости замокированы</td>
+    <td>Частичная — можно заменить БД на InMemory</td>
+  </tr>
+  <tr>
+    <td>CORS/Auth middleware</td>
+    <td>Не тестируется</td>
+    <td>Тестируется</td>
+  </tr>
+  <tr>
+    <td>Пример в WebMessenger</td>
+    <td><code>AuthControllerTests.cs</code></td>
+    <td>— (можно добавить)</td>
+  </tr>
+</table>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>4. Routing</h1>
+<!-- ============================================================ -->
+
+<p>Routing (маршрутизация) — механизм, который сопоставляет входящий HTTP-запрос с конкретным action-методом контроллера. ASP.NET Core предоставляет два стиля маршрутизации: Convention-based и Attribute-based. В Web API почти всегда используется атрибутный стиль.</p>
+
+<!-- ============================================================ -->
+<h2>4.1 UseRouting и UseEndpoints</h2>
+<!-- ============================================================ -->
+
+<p><strong>Как работает routing внутри пайплайна.</strong> Маршрутизация в ASP.NET Core разделена на два этапа, выполняемых разными middleware:</p>
+
+<ol>
+  <li><strong><code>UseRouting()</code></strong> — анализирует URL входящего запроса и определяет, какой эндпоинт ему соответствует. Записывает результат в <code>HttpContext</code> (через <code>IEndpointFeature</code>). Не выполняет сам эндпоинт.</li>
+  <li><strong><code>UseEndpoints()</code> / <code>MapControllers()</code></strong> — выполняет найденный эндпоинт (вызывает action-метод контроллера).</li>
+</ol>
+
+<p>Такое разделение позволяет middleware между этими двумя шагами (например, <code>UseAuthentication</code>, <code>UseAuthorization</code>) знать, <em>какой</em> эндпоинт будет вызван, и принимать решения на основе этой информации.</p>
+
+<pre>// Современный подход (.NET 6+): UseRouting() неявно добавляется
+// при вызове MapControllers() / MapHub() и т.д.
+// Явный вызов UseRouting() нужен только если между ним и UseEndpoints()
+// нужно поставить middleware, зависящий от информации о маршруте.
+
+// WebMessenger.Api/Program.cs — эндпоинты:
+app.UseAuthentication();
+app.UseAuthorization();
+// ↑ Стоят ДО MapControllers(). Благодаря неявному UseRouting() в начале пайплайна,
+//   middleware авторизации уже знает, что [Authorize] задан на целевом эндпоинте,
+//   и проверяет наличие аутентификации до выполнения action.
+
+app.MapControllers();
+// ↑ Регистрирует ВСЕ контроллеры как эндпоинты.
+//   Эквивалентно UseEndpoints(e => e.MapControllers()) из старого API.
+
+app.MapHub&lt;ChatHub&gt;("/hubs/chat").RequireCors(FrontCors);
+// ↑ SignalR-хаб — отдельный эндпоинт с явным указанием пути и CORS-политики.
+
+// Явное использование UseRouting / UseEndpoints (старый стиль, до .NET 6):
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers();
+    endpoints.MapHub&lt;ChatHub&gt;("/hubs/chat");
+});
+// Оба стиля эквивалентны по поведению.
+</pre>
+
+<!-- ============================================================ -->
+<h2>4.2 Convention Routing vs Attribute Routing</h2>
+<!-- ============================================================ -->
+
+<h3>Convention Routing (конвенциональная маршрутизация)</h3>
+
+<p>Маршруты задаются централизованно — один шаблон покрывает множество контроллеров. Используется в MVC-приложениях с Razor Views. В Web API практически не применяется.</p>
+
+<pre>// Convention routing — централизованное задание шаблонов (MVC-стиль)
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+// Шаблон означает:
+// GET /Products/List    → ProductsController.List()
+// GET /Products/Edit/5  → ProductsController.Edit(id: 5)
+// GET /                 → HomeController.Index()
+
+// Проблемы с Convention Routing для API:
+// 1. Неочевидно: маршруты контроллера разбросаны по Program.cs и по классу
+// 2. Нет поддержки HTTP-методов в шаблоне (GET vs POST vs PUT)
+// 3. Путь привязан к имени класса — рефакторинг класса = изменение URL
+</pre>
+
+<h3>Attribute Routing (атрибутная маршрутизация)</h3>
+
+<p>Маршруты объявляются прямо на контроллерах и action-методах через атрибуты. <strong>Стандарт для Web API.</strong> WebMessenger использует исключительно атрибутный стиль.</p>
+
+<pre>// WebMessenger.Api/Controllers/ChatController.cs — атрибутный роутинг
+
+[ApiController]
+[Route("api/chats")]          // ← базовый маршрут контроллера
+public class ChatController : ControllerBase
+{
+    // GET  /api/chats  ← [Route("api/chats")] + [HttpGet] без суффикса
+    [HttpGet]
+    public async Task&lt;ActionResult&lt;PagedResult&lt;ChatListItemDto&gt;&gt;&gt; Index(...) { }
+
+    // GET  /api/chats/{chatId}/header
+    // {chatId:guid} — параметр с ограничением типа (только GUID)
+    [HttpGet("{chatId:guid}/header")]
+    public async Task&lt;IActionResult&gt; GetChatHeader(Guid chatId) { }
+
+    // GET  /api/chats/direct/{userId}/header
+    // Сегмент "direct" — статическая часть пути
+    [HttpGet("direct/{userId:guid}/header")]
+    public async Task&lt;IActionResult&gt; GetDirectHeader(Guid userId) { }
+
+    // GET  /api/chats/{chatId}/messages
+    [HttpGet("{chatId:guid}/messages")]
+    public async Task&lt;ActionResult&lt;PagedResult&lt;ChatMessageDto&gt;&gt;&gt; GetMessages(Guid chatId, ...) { }
+
+    // POST /api/chats/direct/{userId}/messages
+    [HttpPost("direct/{userId:guid}/messages")]
+    public async Task&lt;ActionResult&lt;SendMessageResponse&gt;&gt; SendMessage(Guid userId, [FromBody] ...) { }
+
+    // POST /api/chats/{chatId}/read
+    [HttpPost("{chatId:guid}/read")]
+    public async Task&lt;IActionResult&gt; MarkRead(Guid chatId, ...) { }
+}
+</pre>
+
+<div class="note"><strong>В WebMessenger все 4 контроллера используют атрибутный роутинг:</strong> <code>AuthController → api/auth</code>, <code>ChatController → api/chats</code>, <code>ContactController → api/contacts</code>, <code>UserController → api/users</code>. Это стандартная практика для REST API.</div>
+
+<!-- ============================================================ -->
+<h2>4.3 Route Templates и их конфигурация</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Route template (шаблон маршрута) — строка, описывающая структуру URL. Состоит из литеральных сегментов, параметров и специальных символов.</p>
+
+<h3>Синтаксис шаблонов</h3>
+
+<pre>// Литеральный сегмент — совпадает буквально
+[Route("api/contacts")]           // → /api/contacts
+
+// Параметр — {name}
+[Route("users/{id}")]             // → /users/123, /users/abc
+
+// Необязательный параметр — {name?}
+[Route("users/{id?}")]            // → /users  или  /users/123
+
+// Параметр с дефолтным значением — {name=default}
+[Route("users/{page=1}")]         // → /users  (page=1)  или  /users/3
+
+// Catch-all параметр — {**name}
+[Route("files/{**path}")]         // → /files/a/b/c/d.txt (path = "a/b/c/d.txt")
+
+// Ограничения типа (route constraints) — {name:constraint}
+[Route("{id:int}")]               // только целые числа: /42, /0
+[Route("{id:guid}")]              // только GUID: /3fa85f64-...
+[Route("{id:minlength(3)}")]      // строки длиной ≥ 3
+[Route("{id:alpha}")]             // только буквы
+[Route("{id:range(1,100)}")]      // целые числа от 1 до 100
+[Route("{id:datetime}")]          // DateTime
+
+// Комбинация нескольких ограничений через двоеточие:
+[Route("{id:int:min(1)}")]        // int И min=1
+</pre>
+
+<h3>Все route constraints</h3>
+
+<table>
+  <tr>
+    <th>Ограничение</th>
+    <th>Пример</th>
+    <th>Совпадает</th>
+  </tr>
+  <tr>
+    <td><code>int</code></td>
+    <td><code>{id:int}</code></td>
+    <td>Только 32-битные целые числа</td>
+  </tr>
+  <tr>
+    <td><code>long</code></td>
+    <td><code>{id:long}</code></td>
+    <td>64-битные целые числа</td>
+  </tr>
+  <tr>
+    <td><code>guid</code></td>
+    <td><code>{id:guid}</code></td>
+    <td>GUID в любом стандартном формате</td>
+  </tr>
+  <tr>
+    <td><code>bool</code></td>
+    <td><code>{flag:bool}</code></td>
+    <td><code>true</code> или <code>false</code></td>
+  </tr>
+  <tr>
+    <td><code>datetime</code></td>
+    <td><code>{date:datetime}</code></td>
+    <td>Дата/время в invariant culture</td>
+  </tr>
+  <tr>
+    <td><code>decimal</code></td>
+    <td><code>{price:decimal}</code></td>
+    <td>Десятичное число</td>
+  </tr>
+  <tr>
+    <td><code>double</code></td>
+    <td><code>{val:double}</code></td>
+    <td>Число с плавающей точкой</td>
+  </tr>
+  <tr>
+    <td><code>float</code></td>
+    <td><code>{val:float}</code></td>
+    <td>Float</td>
+  </tr>
+  <tr>
+    <td><code>alpha</code></td>
+    <td><code>{name:alpha}</code></td>
+    <td>Только буквы (a-z, A-Z)</td>
+  </tr>
+  <tr>
+    <td><code>minlength(n)</code></td>
+    <td><code>{s:minlength(3)}</code></td>
+    <td>Строка длиной ≥ n</td>
+  </tr>
+  <tr>
+    <td><code>maxlength(n)</code></td>
+    <td><code>{s:maxlength(10)}</code></td>
+    <td>Строка длиной ≤ n</td>
+  </tr>
+  <tr>
+    <td><code>length(n)</code> / <code>length(min,max)</code></td>
+    <td><code>{s:length(4,8)}</code></td>
+    <td>Строка длиной ровно n или в диапазоне</td>
+  </tr>
+  <tr>
+    <td><code>min(n)</code></td>
+    <td><code>{age:min(18)}</code></td>
+    <td>Целое ≥ n</td>
+  </tr>
+  <tr>
+    <td><code>max(n)</code></td>
+    <td><code>{age:max(150)}</code></td>
+    <td>Целое ≤ n</td>
+  </tr>
+  <tr>
+    <td><code>range(min,max)</code></td>
+    <td><code>{page:range(1,100)}</code></td>
+    <td>Целое в диапазоне</td>
+  </tr>
+  <tr>
+    <td><code>regex(expr)</code></td>
+    <td><code>{code:regex(^\\d{{4}}$)}</code></td>
+    <td>Совпадение с регулярным выражением</td>
+  </tr>
+</table>
+
+<div class="note"><strong>Route constraints — это не валидация.</strong> Они только определяют, совпадает ли URL с маршрутом. Если ограничение не выполнено, роутер переходит к следующему маршруту (или возвращает 404). Для бизнес-валидации значений используйте Data Annotations или FluentValidation.</div>
+
+<!-- ============================================================ -->
+<h2>4.4 Route Values</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Route values — это словарь пар ключ/значение, который роутер извлекает из URL после сопоставления с шаблоном. Они автоматически подставляются в параметры action-метода через Model Binding.</p>
+
+<pre>// Как работают route values
+
+// Шаблон контроллера: "api/chats"
+// Шаблон action:     "{chatId:guid}/messages"
+// Итоговый шаблон:   "api/chats/{chatId:guid}/messages"
+
+// Запрос: GET /api/chats/3fa85f64-5717-4562-b3fc-2c963f66afa6/messages?limit=50
+
+// Route values (из пути URL):
+// { "chatId": "3fa85f64-5717-4562-b3fc-2c963f66afa6" }
+
+// Query string values (из ?limit=50):
+// { "limit": "50" }
+
+// Model Binding автоматически сопоставит:
+[HttpGet("{chatId:guid}/messages")]
+public async Task&lt;IActionResult&gt; GetMessages(
+    Guid chatId,          // ← из route values: "3fa85f64-..."  → Guid
+    int limit = 50,       // ← из query string: "50" → int  (дефолт 50 если нет)
+    DateTime? before = null) // ← из query string: отсутствует → null
+{ }
+
+// Доступ к route values напрямую (если не используете параметры):
+var chatId = HttpContext.GetRouteValue("chatId"); // object?
+// или через RouteData:
+var chatId2 = RouteData.Values["chatId"];
+</pre>
+
+<!-- ============================================================ -->
+<h2>4.5 HTTP Verb Attributes — маршрутизация в Web API</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> В Web API маршрут складывается из двух атрибутов:</p>
+<ul>
+  <li><code>[Route("...")]</code> на контроллере — задаёт базовый prefix</li>
+  <li>HTTP-атрибут на методе (<code>[HttpGet]</code>, <code>[HttpPost]</code> и т.д.) — задаёт HTTP-метод и суффикс пути</li>
+</ul>
+
+<pre>// Полная таблица HTTP verb атрибутов
+// [HttpGet]    → GET    — получение ресурса
+// [HttpPost]   → POST   — создание ресурса
+// [HttpPut]    → PUT    — полное обновление
+// [HttpPatch]  → PATCH  — частичное обновление
+// [HttpDelete] → DELETE — удаление
+// [HttpHead]   → HEAD   — заголовки без тела
+// [HttpOptions]→ OPTIONS— используется браузером для CORS preflight
+
+// ─── Примеры из всех контроллеров WebMessenger ───
+
+// AuthController — [Route("api/auth")]
+[HttpPost("register")]    // POST /api/auth/register
+[HttpPost("login")]       // POST /api/auth/login
+[HttpGet("verify")]       // GET  /api/auth/verify
+[HttpPost("logout")]      // POST /api/auth/logout
+
+// ChatController — [Route("api/chats")]
+[HttpGet]                             // GET  /api/chats
+[HttpGet("{chatId:guid}/header")]     // GET  /api/chats/{chatId}/header
+[HttpGet("direct/{userId:guid}/header")] // GET  /api/chats/direct/{userId}/header
+[HttpGet("{chatId:guid}/messages")]   // GET  /api/chats/{chatId}/messages
+[HttpPost("direct/{userId:guid}/messages")] // POST /api/chats/direct/{userId}/messages
+[HttpPost("{chatId:guid}/read")]      // POST /api/chats/{chatId}/read
+
+// ContactController — [Route("api/contacts")]
+[HttpGet]                 // GET  /api/contacts
+[HttpPost("add")]         // POST /api/contacts/add
+
+// UserController — [Route("api/users")]
+[HttpGet]                 // GET  /api/users?query=alice&limit=10
+[HttpGet("profile")]      // GET  /api/users/profile
+[HttpGet("profile/{id:guid}")] // GET /api/users/profile/{id}
+[HttpPut("profile")]      // PUT  /api/users/profile
+[HttpPost("avatar")]      // POST /api/users/avatar
+</pre>
+
+<h3>Комбинирование шаблонов контроллера и action</h3>
+
+<pre>// Шаблоны объединяются: [Route на контроллере] + [HttpVerb на методе]
+
+// Спецсимволы в шаблоне action:
+// ""              — конкатенация: "api/chats" + "" = "api/chats"
+// "path"          — "api/chats" + "/" + "path" = "api/chats/path"
+// "/absolute"     — абсолютный путь, игнорирует шаблон контроллера
+// "~/absolute"    — тоже абсолютный путь (тильда-слэш)
+
+[ApiController]
+[Route("api/chats")]
+public class ChatController : ControllerBase
+{
+    [HttpGet]               // итог: GET  api/chats
+    [HttpGet("")]           // итог: GET  api/chats  (эквивалентно)
+
+    [HttpGet("list")]       // итог: GET  api/chats/list
+
+    [HttpGet("/ping")]      // итог: GET  /ping  (абсолютный — без префикса!)
+
+    [HttpGet("~/health")]   // итог: GET  /health (абсолютный через ~/...)
+}
+
+// Несколько атрибутов на одном методе — множественные маршруты:
+[HttpGet("{id:int}")]
+[HttpGet("{name:alpha}")]
+public IActionResult GetUser(string? name = null, int id = 0) { }
+// Доступен по обоим маршрутам: /users/42  и  /users/alice
+</pre>
+
+<!-- ============================================================ -->
+<h2>4.6 Разрешение конфликтов маршрутов</h2>
+<!-- ============================================================ -->
+
+<p>Если два маршрута могут совпасть с одним URL, ASP.NET Core пытается выбрать наиболее специфичный. Если оба одинаково специфичны — бросает <code>AmbiguousMatchException</code>.</p>
+
+<pre>// Пример конфликта:
+[HttpGet("{chatId:guid}/header")]        // (1)
+[HttpGet("direct/{userId:guid}/header")] // (2)
+// GET /api/chats/direct/3fa85f64.../header
+//   → роутер сначала пробует (1): "direct" не является GUID → не совпадает
+//   → переходит к (2): "direct" = литерал → совпадает ✓
+
+// Почему это работает:
+// Constraint :guid на {chatId} делает маршрут (1) более строгим.
+// "direct" не является валидным GUID, значит (1) не совпадает — нет конфликта.
+
+// Потенциальный конфликт (если убрать :guid):
+[HttpGet("{chatId}/header")]          // (1) без ограничения
+[HttpGet("direct/{userId}/header")]   // (2)
+// GET /api/chats/direct/abc/header — AmbiguousMatchException!
+// Оба подходят: в (1) chatId="direct", userId="abc" — нет.
+// На самом деле (2) победит как более специфичный (литерал "direct").
+// Но это неявно — всегда используйте :guid / :int для большей ясности.
+</pre>
+
+<!-- ============================================================ -->
+<h2>4.7 URL Generation — генерация URL</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> ASP.NET Core позволяет программно генерировать URL по имени маршрута или ссылке на action. Это избавляет от хардкода строк URL и обеспечивает согласованность при изменении маршрутов.</p>
+
+<pre>// Три способа генерации URL:
+
+// ─── 1. IUrlHelper (в контроллере: this.Url) ───
+// Генерация URL к конкретному action:
+string? url = Url.Action(
+    action: "GetChatHeader",
+    controller: "Chat",
+    values: new { chatId = Guid.NewGuid() });
+// Результат: "/api/chats/3fa85f64-.../header"
+
+// Генерация абсолютного URL:
+string? absUrl = Url.Action("GetChatHeader", "Chat",
+    new { chatId = id }, Request.Scheme);
+// Результат: "https://localhost:5227/api/chats/.../header"
+
+// ─── 2. LinkGenerator (из DI — работает вне контроллера) ───
+public class NotificationService(LinkGenerator linkGenerator)
+{
+    public string GetChatUrl(Guid chatId)
+    {
+        // GetPathByAction — генерирует относительный путь
+        return linkGenerator.GetPathByAction(
+            action: "GetChatHeader",
+            controller: "Chat",
+            values: new { chatId })
+            ?? throw new InvalidOperationException("Cannot generate URL");
+    }
+
+    public string GetAbsoluteChatUrl(HttpContext ctx, Guid chatId)
+    {
+        // GetUriByAction — генерирует абсолютный URI
+        return linkGenerator.GetUriByAction(ctx,
+            action: "GetChatHeader",
+            controller: "Chat",
+            values: new { chatId })!;
+    }
+}
+
+// ─── 3. CreatedAtAction / CreatedAtRoute (в контроллере) ───
+// Используется при POST-создании ресурса: возвращает 201 Created
+// с заголовком Location, указывающим на новый ресурс.
+[HttpPost]
+public async Task&lt;IActionResult&gt; CreateChat([FromBody] CreateChatDto dto)
+{
+    var chat = await _chatService.CreateChatAsync(dto);
+
+    return CreatedAtAction(
+        actionName: nameof(GetChatHeader),  // ссылка на action для Location header
+        routeValues: new { chatId = chat.Id },
+        value: chat);
+    // HTTP 201 Created
+    // Location: /api/chats/3fa85f64-.../header
+}
+</pre>
+
+<!-- ============================================================ -->
+<h2>4.8 Специальные атрибуты маршрутизации</h2>
+<!-- ============================================================ -->
+
+<h3>[ApiController] и его влияние на роутинг</h3>
+
+<p>Атрибут <code>[ApiController]</code> включает несколько автоматических поведений, специфичных для Web API:</p>
+
+<table>
+  <tr>
+    <th>Поведение</th>
+    <th>Что делает</th>
+  </tr>
+  <tr>
+    <td>Обязательный Attribute Routing</td>
+    <td>Контроллер с <code>[ApiController]</code> обязан иметь <code>[Route]</code> — convention routing недоступен</td>
+  </tr>
+  <tr>
+    <td>Automatic Model Validation</td>
+    <td>При невалидной модели автоматически возвращает 400 Bad Request без ручной проверки <code>ModelState.IsValid</code></td>
+  </tr>
+  <tr>
+    <td>Binding Source Inference</td>
+    <td>Автоматически определяет источник параметров: сложные типы → <code>[FromBody]</code>, примитивы → <code>[FromQuery]</code> / <code>[FromRoute]</code></td>
+  </tr>
+  <tr>
+    <td>ProblemDetails для ошибок</td>
+    <td>400/validation ошибки возвращаются как <code>ValidationProblemDetails</code> (RFC 7807)</td>
+  </tr>
+</table>
+
+<pre>// Все контроллеры WebMessenger помечены [ApiController]:
+[ApiController]
+[Route("api/contacts")]
+public class ContactController : ControllerBase
+{
+    [HttpPost("add")]
+    public async Task&lt;IActionResult&gt; AddContact([FromBody] AddContactRequest request)
+    {
+        // Благодаря [ApiController]:
+        // Если AddContactRequest не прошёл валидацию (Data Annotations) —
+        // этот метод не будет вызван вообще!
+        // ASP.NET Core автоматически вернёт 400 с деталями ошибки.
+
+        // Без [ApiController] здесь нужна была бы ручная проверка:
+        // if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        // ...
+    }
+}
+</pre>
+
+<h3>[Route] с токеном [controller]</h3>
+
+<pre>// Токены в шаблонах — ссылки на имена из класса/метода:
+[Route("api/[controller]")]
+// [controller] → имя класса без суффикса "Controller"
+// ChatController → "chat"  (в нижнем регистре)
+// Итог: "api/chat"
+
+[Route("api/[controller]/[action]")]
+// [action] → имя метода
+// Используется в MVC-контроллерах с конвенциональным стилем
+
+// В WebMessenger используются явные строки (не токены):
+[Route("api/chats")]  // а не [Route("api/[controller]")]
+// Это предпочтительнее: рефакторинг класса не меняет URL
+</pre>
+
+<h3>Порядок приоритетов при выборе маршрута</h3>
+
+<pre>// Роутер выбирает маршрут по следующим критериям (от высокого к низкому):
+//
+// 1. Точное совпадение литеральных сегментов (без параметров) — наивысший приоритет
+//    /api/contacts/add  совпадает буквально — выбирается первым
+//
+// 2. Параметры с ограничениями (constraints) — выше чем без
+//    {chatId:guid}  >  {chatId}
+//
+// 3. Параметры без ограничений
+//    {id}
+//
+// 4. Catch-all параметры — наименьший приоритет
+//    {**rest}
+
+// Пример из ChatController:
+// GET /api/chats/direct/3fa85f64.../header
+
+// Маршрут A: "{chatId:guid}/header"      — chatId=guid? "direct" не GUID → MISS
+// Маршрут B: "direct/{userId:guid}/header" — "direct"=literal ✓, userId=GUID ✓ → HIT ✓
+</pre>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>5. Validation</h1>
+<!-- ============================================================ -->
+
+<p>Валидация входящих данных — обязательная граница безопасности и корректности любого API. ASP.NET Core предоставляет встроенную систему Model Validation на основе Data Annotations, которая при наличии <code>[ApiController]</code> работает полностью автоматически.</p>
+
+<!-- ============================================================ -->
+<h2>5.1 Model Validation — когда и как происходит</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Model Validation — процесс проверки объекта, полученного из тела запроса (или других источников), на соответствие правилам, заданным атрибутами. Выполняется <em>автоматически после Model Binding</em> — то есть после того, как ASP.NET Core десериализовал тело запроса в объект параметра action-метода.</p>
+
+<p><strong>Порядок выполнения при входящем запросе:</strong></p>
+<ol>
+  <li>Kestrel принимает HTTP-запрос и создаёт <code>HttpContext</code></li>
+  <li>Middleware пайплайн (Auth, CORS и т.д.)</li>
+  <li>Роутер определяет action-метод</li>
+  <li><strong>Model Binding</strong> — читает тело запроса, заголовки, query string и создаёт объекты параметров</li>
+  <li><strong>Model Validation</strong> — проверяет созданные объекты по атрибутам, заполняет <code>ModelState</code></li>
+  <li>При <code>[ApiController]</code>: если <code>ModelState.IsValid == false</code> → автоматический ответ 400, action не вызывается</li>
+  <li>Выполняется action-метод</li>
+</ol>
+
+<pre>// Без [ApiController] — ручная проверка ModelState
+[HttpPost("register")]
+public async Task&lt;IActionResult&gt; Register([FromBody] RegisterDto dto)
+{
+    if (!ModelState.IsValid)
+        return BadRequest(ModelState);  // нужно явно проверять
+
+    // ... логика
+}
+
+// С [ApiController] — автоматически (WebMessenger использует этот вариант)
+[ApiController]
+[Route("api/auth")]
+public class AuthController : ControllerBase
+{
+    [HttpPost("register")]
+    public async Task&lt;IActionResult&gt; Register([FromBody] RegisterDto dto)
+    {
+        // Если RegisterDto невалиден — этот код НИКОГДА не выполнится.
+        // [ApiController] перехватывает запрос раньше и возвращает 400.
+        await _userService.RegisterUserAsync(dto);
+        return Ok(new { message = "Registration successful" });
+    }
+}
+</pre>
+
+<h3>ModelState — словарь состояния валидации</h3>
+
+<pre>// ModelState — IDictionary&lt;string, ModelStateEntry&gt;
+// Каждый ключ = имя поля, значение = список ошибок для этого поля
+
+// Пример ответа при автоматической валидации [ApiController]:
+// POST /api/auth/register с телом: { "username": "", "password": "12" }
+//
+// HTTP 400 Bad Request
+// {
+//   "type": "https://tools.ietf.org/html/rfc7807",
+//   "title": "One or more validation errors occurred.",
+//   "status": 400,
+//   "errors": {
+//     "Username": ["The Username field is required."],
+//     "Password": ["The field Password must be a string with a minimum length of 6."]
+//   }
+// }
+
+// Ручная работа с ModelState (когда нужна кастомная логика):
+if (!ModelState.IsValid)
+{
+    var errors = ModelState
+        .Where(e => e.Value?.Errors.Count > 0)
+        .ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+        );
+    return BadRequest(new { errors });
+}
+
+// Добавление ошибки вручную (бизнес-логика, не атрибутная):
+if (await _userService.IsUsernameExistsAsync(dto.Username))
+{
+    ModelState.AddModelError("Username", "Username already exists");
+    return BadRequest(ModelState);
+}
+</pre>
+
+<!-- ============================================================ -->
+<h2>5.2 Data Annotations</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Data Annotations — атрибуты из пространства имён <code>System.ComponentModel.DataAnnotations</code>, которые декларативно описывают правила валидации прямо в классе модели. WebMessenger активно использует их во всех DTO.</p>
+
+<h3>Все ключевые аннотации</h3>
+
+<table>
+  <tr>
+    <th>Атрибут</th>
+    <th>Назначение</th>
+    <th>Пример</th>
+  </tr>
+  <tr>
+    <td><code>[Required]</code></td>
+    <td>Поле обязательно (не null, не пустая строка)</td>
+    <td><code>[Required]</code></td>
+  </tr>
+  <tr>
+    <td><code>[MinLength(n)]</code></td>
+    <td>Минимальная длина строки или коллекции</td>
+    <td><code>[MinLength(6)]</code></td>
+  </tr>
+  <tr>
+    <td><code>[MaxLength(n)]</code></td>
+    <td>Максимальная длина строки или коллекции</td>
+    <td><code>[MaxLength(50)]</code></td>
+  </tr>
+  <tr>
+    <td><code>[StringLength(max)]</code></td>
+    <td>Длина строки от min до max</td>
+    <td><code>[StringLength(50, MinimumLength = 3)]</code></td>
+  </tr>
+  <tr>
+    <td><code>[Range(min, max)]</code></td>
+    <td>Числовое значение в диапазоне</td>
+    <td><code>[Range(1, 365)]</code></td>
+  </tr>
+  <tr>
+    <td><code>[EmailAddress]</code></td>
+    <td>Корректный формат email</td>
+    <td><code>[EmailAddress]</code></td>
+  </tr>
+  <tr>
+    <td><code>[Phone]</code></td>
+    <td>Корректный формат телефона</td>
+    <td><code>[Phone]</code></td>
+  </tr>
+  <tr>
+    <td><code>[Url]</code></td>
+    <td>Корректный абсолютный URL</td>
+    <td><code>[Url]</code></td>
+  </tr>
+  <tr>
+    <td><code>[RegularExpression(pattern)]</code></td>
+    <td>Совпадение с регулярным выражением</td>
+    <td><code>[RegularExpression(@"^\w+$")]</code></td>
+  </tr>
+  <tr>
+    <td><code>[Compare("OtherProp")]</code></td>
+    <td>Значение равно значению другого свойства</td>
+    <td><code>[Compare("Password")]</code></td>
+  </tr>
+  <tr>
+    <td><code>[CreditCard]</code></td>
+    <td>Номер кредитной карты (алгоритм Луна)</td>
+    <td><code>[CreditCard]</code></td>
+  </tr>
+  <tr>
+    <td><code>[EnumDataType(typeof(T))]</code></td>
+    <td>Значение принадлежит enum</td>
+    <td><code>[EnumDataType(typeof(Role))]</code></td>
+  </tr>
+  <tr>
+    <td><code>[AllowedValues(...)]</code></td>
+    <td>Одно из разрешённых значений (.NET 8+)</td>
+    <td><code>[AllowedValues("admin", "user")]</code></td>
+  </tr>
+  <tr>
+    <td><code>[DeniedValues(...)]</code></td>
+    <td>Запрещённые значения (.NET 8+)</td>
+    <td><code>[DeniedValues("root", "admin")]</code></td>
+  </tr>
+  <tr>
+    <td><code>[Length(min, max)]</code></td>
+    <td>Длина коллекции или строки в диапазоне (.NET 8+)</td>
+    <td><code>[Length(1, 10)]</code></td>
+  </tr>
+</table>
+
+<h3>Data Annotations в WebMessenger</h3>
+
+<pre>// WebMessenger.Contracts/Models/RegisterDto.cs
+public sealed record RegisterDto
+{
+    [Required]          // поле обязательно — null или "" → ошибка
+    [MaxLength(50)]     // username не длиннее 50 символов
+    public required string Username { get; init; }
+
+    [Required]
+    [MinLength(6)]      // пароль не короче 6 символов
+    [MaxLength(100)]
+    public required string Password { get; init; }
+}
+
+// WebMessenger.Contracts/Models/UpdateProfileDto.cs
+public sealed record UpdateProfileDto
+{
+    [MaxLength(50)]
+    public string? Username { get; init; }   // Optional — нет [Required]
+
+    [EmailAddress]      // встроенная проверка формата email
+    [MaxLength(255)]
+    public string? Email { get; init; }
+
+    [Phone]             // встроенная проверка формата телефона
+    [MaxLength(20)]
+    public string? PhoneNumber { get; init; }
+
+    [MaxLength(100)]
+    public string? FirstName { get; init; }
+
+    [MaxLength(500)]
+    public string? Bio { get; init; }
+
+    [Url]               // проверяет что это абсолютный URL (http:// или https://)
+    [MaxLength(255)]
+    public string? AvatarUrl { get; init; }
+}
+
+// WebMessenger.Contracts/Models/SendMessageRequest.cs
+public sealed record SendMessageRequest
+{
+    [Required]
+    [MaxLength(5000)]   // ограничение длины сообщения
+    public required string Content { get; init; }
+}
+
+// WebMessenger.Api/Options/JwtOptions.cs — Data Annotations для Options Pattern
+public class JwtOptions
+{
+    [Required]
+    [MinLength(32)]     // JWT ключ должен быть достаточно длинным для безопасности
+    public required string Key { get; init; }
+
+    [Required]
+    public required string Issuer { get; init; }
+
+    [Range(1, 365)]     // срок жизни токена: от 1 до 365 дней
+    public int ExpireDays { get; init; } = 1;
+}
+// Эти аннотации проверяются при старте приложения через .ValidateDataAnnotations()
+// Если Key короче 32 символов — приложение не запустится!
+</pre>
+
+<h3>Кастомный атрибут валидации</h3>
+
+<pre>// Когда встроенных атрибутов недостаточно — создаём свой,
+// наследуясь от ValidationAttribute
+
+// Абстрактный пример: проверка что username не содержит запрещённых слов
+public class NoProhibitedWordsAttribute : ValidationAttribute
+{
+    private static readonly string[] _prohibited = ["admin", "root", "system"];
+
+    protected override ValidationResult? IsValid(object? value, ValidationContext ctx)
+    {
+        if (value is string str)
+        {
+            var lower = str.ToLowerInvariant();
+            foreach (var word in _prohibited)
+            {
+                if (lower.Contains(word))
+                {
+                    return new ValidationResult(
+                        $"Username cannot contain '{word}'",
+                        new[] { ctx.MemberName! });
+                }
+            }
+        }
+        return ValidationResult.Success;
+    }
+}
+
+// Применение:
+public sealed record RegisterDto
+{
+    [Required]
+    [MaxLength(50)]
+    [NoProhibitedWords]   // ← наш кастомный атрибут
+    public required string Username { get; init; }
+    // ...
+}
+</pre>
+
+<h3>IValidatableObject — кросс-польная валидация</h3>
+
+<pre>// Когда валидация зависит от нескольких полей одновременно:
+public sealed record CreateChatDto : IValidatableObject
+{
+    [Required]
+    [MaxLength(100)]
+    public required string Name { get; init; }
+
+    public bool IsDirect { get; init; }
+
+    public IEnumerable&lt;Guid&gt; ParticipantIds { get; init; } = [];
+
+    public IEnumerable&lt;ValidationResult&gt; Validate(ValidationContext context)
+    {
+        // Кросс-польная логика: прямой чат должен иметь ровно одного участника
+        if (IsDirect && ParticipantIds.Count() != 1)
+        {
+            yield return new ValidationResult(
+                "Direct chat must have exactly one participant",
+                new[] { nameof(ParticipantIds) });
+        }
+
+        // Групповой чат должен иметь название
+        if (!IsDirect && string.IsNullOrWhiteSpace(Name))
+        {
+            yield return new ValidationResult(
+                "Group chat must have a name",
+                new[] { nameof(Name) });
+        }
+    }
+}
+// IValidatableObject.Validate() вызывается ПОСЛЕ всех атрибутов прошли проверку.
+// Если атрибуты уже нашли ошибки — Validate() по умолчанию не вызывается.
+</pre>
+
+<!-- ============================================================ -->
+<h2>5.3 API Auto-Validation с [ApiController]</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что происходит автоматически.</strong> Атрибут <code>[ApiController]</code> регистрирует в пайплайне MVC фильтр <code>ModelStateInvalidFilter</code>, который выполняется <em>до</em> вызова action-метода. Если <code>ModelState.IsValid == false</code> — фильтр формирует ответ <code>ValidationProblemDetails</code> (HTTP 400) и короткозамкает цепочку.</p>
+
+<pre>// Поведение [ApiController] + [Required]:
+// POST /api/auth/register
+// Body: { "password": "abc" }  — нет поля username
+//
+// Model Binding: username = null (поле отсутствует в JSON)
+// Validation: [Required] на Username → ошибка
+// ModelStateInvalidFilter: ModelState.IsValid = false → 400
+
+// Автоматический ответ (ValidationProblemDetails):
+// {
+//   "type": "https://tools.ietf.org/html/rfc7807",
+//   "title": "One or more validation errors occurred.",
+//   "status": 400,
+//   "traceId": "00-abc123...",
+//   "errors": {
+//     "Username": [ "The Username field is required." ]
+//   }
+// }
+// ↑ traceId добавляется через builder.Services.AddProblemDetails()
+//   в Program.cs WebMessenger (ProblemDetails.Extensions["traceId"])
+
+// Кастомизация автоматического ответа:
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+                );
+
+            return new BadRequestObjectResult(new
+            {
+                type = "validation_error",
+                errors
+            });
+        };
+
+        // Отключить автовалидацию (если нужно делать вручную):
+        // options.SuppressModelStateInvalidFilter = true;
+    });
+</pre>
+
+<div class="note"><strong>В WebMessenger</strong> все контроллеры используют <code>[ApiController]</code>, поэтому автовалидация активна по умолчанию. Дополнительная ручная бизнес-логика (например, проверка уникальности username) делается явно внутри action-метода после прохождения автовалидации.</div>
+
+<!-- ============================================================ -->
+<h2>5.4 Валидация вне Model Binding — ручной вызов Validator</h2>
+<!-- ============================================================ -->
+
+<p>Иногда нужно провалидировать объект вне HTTP-запроса — в тестах, в фоновых сервисах или при ручном создании объекта. Для этого используется <code>System.ComponentModel.DataAnnotations.Validator</code>.</p>
+
+<pre>// WebMessenger.Contracts.Tests/Unit/Validation/LoginDtoValidationTests.cs
+// Именно так устроены тесты валидации DTO в проекте:
+
+private static List&lt;ValidationResult&gt; Validate(object model)
+{
+    var results = new List&lt;ValidationResult&gt;();
+    var ctx     = new ValidationContext(model);
+
+    // validateAllProperties: true — проверять ВСЕ свойства, не только [Required]
+    Validator.TryValidateObject(model, ctx, results, validateAllProperties: true);
+    return results;
+}
+
+[Fact]
+public void LoginDto_AllFieldsProvided_NoValidationErrors()
+{
+    var dto = new LoginDto { Username = "alice", Password = "P@ss1" };
+    var errors = Validate(dto);
+    Assert.Empty(errors);  // нет ошибок
+}
+
+[Fact]
+public void RegisterDto_PasswordTooShort_FailsValidation()
+{
+    var dto = new RegisterDto { Username = "alice", Password = "12" };
+    var errors = Validate(dto);
+
+    // Ожидаем ошибку по полю Password ([MinLength(6)] не выполнен)
+    Assert.Contains(errors, e => e.MemberNames.Contains("Password"));
+}
+
+// Методы Validator:
+// Validator.TryValidateObject()   — возвращает bool, заполняет список ошибок
+// Validator.ValidateObject()      — бросает ValidationException при первой ошибке
+// Validator.TryValidateProperty() — проверяет одно свойство
+// Validator.ValidateProperty()    — то же, но бросает исключение
+</pre>
+
+<!-- ============================================================ -->
+<h2>5.5 Тонкости и подводные камни</h2>
+<!-- ============================================================ -->
+
+<h3>required vs [Required]</h3>
+
+<pre>// C# 11 ввёл ключевое слово required для свойств и полей.
+// Это НЕ то же самое, что [Required] атрибут.
+
+public sealed record RegisterDto
+{
+    // required (C# keyword) — compile-time: свойство обязательно задать
+    // при инициализации объекта. Нарушение → ошибка компилятора.
+    public required string Username { get; init; }
+
+    // [Required] (Data Annotation) — runtime: значение не должно быть null/"".
+    // Нарушение → ошибка в ModelState при валидации HTTP-запроса.
+    [Required]
+    public string Username2 { get; init; } = "";
+}
+
+// В WebMessenger оба используются вместе:
+public sealed record RegisterDto
+{
+    [Required]          // ← runtime: ASP.NET Core ModelState валидация
+    [MaxLength(50)]
+    public required string Username { get; init; }  // ← compile-time: нельзя забыть задать
+}
+// required гарантирует что объект создан корректно в коде (тесты, сервисы).
+// [Required] гарантирует что данные из HTTP-запроса не пустые.
+</pre>
+
+<h3>[Required] и null vs пустая строка</h3>
+
+<pre>// [Required] по умолчанию не считает пустую строку ошибкой!
+// Пустая строка и null — разные вещи для [Required].
+
+// Чтобы запретить и null, и "":
+[Required]
+public string Name { get; set; } = "";
+// По умолчанию "" проходит Required. Чтобы запретить:
+
+// Вариант 1: MinLength(1)
+[Required]
+[MinLength(1)]
+public string Name { get; set; } = "";
+
+// Вариант 2: AllowEmptyStrings = false (явно)
+[Required(AllowEmptyStrings = false)]
+public string Name { get; set; } = "";
+
+// Вариант 3 (.NET 6+): настройка глобально
+builder.Services.AddControllers(options =>
+{
+    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = false;
+    // При Nullable enable — non-nullable string? автоматически получает [Required]
+});
+</pre>
+
+<h3>Валидация вложенных объектов</h3>
+
+<pre>// По умолчанию Data Annotations НЕ валидируют вложенные объекты рекурсивно.
+// Для вложенной валидации нужен явный атрибут или кастомный подход.
+
+public class OrderDto
+{
+    [Required]
+    public string OrderNumber { get; set; } = "";
+
+    // Вложенный объект — его атрибуты NOT проверяются автоматически!
+    public AddressDto? ShippingAddress { get; set; }
+}
+
+// Решение — атрибут [ValidateNever] / явная рекурсия:
+// Или использовать FluentValidation (популярная альтернатива Data Annotations)
+// для более сложных сценариев вложенной валидации.
+
+// В WebMessenger вложенная валидация не нужна — все DTO «плоские».
+</pre>
+
+<h3>Client-Side Validation</h3>
+
+<p>В Web API (JSON) клиентская валидация полностью реализуется на стороне фронтенда — ASP.NET Core не генерирует JavaScript для валидации (это функция Razor Pages / MVC с Unobtrusive Validation). Однако контракт Data Annotations можно переиспользовать:</p>
+
+<ul>
+  <li><strong>Swagger/OpenAPI</strong> — аннотации автоматически отражаются в OpenAPI-схеме: <code>[MaxLength(50)]</code> → <code>maxLength: 50</code>, <code>[Required]</code> → поле попадает в <code>required: [...]</code>. Клиент может генерировать типизированный код с учётом этих ограничений.</li>
+  <li><strong>Ранняя валидация на клиенте</strong> — в Next.js (WebMessenger Client) формы используют собственную клиентскую валидацию через state/библиотеки, зеркалируя правила, заданные в DTO.</li>
+  <li><strong>Двойная валидация</strong> — клиентская валидация улучшает UX, серверная — обязательна для безопасности. Никогда нельзя полагаться только на клиентскую сторону.</li>
+</ul>
+
+<pre>// Как [MaxLength] отражается в Swagger-схеме:
+// RegisterDto.Username:
+//   [Required] [MaxLength(50)]
+//   →
+// "Username": {
+//   "type": "string",
+//   "maxLength": 50,
+//   "minLength": 0
+// }
+// "required": ["Username", "Password"]
+
+// Что Swashbuckle (Swagger) распознаёт автоматически:
+// [Required]        → поле в секции required
+// [MinLength(n)]    → minLength
+// [MaxLength(n)]    → maxLength
+// [Range(min,max)]  → minimum + maximum
+// [EmailAddress]    → format: email
+// [Url]             → format: uri
+// [RegularExpression] → pattern
+</pre>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>6. Exception Handling</h1>
+<!-- ============================================================ -->
+
+<p>Необработанные исключения — неизбежная часть любого приложения. ASP.NET Core предоставляет несколько уровней их перехвата: от страницы с деталями исключения для разработчика до глобального обработчика с форматированием ответа по RFC 7807 (ProblemDetails). WebMessenger использует оба подхода согласованно.</p>
+
+<!-- ============================================================ -->
+<h2>6.1 Что происходит без обработчика исключений</h2>
+<!-- ============================================================ -->
+
+<p>Если в action-методе или middleware выбрасывается исключение, которое никто не перехватил — Kestrel возвращает пустой ответ с кодом <strong>500 Internal Server Error</strong> без тела. Клиент получает бесполезный пустой ответ, а информация об ошибке теряется. Именно для этого настраивают обработчики исключений.</p>
+
+<!-- ============================================================ -->
+<h2>6.2 Developer Exception Page</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> <code>UseDeveloperExceptionPage()</code> — middleware, которое перехватывает необработанные исключения и возвращает HTML-страницу с полным стеком вызовов, информацией о запросе, переменными окружения и query string. Предназначено <strong>исключительно для разработки</strong>.</p>
+
+<pre>// Явная активация (исторический стиль, до .NET 6):
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+
+// Начиная с .NET 6: Developer Exception Page активируется АВТОМАТИЧЕСКИ
+// в Development-окружении — явно писать не надо.
+// Это поведение встроено в WebApplication.
+
+// Чтобы ОТКЛЮЧИТЬ автоматическую Developer Exception Page:
+app.UseDeveloperExceptionPage(); // вызов вне if(IsDevelopment()) НЕ рекомендуется!
+// или через настройку:
+builder.WebHost.UseSetting("detailedErrors", "false");
+</pre>
+
+<p><strong>Что показывает Developer Exception Page:</strong></p>
+<ul>
+  <li>Тип исключения и сообщение</li>
+  <li>Полный стек вызовов с кликабельными ссылками на файлы исходного кода</li>
+  <li>Информацию о запросе: метод, путь, заголовки, cookies, query string</li>
+  <li>Переменные окружения (ASPNETCORE_ENVIRONMENT и др.)</li>
+</ul>
+
+<div class="warn"><strong>Никогда не включайте Developer Exception Page в production!</strong> Стек вызовов раскрывает внутреннее устройство приложения, пути к файлам, версии библиотек — это ценная информация для злоумышленника.</div>
+
+<!-- ============================================================ -->
+<h2>6.3 Global Exception Handling — UseExceptionHandler</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> <code>UseExceptionHandler()</code> — production-ready middleware для глобальной обработки необработанных исключений. Перехватывает любое исключение из последующих middleware и action-методов, формирует структурированный ответ и предотвращает утечку деталей реализации.</p>
+
+<p><strong>Как работает.</strong> При вызове без аргументов (<code>app.UseExceptionHandler()</code>) ASP.NET Core использует ProblemDetails-ответ, который настраивается через <code>AddProblemDetails()</code> в DI-контейнере.</p>
+
+<pre>// WebMessenger.Api/Program.cs — реальная конфигурация:
+
+// 1. Регистрация ProblemDetails-сервиса с кастомизацией
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        // Добавляем traceId в каждый ProblemDetails-ответ.
+        // TraceIdentifier — уникальный ID запроса от Kestrel.
+        // Позволяет сопоставить ответ клиента с записью в логах.
+        context.ProblemDetails.Extensions["traceId"] =
+            context.HttpContext.TraceIdentifier;
+    };
+});
+
+// 2. Использование обработчика в пайплайне
+app.UseExceptionHandler();
+// ↑ Без аргументов: использует встроенный ProblemDetails handler.
+//   Перехватывает ВСЕ необработанные исключения.
+//   Должен стоять как можно раньше в пайплайне — до всех остальных middleware,
+//   которые могут выбросить исключение.
+</pre>
+
+<h3>Что возвращает UseExceptionHandler при необработанном исключении</h3>
+
+<pre>// Пример: в action-методе выбросилось исключение, не пойманное try/catch
+
+// HTTP 500 Internal Server Error
+// Content-Type: application/problem+json
+// {
+//   "type": "https://tools.ietf.org/html/rfc7807",
+//   "title": "An error occurred while processing your request.",
+//   "status": 500,
+//   "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+// }
+// ↑ traceId добавлен нашей кастомизацией из Program.cs.
+//   Детали исключения (стек, сообщение) НЕ включены — безопасно для production.
+</pre>
+
+<h3>UseExceptionHandler с явным путём (старый стиль)</h3>
+
+<pre>// Вариант: перенаправление на отдельный эндпоинт для обработки ошибки
+app.UseExceptionHandler("/error");
+
+// Необходим соответствующий controller/action:
+[ApiController]
+public class ErrorController : ControllerBase
+{
+    [Route("/error")]
+    [HttpGet]
+    public IActionResult Error()
+    {
+        var feature = HttpContext.Features.Get&lt;IExceptionHandlerFeature&gt;();
+        var exception = feature?.Error;
+
+        // Логируем исключение
+        // _logger.LogError(exception, "Unhandled exception");
+
+        return Problem(
+            title: "An error occurred",
+            statusCode: StatusCodes.Status500InternalServerError
+        );
+    }
+}
+
+// В WebMessenger используется более современный вариант без явного пути:
+// app.UseExceptionHandler() + AddProblemDetails() — рекомендуется для .NET 7+
+</pre>
+
+<h3>UseExceptionHandler с лямбдой (тонкая настройка)</h3>
+
+<pre>// Полный контроль над обработкой — лямбда вместо пути
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exceptionFeature = context.Features.Get&lt;IExceptionHandlerFeature&gt;();
+        var exception = exceptionFeature?.Error;
+
+        // Кастомная логика в зависимости от типа исключения:
+        var (statusCode, title) = exception switch
+        {
+            UnauthorizedAccessException => (403, "Access denied"),
+            KeyNotFoundException        => (404, "Resource not found"),
+            ArgumentException           => (400, "Invalid request"),
+            _                           => (500, "Internal server error")
+        };
+
+        context.Response.StatusCode = statusCode;
+        context.Response.ContentType = "application/problem+json";
+
+        await context.Response.WriteAsJsonAsync(new
+        {
+            type    = $"https://httpstatuses.com/{statusCode}",
+            title,
+            status  = statusCode,
+            traceId = context.TraceIdentifier
+        });
+    });
+});
+</pre>
+
+<!-- ============================================================ -->
+<h2>6.4 ProblemDetails — стандарт RFC 7807</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> <code>ProblemDetails</code> — стандартизированный формат ответа об ошибке, описанный в RFC 7807 (Problem Details for HTTP APIs). ASP.NET Core поддерживает его из коробки начиная с .NET 7. Вместо произвольных JSON-структур вида <code>{ "message": "..." }</code> клиент всегда получает предсказуемый формат.</p>
+
+<h3>Структура ProblemDetails</h3>
+
+<table>
+  <tr>
+    <th>Поле</th>
+    <th>Тип</th>
+    <th>Назначение</th>
+    <th>Обязательно</th>
+  </tr>
+  <tr>
+    <td><code>type</code></td>
+    <td>string (URI)</td>
+    <td>Тип проблемы — ссылка на документацию. Может быть URL или URN.</td>
+    <td>Нет</td>
+  </tr>
+  <tr>
+    <td><code>title</code></td>
+    <td>string</td>
+    <td>Краткое, человекочитаемое описание типа проблемы. Не меняется для одного типа.</td>
+    <td>Нет</td>
+  </tr>
+  <tr>
+    <td><code>status</code></td>
+    <td>int</td>
+    <td>HTTP-статус-код</td>
+    <td>Нет</td>
+  </tr>
+  <tr>
+    <td><code>detail</code></td>
+    <td>string</td>
+    <td>Детали конкретного экземпляра ошибки. Может содержать специфику, безопасную для клиента.</td>
+    <td>Нет</td>
+  </tr>
+  <tr>
+    <td><code>instance</code></td>
+    <td>string (URI)</td>
+    <td>Ссылка на конкретный экземпляр проблемы</td>
+    <td>Нет</td>
+  </tr>
+  <tr>
+    <td><code>extensions</code></td>
+    <td>dictionary</td>
+    <td>Произвольные расширения. WebMessenger добавляет <code>traceId</code>.</td>
+    <td>Нет</td>
+  </tr>
+</table>
+
+<pre>// Примеры ProblemDetails-ответов
+
+// --- 500: необработанное исключение (UseExceptionHandler + AddProblemDetails) ---
+{
+    "type": "https://tools.ietf.org/html/rfc7807",
+    "title": "An error occurred while processing your request.",
+    "status": 500,
+    "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+}
+
+// --- 400: ошибки валидации ([ApiController] + ValidationProblemDetails) ---
+{
+    "type": "https://tools.ietf.org/html/rfc7807",
+    "title": "One or more validation errors occurred.",
+    "status": 400,
+    "traceId": "00-abc123...",
+    "errors": {
+        "Username": ["The Username field is required."],
+        "Password": ["The field Password must be a string with a minimum length of 6."]
+    }
+}
+// ↑ ValidationProblemDetails — подкласс ProblemDetails с полем errors
+
+// --- Явный возврат Problem() из контроллера ---
+return Problem(
+    title:      "Chat not found",
+    detail:     $"Chat with id {chatId} does not exist or you are not a member",
+    statusCode: 404,
+    type:       "https://example.com/errors/chat-not-found"
+);
+
+// --- TypedResults.Problem для Minimal API ---
+return TypedResults.Problem(
+    title: "Forbidden",
+    statusCode: 403
+);
+</pre>
+
+<h3>Конфигурация AddProblemDetails в WebMessenger</h3>
+
+<pre>// WebMessenger.Api/Program.cs
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        // Добавление traceId — позволяет клиенту передать ID в поддержку,
+        // а инженеру найти нужную запись в логах Serilog по этому же ID
+        context.ProblemDetails.Extensions["traceId"] =
+            context.HttpContext.TraceIdentifier;
+
+        // Дополнительные расширения (примеры):
+        // context.ProblemDetails.Extensions["nodeId"] = Environment.MachineName;
+        // context.ProblemDetails.Extensions["env"] = context.HttpContext
+        //     .RequestServices.GetRequiredService&lt;IHostEnvironment&gt;().EnvironmentName;
+    };
+});
+
+// Что это даёт:
+// 1. ВСЕ ответы об ошибках (400, 404, 500...) будут в формате ProblemDetails
+// 2. traceId в каждом ответе — клиент видит его, инженер ищет по нему в логах
+// 3. Консистентный формат — клиентский код обрабатывает ошибки единообразно
+</pre>
+
+<!-- ============================================================ -->
+<h2>6.5 Обработка исключений в контроллерах WebMessenger</h2>
+<!-- ============================================================ -->
+
+<p>В текущей реализации WebMessenger контроллеры используют ручной подход: каждый action-метод оборачивает логику в <code>try/catch</code>. Это явная стратегия — понять её плюсы и минусы важно.</p>
+
+<pre>// WebMessenger.Api/Controllers/ChatController.cs — типичный паттерн
+[HttpGet("{chatId:guid}/messages")]
+public async Task&lt;ActionResult&lt;PagedResult&lt;ChatMessageDto&gt;&gt;&gt; GetMessages(
+    Guid chatId, int limit = 50, DateTime? before = null)
+{
+    try
+    {
+        var page = await _chatService.GetMessagesAsync(_currentUser.Id, chatId, limit, before);
+        return Ok(page);
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+        // Бизнес-исключение: попытка доступа к чужому чату
+        // Логируем как Warning (не ошибка системы — ошибка пользователя)
+        _logger.LogWarning(ex, "User {UserId} attempted to access messages in chat {ChatId} without membership",
+            _currentUser.Id, chatId);
+        return Forbid(); // 403
+    }
+    catch (Exception ex)
+    {
+        // Непредвиденная ошибка: логируем как Error
+        _logger.LogError(ex, "Error fetching messages for chat {ChatId}, user {UserId}",
+            chatId, _currentUser.Id);
+        return StatusCode(500, new { message = "An error occurred while fetching messages" });
+    }
+}
+</pre>
+
+<h3>Плюсы и минусы ручного try/catch в каждом action</h3>
+
+<table>
+  <tr>
+    <th></th>
+    <th>Плюсы</th>
+    <th>Минусы</th>
+  </tr>
+  <tr>
+    <td><strong>Ручной try/catch</strong></td>
+    <td>Явный контроль над каждым исключением, гранулярное логирование с контекстом (UserId, ChatId)</td>
+    <td>Дублирование кода, легко забыть оборачивать, inconsistency форматов ответов между контроллерами</td>
+  </tr>
+  <tr>
+    <td><strong>Глобальный обработчик</strong></td>
+    <td>Нет дублирования, единый формат ответа, контроллеры чище</td>
+    <td>Меньше контекста в логах (нет userId/chatId), сложнее дифференцировать типы ошибок</td>
+  </tr>
+  <tr>
+    <td><strong>Exception Filter (MVC)</strong></td>
+    <td>Работает в MVC-контексте, есть доступ к ActionContext, можно задать по scope</td>
+    <td>Не перехватывает ошибки в middleware</td>
+  </tr>
+</table>
+
+<h3>Альтернатива: централизованная обработка через Exception Filter</h3>
+
+<pre>// Пример глобального Exception Filter, который можно добавить в WebMessenger
+// для замены повторяющихся try/catch блоков:
+
+public class GlobalApiExceptionFilter : IExceptionFilter
+{
+    private readonly ILogger&lt;GlobalApiExceptionFilter&gt; _logger;
+
+    public GlobalApiExceptionFilter(ILogger&lt;GlobalApiExceptionFilter&gt; logger)
+    {
+        _logger = logger;
+    }
+
+    public void OnException(ExceptionContext context)
+    {
+        // Логируем с контекстом из ActionContext
+        var actionName = context.ActionDescriptor.DisplayName;
+        _logger.LogError(context.Exception, "Unhandled exception in {Action}", actionName);
+
+        // Дифференцируем ответ по типу исключения
+        var (statusCode, title) = context.Exception switch
+        {
+            UnauthorizedAccessException => (403, "Access denied"),
+            KeyNotFoundException        => (404, "Resource not found"),
+            ArgumentException           => (400, "Invalid argument"),
+            _                           => (500, "Internal server error")
+        };
+
+        context.Result = new ObjectResult(new ProblemDetails
+        {
+            Status = statusCode,
+            Title  = title
+        })
+        { StatusCode = statusCode };
+
+        context.ExceptionHandled = true;
+    }
+}
+
+// Регистрация глобально:
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add&lt;GlobalApiExceptionFilter&gt;();
+});
+</pre>
+
+<div class="note"><strong>В WebMessenger</strong> применяется комбинированный подход: <code>UseExceptionHandler()</code> как последний рубеж обороны для действительно непойманных исключений + ручные <code>try/catch</code> в контроллерах для явного контекстного логирования. <code>AddProblemDetails()</code> с <code>traceId</code> обеспечивает прослеживаемость ошибок между клиентом и логами.</div>
+
+<!-- ============================================================ -->
+<h2>6.6 Полная схема обработки ошибок в WebMessenger</h2>
+<!-- ============================================================ -->
+
+<table>
+  <tr>
+    <th>Уровень</th>
+    <th>Что перехватывает</th>
+    <th>Как настроено</th>
+    <th>Формат ответа</th>
+  </tr>
+  <tr>
+    <td>Serilog try/catch</td>
+    <td>Краш при старте приложения</td>
+    <td><code>try { app.Run() } catch { Log.Fatal() }</code></td>
+    <td>Нет (приложение падает)</td>
+  </tr>
+  <tr>
+    <td>UseExceptionHandler</td>
+    <td>Все необработанные исключения в пайплайне</td>
+    <td><code>app.UseExceptionHandler()</code> + <code>AddProblemDetails()</code></td>
+    <td>ProblemDetails JSON 500 + traceId</td>
+  </tr>
+  <tr>
+    <td>Ручной try/catch</td>
+    <td>Предсказуемые бизнес-ошибки в action-методах</td>
+    <td>В каждом контроллере явно</td>
+    <td><code>{ message: "..." }</code> 400/403/404/500</td>
+  </tr>
+  <tr>
+    <td>Auto Validation ([ApiController])</td>
+    <td>Невалидные входящие данные</td>
+    <td><code>[ApiController]</code> + <code>AddProblemDetails()</code></td>
+    <td>ValidationProblemDetails 400</td>
+  </tr>
+  <tr>
+    <td>Developer Exception Page</td>
+    <td>Все исключения (только Dev)</td>
+    <td>Автоматически в Development</td>
+    <td>HTML-страница со стек-трейсом</td>
+  </tr>
+</table>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>7. ASP.NET Web API</h1>
+<!-- ============================================================ -->
+
+<p>Web API — основной механизм экспонирования функциональности приложения по HTTP. Этот раздел объединяет все практические аспекты построения контроллеров: базовый класс, Model Binding, типы результатов и документирование через Swagger.</p>
+
+<!-- ============================================================ -->
+<h2>7.1 Controller Base Class — ControllerBase</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Все API-контроллеры в WebMessenger наследуют <code>ControllerBase</code> — базовый класс из <code>Microsoft.AspNetCore.Mvc</code>, предоставляющий инфраструктуру для HTTP-ответов, доступ к <code>HttpContext</code>, <code>ModelState</code>, <code>User</code> и удобные хелпер-методы для формирования результатов.</p>
+
+<p><strong>ControllerBase vs Controller.</strong> Существуют два базовых класса:</p>
+
+<table>
+  <tr>
+    <th>Класс</th>
+    <th>Назначение</th>
+    <th>Что добавляет</th>
+  </tr>
+  <tr>
+    <td><code>ControllerBase</code></td>
+    <td>Web API (JSON-ответы)</td>
+    <td>HTTP-хелперы, <code>HttpContext</code>, <code>ModelState</code>, <code>User</code></td>
+  </tr>
+  <tr>
+    <td><code>Controller</code></td>
+    <td>MVC с Razor Views</td>
+    <td>Всё из <code>ControllerBase</code> + <code>View()</code>, <code>ViewBag</code>, <code>TempData</code></td>
+  </tr>
+</table>
+
+<p>Для Web API нужен <code>ControllerBase</code> — <code>Controller</code> тащит за собой ненужную Razor-инфраструктуру.</p>
+
+<h3>Ключевые свойства ControllerBase</h3>
+
+<pre>// Все свойства доступны в action-методах напрямую (без this.)
+
+// HttpContext — контекст текущего запроса
+var traceId = HttpContext.TraceIdentifier;
+var ip      = HttpContext.Connection.RemoteIpAddress;
+
+// Request — данные входящего запроса
+bool isHttps = Request.IsHttps;
+var scheme   = Request.Scheme;       // "http" или "https"
+
+// Response — исходящий ответ
+Response.Headers.Append("X-Custom", "value");
+Response.Cookies.Append("session", token);
+
+// User — аутентифицированный пользователь (ClaimsPrincipal)
+var userId   = User.FindFirstValue(ClaimTypes.NameIdentifier);
+var username = User.FindFirstValue(ClaimTypes.Name);
+bool isAuth  = User.Identity?.IsAuthenticated == true;
+
+// ModelState — результаты валидации
+bool isValid = ModelState.IsValid;
+ModelState.AddModelError("Field", "Error message");
+
+// RouteData — данные маршрута
+var chatId = RouteData.Values["chatId"];
+
+// Url — IUrlHelper для генерации URL
+string? url = Url.Action("GetChatHeader", "Chat", new { chatId = id });
+</pre>
+
+<h3>Хелпер-методы для формирования ответов</h3>
+
+<pre>// Успешные ответы:
+return Ok(data);                    // 200 + JSON-тело
+return Created(uri, data);          // 201 + Location header + тело
+return CreatedAtAction("name", routeValues, data); // 201 + Location по action
+return NoContent();                 // 204 без тела
+return Accepted();                  // 202 Accepted
+
+// Ответы с ошибками:
+return BadRequest("message");                 // 400
+return BadRequest(ModelState);                // 400 + ошибки валидации
+return Unauthorized();                        // 401
+return Unauthorized(new { message = "..." }); // 401 + тело
+return Forbid();                              // 403
+return NotFound();                            // 404
+return NotFound(new { message = "..." });     // 404 + тело
+return Conflict();                            // 409
+return UnprocessableEntity();                 // 422
+
+// Любой код:
+return StatusCode(500, new { message = "..." });
+return StatusCode(StatusCodes.Status503ServiceUnavailable);
+
+// ProblemDetails:
+return Problem(title: "Error", statusCode: 500);
+return ValidationProblem(ModelState);
+
+// Файловые ответы:
+return File(bytes, "image/jpeg", "avatar.jpg");
+return PhysicalFile(path, "application/pdf");
+return FileStream(stream, "video/mp4");
+</pre>
+
+<!-- ============================================================ -->
+<h2>7.2 Model Binding</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Model Binding — процесс автоматического извлечения данных из HTTP-запроса и преобразования их в параметры action-метода. ASP.NET Core умеет читать данные из нескольких источников и приводить их к нужным типам.</p>
+
+<h3>Источники привязки (Binding Sources)</h3>
+
+<table>
+  <tr>
+    <th>Атрибут</th>
+    <th>Источник</th>
+    <th>Когда использовать</th>
+  </tr>
+  <tr>
+    <td><code>[FromBody]</code></td>
+    <td>Тело запроса (JSON, XML)</td>
+    <td>Сложные объекты в POST/PUT/PATCH. Только один раз на метод.</td>
+  </tr>
+  <tr>
+    <td><code>[FromRoute]</code></td>
+    <td>Параметры маршрута (<code>{id}</code>)</td>
+    <td>Идентификаторы ресурсов в URL-пути</td>
+  </tr>
+  <tr>
+    <td><code>[FromQuery]</code></td>
+    <td>Query string (<code>?key=value</code>)</td>
+    <td>Фильтрация, пагинация, поиск</td>
+  </tr>
+  <tr>
+    <td><code>[FromHeader]</code></td>
+    <td>HTTP-заголовки</td>
+    <td>API-ключи, версионирование, кастомные метаданные</td>
+  </tr>
+  <tr>
+    <td><code>[FromForm]</code></td>
+    <td>Form data (multipart/form-data, x-www-form-urlencoded)</td>
+    <td>Загрузка файлов (IFormFile), HTML-формы</td>
+  </tr>
+  <tr>
+    <td><code>[FromServices]</code></td>
+    <td>DI-контейнер</td>
+    <td>Инжекция сервиса прямо в параметр action (без конструктора)</td>
+  </tr>
+</table>
+
+<h3>Inference правила с [ApiController]</h3>
+
+<p>При наличии <code>[ApiController]</code> источник привязки выводится автоматически:</p>
+
+<table>
+  <tr>
+    <th>Тип параметра</th>
+    <th>Выводится как</th>
+  </tr>
+  <tr>
+    <td>Сложный тип (class/record), не IFormFile</td>
+    <td><code>[FromBody]</code></td>
+  </tr>
+  <tr>
+    <td>Примитив/string и имя совпадает с маршрутным параметром</td>
+    <td><code>[FromRoute]</code></td>
+  </tr>
+  <tr>
+    <td>Примитив/string, не совпадает с маршрутом</td>
+    <td><code>[FromQuery]</code></td>
+  </tr>
+  <tr>
+    <td><code>IFormFile</code> / <code>IFormFileCollection</code></td>
+    <td><code>[FromForm]</code></td>
+  </tr>
+  <tr>
+    <td><code>CancellationToken</code></td>
+    <td>Из <code>HttpContext.RequestAborted</code> (не из запроса)</td>
+  </tr>
+</table>
+
+<h3>Примеры Model Binding из WebMessenger</h3>
+
+<pre>// ─── ChatController ───
+
+// [FromRoute]: chatId берётся из URL-пути {chatId:guid}
+// [FromQuery]: limit и before берутся из ?limit=50&before=2024-01-01
+[HttpGet("{chatId:guid}/messages")]
+public async Task&lt;ActionResult&lt;PagedResult&lt;ChatMessageDto&gt;&gt;&gt; GetMessages(
+    Guid chatId,           // ← [FromRoute] — выведено автоматически (совпадает с {chatId:guid})
+    int limit = 50,        // ← [FromQuery] — примитив, нет в маршруте
+    DateTime? before = null) // ← [FromQuery] — то же
+{ }
+
+// [FromBody]: SendMessageRequest — сложный тип → тело запроса
+// [FromRoute]: userId — примитив, совпадает с {userId:guid}
+[HttpPost("direct/{userId:guid}/messages")]
+public async Task&lt;ActionResult&lt;SendMessageResponse&gt;&gt; SendMessage(
+    Guid userId,                    // ← [FromRoute] автоматически
+    [FromBody] SendMessageRequest req, // ← явно, хотя и вывелось бы само
+    CancellationToken ct)           // ← из HttpContext.RequestAborted
+{ }
+
+// ─── UserController ───
+
+// Явный [FromQuery]: строки без маршрутных параметров, явная метка для ясности
+[HttpGet]
+public async Task&lt;IActionResult&gt; Index(
+    [FromQuery] string query = "",
+    [FromQuery] int limit = 10)
+{ }
+
+// IFormFile — автоматически [FromForm]
+[HttpPost("avatar")]
+public async Task&lt;IActionResult&gt; UploadAvatar(IFormFile file)
+// ↑ IFormFile — специальный тип ASP.NET Core для загрузки файлов.
+//   Content-Type запроса должен быть multipart/form-data.
+//   file.Length, file.ContentType, file.OpenReadStream() и т.д.
+{ }
+
+// ─── AuthController ───
+
+// Явный [FromBody] для DTO:
+[HttpPost("register")]
+public async Task&lt;IActionResult&gt; Register([FromBody] RegisterDto registerDto)
+// ↑ Явная аннотация — хорошая практика для документирования намерения,
+//   даже если [ApiController] выведет то же самое.
+{ }
+</pre>
+
+<h3>Кастомный Model Binder</h3>
+
+<pre>// Когда стандартного биндинга недостаточно — создаём кастомный.
+// Пример: автоматическое приведение строки к нормализованному username
+
+public class NormalizedUsernameModelBinder : IModelBinder
+{
+    public Task BindModelAsync(ModelBindingContext bindingContext)
+    {
+        var value = bindingContext.ValueProvider
+            .GetValue(bindingContext.ModelName).FirstValue;
+
+        if (string.IsNullOrEmpty(value))
+        {
+            bindingContext.Result = ModelBindingResult.Failed();
+            return Task.CompletedTask;
+        }
+
+        // Нормализация: lowercase + trim
+        var normalized = value.Trim().ToLowerInvariant();
+        bindingContext.Result = ModelBindingResult.Success(normalized);
+        return Task.CompletedTask;
+    }
+}
+
+// Провайдер для биндера:
+public class NormalizedUsernameModelBinderProvider : IModelBinderProvider
+{
+    public IModelBinder? GetBinder(ModelBinderProviderContext context)
+    {
+        // Применять только к параметрам с атрибутом [NormalizedUsername]
+        if (context.Metadata.ModelType == typeof(string) &&
+            context.Metadata.ContainerType != null)
+        {
+            var attr = context.Metadata.ContainerType
+                .GetProperty(context.Metadata.PropertyName ?? "")
+                ?.GetCustomAttribute&lt;NormalizedUsernameAttribute&gt;();
+
+            if (attr != null)
+                return new NormalizedUsernameModelBinder();
+        }
+        return null;
+    }
+}
+
+// Регистрация:
+builder.Services.AddControllers(options =>
+{
+    options.ModelBinderProviders.Insert(0, new NormalizedUsernameModelBinderProvider());
+});
+</pre>
+
+<!-- ============================================================ -->
+<h2>7.3 IActionResult и ActionResult&lt;T&gt;</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Action-методы контроллеров возвращают объекты, реализующие <code>IActionResult</code>. Это абстракция «ответа» — формирует HTTP-ответ путём записи кода статуса, заголовков и тела.</p>
+
+<h3>Иерархия типов результатов</h3>
+
+<table>
+  <tr>
+    <th>Тип</th>
+    <th>Хелпер</th>
+    <th>Статус</th>
+    <th>Тело</th>
+  </tr>
+  <tr>
+    <td><code>OkResult</code></td>
+    <td><code>Ok()</code></td>
+    <td>200</td>
+    <td>Нет</td>
+  </tr>
+  <tr>
+    <td><code>OkObjectResult</code></td>
+    <td><code>Ok(data)</code></td>
+    <td>200</td>
+    <td>JSON-сериализованный объект</td>
+  </tr>
+  <tr>
+    <td><code>CreatedAtActionResult</code></td>
+    <td><code>CreatedAtAction(...)</code></td>
+    <td>201</td>
+    <td>JSON + заголовок Location</td>
+  </tr>
+  <tr>
+    <td><code>NoContentResult</code></td>
+    <td><code>NoContent()</code></td>
+    <td>204</td>
+    <td>Нет</td>
+  </tr>
+  <tr>
+    <td><code>BadRequestObjectResult</code></td>
+    <td><code>BadRequest(data)</code></td>
+    <td>400</td>
+    <td>JSON</td>
+  </tr>
+  <tr>
+    <td><code>UnauthorizedObjectResult</code></td>
+    <td><code>Unauthorized(data)</code></td>
+    <td>401</td>
+    <td>JSON</td>
+  </tr>
+  <tr>
+    <td><code>ForbidResult</code></td>
+    <td><code>Forbid()</code></td>
+    <td>403</td>
+    <td>Нет</td>
+  </tr>
+  <tr>
+    <td><code>NotFoundObjectResult</code></td>
+    <td><code>NotFound(data)</code></td>
+    <td>404</td>
+    <td>JSON</td>
+  </tr>
+  <tr>
+    <td><code>ObjectResult</code></td>
+    <td><code>StatusCode(code, data)</code></td>
+    <td>Любой</td>
+    <td>JSON</td>
+  </tr>
+  <tr>
+    <td><code>ContentResult</code></td>
+    <td><code>Content("text", "text/plain")</code></td>
+    <td>200</td>
+    <td>Текст</td>
+  </tr>
+  <tr>
+    <td><code>FileContentResult</code></td>
+    <td><code>File(bytes, contentType)</code></td>
+    <td>200</td>
+    <td>Бинарный файл</td>
+  </tr>
+  <tr>
+    <td><code>PhysicalFileResult</code></td>
+    <td><code>PhysicalFile(path, contentType)</code></td>
+    <td>200</td>
+    <td>Файл с диска</td>
+  </tr>
+  <tr>
+    <td><code>RedirectResult</code></td>
+    <td><code>Redirect(url)</code></td>
+    <td>302</td>
+    <td>Нет</td>
+  </tr>
+  <tr>
+    <td><code>ProblemDetails</code></td>
+    <td><code>Problem(...)</code></td>
+    <td>Любой</td>
+    <td>RFC 7807 JSON</td>
+  </tr>
+</table>
+
+<h3>IActionResult vs ActionResult&lt;T&gt;</h3>
+
+<pre>// IActionResult — не типизировано, Swagger не может вывести схему тела ответа
+[HttpGet("{id:guid}")]
+public async Task&lt;IActionResult&gt; GetProfile(Guid id)
+{
+    var profile = await _userService.GetUserProfileAsync(id);
+    return profile is null ? NotFound() : Ok(profile);
+    // Swagger: тип тела ответа 200 = unknown
+}
+
+// ActionResult&lt;T&gt; — типизировано, Swagger генерирует точную схему
+[HttpGet]
+public async Task&lt;ActionResult&lt;PagedResult&lt;ChatListItemDto&gt;&gt;&gt; Index(
+    int limit = 20, DateTime? before = null)
+{
+    var page = await _chatService.GetUserChatsAsync(_currentUser.Id, limit, before);
+    return Ok(page);
+    // ↑ Неявное преобразование T → ActionResult&lt;T&gt; через implicit operator
+    // Swagger: тип тела 200 = PagedResult&lt;ChatListItemDto&gt; (полная схема)
+}
+
+// Оба типа применяются в WebMessenger:
+// IActionResult — там где разные пути возвращают разные типы данных (204 vs объект)
+// ActionResult&lt;T&gt; — там где успешный ответ всегда одного типа
+
+// Неявные преобразования ActionResult&lt;T&gt;:
+ActionResult&lt;UserDto&gt; result1 = new UserDto();  // → OkObjectResult(userDto)
+ActionResult&lt;UserDto&gt; result2 = NotFound();      // → NotFoundResult
+ActionResult&lt;UserDto&gt; result3 = Ok(new UserDto()); // → OkObjectResult(userDto)
+</pre>
+
+<!-- ============================================================ -->
+<h2>7.4 Status Code, Content и File Results</h2>
+<!-- ============================================================ -->
+
+<pre>// ─── Status Code Results ───
+
+// 201 Created с Location header — стандарт REST для создания ресурса
+[HttpPost]
+public async Task&lt;IActionResult&gt; CreateChat([FromBody] CreateChatDto dto)
+{
+    var chat = await _chatService.CreateAsync(dto);
+    return CreatedAtAction(
+        actionName:  nameof(GetChatHeader),
+        routeValues: new { chatId = chat.Id },
+        value:       chat);
+    // HTTP/1.1 201 Created
+    // Location: /api/chats/{chat.Id}/header
+}
+
+// 204 No Content — при успешном удалении/действии без возвращаемых данных
+[HttpDelete("{id:guid}")]
+public async Task&lt;IActionResult&gt; DeleteMessage(Guid id)
+{
+    await _chatService.DeleteMessageAsync(id);
+    return NoContent(); // 204 без тела
+}
+
+// ─── Content Results ───
+
+// Произвольный текст/HTML:
+return Content("&lt;h1&gt;Hello&lt;/h1&gt;", "text/html", Encoding.UTF8);
+
+// JSON вручную (без сериализатора MVC):
+return Content(JsonSerializer.Serialize(obj), "application/json");
+
+// ─── File Results ───
+
+// Файл из массива байт:
+var pdfBytes = await _reportService.GeneratePdfAsync(id);
+return File(pdfBytes, "application/pdf", "report.pdf");
+// Content-Disposition: attachment; filename=report.pdf
+
+// Файл из Stream (эффективнее для больших файлов):
+var stream = await _fileStorage.OpenReadStreamAsync(path);
+return File(stream, "image/jpeg");
+
+// Файл с физического пути (не рекомендуется раскрывать пути):
+return PhysicalFile("/var/app/files/image.jpg", "image/jpeg");
+
+// Для UserController — аватары возвращаются как URL (Dropbox),
+// а не как прямой файл. Загрузка через IFormFile:
+[HttpPost("avatar")]
+public async Task&lt;IActionResult&gt; UploadAvatar(IFormFile file)
+{
+    // file.Length     — размер в байтах
+    // file.ContentType — MIME-тип ("image/jpeg")
+    // file.FileName    — имя файла от клиента (не доверять!)
+    // file.OpenReadStream() — поток для чтения
+
+    if (file.Length > 5 * 1024 * 1024)
+        return BadRequest("File size exceeds 5MB limit");
+
+    var avatarUrl = await _avatarService.UpdateUserAvatarAsync(_currentUser.Id, file);
+    return Ok(new { avatarUrl });
+}
+</pre>
+
+<!-- ============================================================ -->
+<h2>7.5 Swagger / OpenAPI</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Swagger (реализация спецификации OpenAPI) — стандарт для описания REST API в машиночитаемом формате (JSON/YAML). ASP.NET Core интегрируется с ним через пакет <code>Swashbuckle.AspNetCore</code>, который автоматически генерирует OpenAPI-документ из кода контроллеров и предоставляет интерактивный UI.</p>
+
+<h3>Базовая конфигурация</h3>
+
+<pre>// WebMessenger.Api/Program.cs — минимальная конфигурация (текущее состояние)
+
+// Регистрация сервисов:
+builder.Services.AddEndpointsApiExplorer();
+// ↑ Регистрирует ApiExplorer — компонент, который сканирует контроллеры
+//   и собирает метаданные эндпоинтов (маршруты, параметры, атрибуты).
+//   Обязателен для Swashbuckle.
+
+builder.Services.AddSwaggerGen();
+// ↑ Регистрирует генератор OpenAPI-документа.
+//   Без аргументов — базовая конфигурация.
+
+// Использование в пайплайне — только в Development:
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    // ↑ Middleware, отдающий JSON-документ по адресу /swagger/v1/swagger.json
+
+    app.UseSwaggerUI();
+    // ↑ Middleware, отдающий интерактивный HTML-UI по адресу /swagger
+    //   (в WebMessenger launchSettings.json открывает этот URL при старте)
+}
+</pre>
+
+<h3>Расширенная конфигурация AddSwaggerGen</h3>
+
+<pre>// Полная конфигурация с JWT-аутентификацией в Swagger UI
+builder.Services.AddSwaggerGen(options =>
+{
+    // Метаданные документа
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title   = "WebMessenger API",
+        Version = "v1",
+        Description = "REST API для WebMessenger — мессенджера на ASP.NET Core 8",
+        Contact = new OpenApiContact
+        {
+            Name  = "WebMessenger Team",
+            Email = "support@webmessenger.example"
+        }
+    });
+
+    // Поддержка XML-комментариев в Swagger
+    // (требует <GenerateDocumentationFile>true</GenerateDocumentationFile> в .csproj)
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    options.IncludeXmlComments(xmlPath);
+
+    // Определение схемы JWT Bearer аутентификации
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type         = SecuritySchemeType.Http,
+        Scheme       = "bearer",
+        BearerFormat = "JWT",
+        Description  = "Вставьте JWT токен (без 'Bearer ' префикса)"
+    });
+
+    // Применение схемы ко всем защищённым эндпоинтам
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id   = "Bearer"
+                }
+            },
+            Array.Empty&lt;string&gt;()
+        }
+    });
+
+    // Группировка эндпоинтов по контроллеру (по умолчанию — имя контроллера)
+    // options.TagActionsBy(api => new[] { api.GroupName ?? api.ActionDescriptor.RouteValues["controller"] });
+});
+</pre>
+
+<h3>XML-комментарии для документирования</h3>
+
+<pre>// Добавляем XML-документацию к контроллерам и action-методам
+// Swagger подхватывает её и показывает в UI
+
+/// &lt;summary&gt;
+/// Получить список чатов текущего пользователя с поддержкой пагинации.
+/// &lt;/summary&gt;
+/// &lt;param name="limit"&gt;Максимальное количество чатов. По умолчанию 20.&lt;/param&gt;
+/// &lt;param name="before"&gt;Курсор пагинации — возвращать чаты до этой даты.&lt;/param&gt;
+/// &lt;returns&gt;Страница чатов с флагом наличия следующей страницы.&lt;/returns&gt;
+/// &lt;response code="200"&gt;Список чатов получен успешно.&lt;/response&gt;
+/// &lt;response code="401"&gt;Пользователь не аутентифицирован.&lt;/response&gt;
+[HttpGet]
+[ProducesResponseType(typeof(PagedResult&lt;ChatListItemDto&gt;), StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+public async Task&lt;ActionResult&lt;PagedResult&lt;ChatListItemDto&gt;&gt;&gt; Index(
+    int limit = 20, DateTime? before = null) { }
+
+// [ProducesResponseType] — явно задаёт коды ответов и типы в Swagger-документе.
+// ActionResult&lt;T&gt; автоматически добавляет схему для 200, но остальные
+// коды нужно указывать явно через [ProducesResponseType].
+</pre>
+
+<h3>Атрибуты, влияющие на Swagger</h3>
+
+<table>
+  <tr>
+    <th>Атрибут</th>
+    <th>Эффект в Swagger</th>
+  </tr>
+  <tr>
+    <td><code>[ApiController]</code></td>
+    <td>Помечает контроллер как API — включает в документ</td>
+  </tr>
+  <tr>
+    <td><code>[Route("api/...")]</code></td>
+    <td>Задаёт путь эндпоинта</td>
+  </tr>
+  <tr>
+    <td><code>[HttpGet]</code>, <code>[HttpPost]</code>...</td>
+    <td>HTTP-метод операции</td>
+  </tr>
+  <tr>
+    <td><code>[ProducesResponseType(T, code)]</code></td>
+    <td>Документирует возможные коды и типы ответа</td>
+  </tr>
+  <tr>
+    <td><code>[Produces("application/json")]</code></td>
+    <td>Content-Type ответа</td>
+  </tr>
+  <tr>
+    <td><code>[Consumes("multipart/form-data")]</code></td>
+    <td>Content-Type запроса (для загрузки файлов)</td>
+  </tr>
+  <tr>
+    <td><code>[ApiExplorerSettings(IgnoreApi = true)]</code></td>
+    <td>Скрыть эндпоинт из документа</td>
+  </tr>
+  <tr>
+    <td><code>[Obsolete]</code></td>
+    <td>Помечает операцию как устаревшую (deprecated) в UI</td>
+  </tr>
+  <tr>
+    <td>Data Annotations (<code>[Required]</code>, <code>[MaxLength]</code>...)</td>
+    <td>Попадают в схему модели: <code>required</code>, <code>maxLength</code> и т.д.</td>
+  </tr>
+  <tr>
+    <td><code>[Authorize]</code></td>
+    <td>Swagger UI показывает замок у эндпоинта (при настроенном <code>AddSecurityRequirement</code>)</td>
+  </tr>
+</table>
+
+<h3>Доступные адреса Swagger в WebMessenger</h3>
+
+<pre>// При запуске в Development (ASPNETCORE_ENVIRONMENT=Development):
+// http://localhost:5227/swagger        ← Swagger UI (интерактивный)
+// http://localhost:5227/swagger/v1/swagger.json  ← OpenAPI JSON-документ
+
+// В launchSettings.json:
+// "launchUrl": "swagger"
+// → IDE автоматически открывает /swagger после запуска
+</pre>
+
+<div class="note"><strong>В WebMessenger</strong> используется минимальная конфигурация <code>AddSwaggerGen()</code> без JWT-поддержки в UI. Для тестирования защищённых эндпоинтов через Swagger UI нужно добавить <code>AddSecurityDefinition("Bearer", ...)</code> и <code>AddSecurityRequirement(...)</code> — пример приведён выше.</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>8. Security</h1>
+<!-- ============================================================ -->
+
+<p>Безопасность — не отдельная фича, а сквозная характеристика всего приложения. Этот раздел охватывает три практические области: защиту чувствительных данных через Data Protection API, управление кросс-доменными запросами через CORS, и защитные HTTP-заголовки.</p>
+
+<!-- ============================================================ -->
+<h2>8.1 Data Protection API</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> ASP.NET Core Data Protection — встроенный API для криптографической защиты данных: шифрования и верификации произвольных байт/строк. Это низкоуровневая альтернатива ручной работе с <code>AES</code>/<code>HMAC</code> — фреймворк сам управляет ключами, их ротацией и хранением.</p>
+
+<p><strong>Типичные применения:</strong></p>
+<ul>
+  <li>Защита cookies (ASP.NET Core сам использует Data Protection для cookie-аутентификации)</li>
+  <li>Токены для сброса пароля, подтверждения email (ограниченное время жизни)</li>
+  <li>Защита состояния Anti-Forgery (CSRF-токены)</li>
+  <li>Шифрование чувствительных данных перед сохранением в БД</li>
+  <li>Защита параметров в URL (например, идентификаторов, которые нельзя угадать)</li>
+</ul>
+
+<h3>Базовая регистрация и использование</h3>
+
+<pre>// Регистрация в Program.cs
+builder.Services.AddDataProtection();
+// ↑ Регистрирует IDataProtectionProvider.
+//   По умолчанию ключи хранятся в памяти (не переживают рестарт) или
+//   в %LOCALAPPDATA%/ASP.NET/DataProtection-Keys/ на Windows.
+
+// Для production необходимо явное хранилище ключей:
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo("/app/data-protection-keys"))
+    // Шифрование ключей (опционально, но рекомендуется):
+    .ProtectKeysWithCertificate(cert)
+    // Имя приложения — ключи разных приложений несовместимы:
+    .SetApplicationName("WebMessenger");
+
+// ─── Использование IDataProtector ───
+public class TokenService(IDataProtectionProvider provider)
+{
+    // Создаём протектор с purpose-строкой.
+    // Purpose — изоляция: протектор "PasswordReset" не расшифрует
+    // данные, зашифрованные протектором "EmailConfirm".
+    private readonly IDataProtector _protector =
+        provider.CreateProtector("WebMessenger.PasswordReset");
+
+    public string GenerateResetToken(Guid userId)
+    {
+        var payload = $"{userId}:{DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds()}";
+        return _protector.Protect(payload);
+        // Результат: Base64Url-строка — безопасно вставить в URL или email-ссылку
+    }
+
+    public (Guid userId, bool valid) ValidateResetToken(string token)
+    {
+        try
+        {
+            var payload = _protector.Unprotect(token);
+            var parts = payload.Split(':');
+            var userId = Guid.Parse(parts[0]);
+            var expiry = DateTimeOffset.FromUnixTimeSeconds(long.Parse(parts[1]));
+
+            return (userId, expiry > DateTimeOffset.UtcNow);
+        }
+        catch (CryptographicException)
+        {
+            // Токен подделан, истёк или принадлежит другому purpose
+            return (Guid.Empty, false);
+        }
+    }
+}
+</pre>
+
+<h3>ITimeLimitedDataProtector — токены с временем жизни</h3>
+
+<pre>// Специализация для данных с ограниченным временем жизни
+public class EmailConfirmService(IDataProtectionProvider provider)
+{
+    private readonly ITimeLimitedDataProtector _protector =
+        provider.CreateProtector("WebMessenger.EmailConfirm")
+                .ToTimeLimitedDataProtector(); // ← конвертация
+
+    public string GenerateConfirmToken(string email)
+    {
+        // Защищаем с явным временем жизни — не нужно вручную хранить expiry
+        return _protector.Protect(email, lifetime: TimeSpan.FromHours(24));
+    }
+
+    public string? ValidateConfirmToken(string token)
+    {
+        try
+        {
+            return _protector.Unprotect(token); // бросает если истёк
+        }
+        catch (SecurityTokenExpiredException)
+        {
+            return null; // токен истёк
+        }
+        catch (CryptographicException)
+        {
+            return null; // токен недействителен
+        }
+    }
+}
+</pre>
+
+<h3>Хранилища ключей для production</h3>
+
+<table>
+  <tr>
+    <th>Хранилище</th>
+    <th>Пакет / Метод</th>
+    <th>Когда использовать</th>
+  </tr>
+  <tr>
+    <td>Файловая система</td>
+    <td><code>PersistKeysToFileSystem(dir)</code></td>
+    <td>Один сервер, Docker volume</td>
+  </tr>
+  <tr>
+    <td>Azure Blob Storage</td>
+    <td><code>PersistKeysToAzureBlobStorage(...)</code></td>
+    <td>Azure-развёртывание, несколько экземпляров</td>
+  </tr>
+  <tr>
+    <td>Redis</td>
+    <td><code>PersistKeysToStackExchangeRedis(...)</code></td>
+    <td>Несколько серверов (Scale-out)</td>
+  </tr>
+  <tr>
+    <td>БД через EF Core</td>
+    <td><code>PersistKeysToDbContext&lt;T&gt;()</code></td>
+    <td>Когда уже есть БД, минимум зависимостей</td>
+  </tr>
+</table>
+
+<div class="warn"><strong>В WebMessenger</strong> Data Protection не настроен явно — используется поведение по умолчанию (ключи в памяти). Это подходит для JWT-аутентификации (JWT не использует Data Protection), но если добавить Cookie Authentication или Anti-Forgery токены — нужно будет сконфигурировать постоянное хранилище ключей для корректной работы в Docker (ключи должны переживать рестарт контейнера).</div>
+
+<!-- ============================================================ -->
+<h2>8.2 CORS — Cross-Origin Resource Sharing</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> CORS — механизм браузерной безопасности, который ограничивает JavaScript-запросы к другим источникам (origin = схема + домен + порт). Браузер блокирует кросс-доменные запросы по умолчанию. Сервер сигнализирует о разрешении через HTTP-заголовки <code>Access-Control-*</code>.</p>
+
+<p><strong>Как работает Preflight.</strong> Для «небезопасных» запросов (не-GET/HEAD/POST, или POST с нестандартным Content-Type, или запросы с кастомными заголовками) браузер сначала отправляет <code>OPTIONS</code>-запрос — <em>preflight</em>. Сервер должен ответить разрешающими заголовками, иначе браузер не отправит основной запрос.</p>
+
+<pre>// Preflight запрос (браузер отправляет автоматически перед POST /api/chats):
+// OPTIONS /api/chats/direct/{userId}/messages HTTP/1.1
+// Origin: http://localhost:3000
+// Access-Control-Request-Method: POST
+// Access-Control-Request-Headers: content-type, authorization
+
+// Ответ сервера при корректной CORS-политике:
+// HTTP/1.1 204 No Content
+// Access-Control-Allow-Origin: http://localhost:3000
+// Access-Control-Allow-Methods: POST
+// Access-Control-Allow-Headers: content-type, authorization
+// Access-Control-Allow-Credentials: true
+// Vary: Origin
+</pre>
+
+<h3>Конфигурация в WebMessenger</h3>
+
+<pre>// WebMessenger.Api/Program.cs
+
+const string FrontCors = "Front";  // имя политики — строка-ключ
+
+builder.Services.AddCors(opts =>
+{
+    opts.AddPolicy(name: FrontCors, policy =>
+    {
+        policy
+            .WithOrigins(
+                "http://localhost:3000",   // Next.js в Development
+                "https://localhost:3000"   // Next.js по HTTPS в Development
+            )
+            // AllowAnyHeader() — разрешить любые заголовки запроса
+            // (Authorization, Content-Type, X-Custom и т.д.)
+            .AllowAnyHeader()
+            // AllowAnyMethod() — разрешить все HTTP-методы (GET, POST, PUT, DELETE...)
+            .AllowAnyMethod()
+            // AllowCredentials() — разрешить отправку cookies и Authorization заголовка.
+            // ОБЯЗАТЕЛЬНО для JWT в Authorization + cookie "auth-token".
+            // При AllowCredentials() нельзя использовать AllowAnyOrigin()!
+            .AllowCredentials();
+    });
+});
+
+// Применение в пайплайне — ПЕРЕД Authentication:
+app.UseCors(FrontCors);
+
+// Для SignalR-хаба — явное указание политики через RequireCors:
+app.MapHub&lt;ChatHub&gt;("/hubs/chat").RequireCors(FrontCors);
+// ↑ SignalR требует явного CORS — общий UseCors() к хабам не применяется автоматически.
+</pre>
+
+<h3>Все методы конфигурации политики</h3>
+
+<table>
+  <tr>
+    <th>Метод</th>
+    <th>Что разрешает</th>
+    <th>Примечание</th>
+  </tr>
+  <tr>
+    <td><code>WithOrigins("url1", "url2")</code></td>
+    <td>Конкретные Origins</td>
+    <td>Без trailing slash. Порт обязателен если не 80/443</td>
+  </tr>
+  <tr>
+    <td><code>AllowAnyOrigin()</code></td>
+    <td>Любой Origin (<code>*</code>)</td>
+    <td>Несовместимо с <code>AllowCredentials()</code></td>
+  </tr>
+  <tr>
+    <td><code>WithOrigins("https://*.example.com")</code></td>
+    <td>Wildcard поддомены</td>
+    <td>Только один уровень wildcard</td>
+  </tr>
+  <tr>
+    <td><code>AllowAnyHeader()</code></td>
+    <td>Любые заголовки запроса</td>
+    <td>Добавляет <code>Access-Control-Allow-Headers: *</code></td>
+  </tr>
+  <tr>
+    <td><code>WithHeaders("Content-Type", "Authorization")</code></td>
+    <td>Конкретные заголовки</td>
+    <td>Явный список</td>
+  </tr>
+  <tr>
+    <td><code>AllowAnyMethod()</code></td>
+    <td>Все HTTP-методы</td>
+    <td>GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD</td>
+  </tr>
+  <tr>
+    <td><code>WithMethods("GET", "POST")</code></td>
+    <td>Конкретные методы</td>
+    <td>Явный список</td>
+  </tr>
+  <tr>
+    <td><code>AllowCredentials()</code></td>
+    <td>Cookies и Authorization</td>
+    <td>Обязателен для JWT + cookies. Запрещает <code>AllowAnyOrigin()</code></td>
+  </tr>
+  <tr>
+    <td><code>DisallowCredentials()</code></td>
+    <td>Запрет credentials</td>
+    <td>По умолчанию</td>
+  </tr>
+  <tr>
+    <td><code>WithExposedHeaders("X-Total-Count")</code></td>
+    <td>Заголовки ответа, видимые JS</td>
+    <td>Только перечисленные заголовки видны <code>response.headers.get()</code></td>
+  </tr>
+  <tr>
+    <td><code>SetPreflightMaxAge(TimeSpan)</code></td>
+    <td>Кэш preflight-ответа</td>
+    <td><code>Access-Control-Max-Age</code> — браузер не повторяет preflight N секунд</td>
+  </tr>
+</table>
+
+<h3>Множественные политики и применение по контроллеру</h3>
+
+<pre>// Несколько именованных политик для разных нужд:
+builder.Services.AddCors(opts =>
+{
+    // Политика для основного фронтенда
+    opts.AddPolicy("Front", policy =>
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader().AllowAnyMethod().AllowCredentials());
+
+    // Политика для публичного API (без credentials, широкий доступ)
+    opts.AddPolicy("PublicApi", policy =>
+        policy.AllowAnyOrigin().AllowAnyHeader().WithMethods("GET"));
+
+    // Политика по умолчанию (fallback)
+    opts.AddDefaultPolicy(policy =>
+        policy.WithOrigins("https://app.example.com")
+              .AllowAnyHeader().AllowAnyMethod());
+});
+
+// Применение по контроллеру или action через атрибут:
+[ApiController]
+[Route("api/public")]
+[EnableCors("PublicApi")]     // ← применить конкретную политику к контроллеру
+public class PublicController : ControllerBase { }
+
+[HttpGet("open-data")]
+[EnableCors("PublicApi")]     // ← или к конкретному action
+public IActionResult GetOpenData() => Ok();
+
+// Явный запрет CORS для action:
+[HttpGet("internal")]
+[DisableCors]                 // ← никакая CORS-политика не применяется
+public IActionResult InternalOnly() => Ok();
+</pre>
+
+<div class="warn"><strong>Критичная ошибка:</strong> <code>AllowCredentials()</code> + <code>AllowAnyOrigin()</code> = исключение при старте. Браузер запрещает <code>Access-Control-Allow-Credentials: true</code> при <code>Access-Control-Allow-Origin: *</code>. При включённых credentials всегда указывайте конкретные Origin.</div>
+
+<!-- ============================================================ -->
+<h2>8.3 Security Headers — защитные HTTP-заголовки</h2>
+<!-- ============================================================ -->
+
+<p><strong>Что это.</strong> Security Headers — HTTP-заголовки ответа, которые инструктируют браузер о политиках безопасности. Они защищают от XSS, clickjacking, MIME-sniffing, man-in-the-middle и других классических атак. ASP.NET Core не добавляет большинство из них по умолчанию — нужно настраивать явно.</p>
+
+<h3>Ключевые заголовки безопасности</h3>
+
+<table>
+  <tr>
+    <th>Заголовок</th>
+    <th>Защита от</th>
+    <th>Рекомендуемое значение</th>
+  </tr>
+  <tr>
+    <td><code>Strict-Transport-Security</code></td>
+    <td>Downgrade-атаки, MITM</td>
+    <td><code>max-age=31536000; includeSubDomains</code></td>
+  </tr>
+  <tr>
+    <td><code>X-Content-Type-Options</code></td>
+    <td>MIME-type sniffing</td>
+    <td><code>nosniff</code></td>
+  </tr>
+  <tr>
+    <td><code>X-Frame-Options</code></td>
+    <td>Clickjacking (устарел, заменён CSP)</td>
+    <td><code>DENY</code> или <code>SAMEORIGIN</code></td>
+  </tr>
+  <tr>
+    <td><code>Content-Security-Policy</code></td>
+    <td>XSS, data injection</td>
+    <td>Зависит от приложения (см. ниже)</td>
+  </tr>
+  <tr>
+    <td><code>Referrer-Policy</code></td>
+    <td>Утечка URL в Referer-заголовке</td>
+    <td><code>strict-origin-when-cross-origin</code></td>
+  </tr>
+  <tr>
+    <td><code>Permissions-Policy</code></td>
+    <td>Неавторизованный доступ к API браузера</td>
+    <td><code>camera=(), microphone=(), geolocation=()</code></td>
+  </tr>
+  <tr>
+    <td><code>X-XSS-Protection</code></td>
+    <td>XSS (устарел в пользу CSP)</td>
+    <td><code>0</code> (отключить — CSP надёжнее)</td>
+  </tr>
+  <tr>
+    <td><code>Cache-Control</code></td>
+    <td>Кэширование чувствительных данных</td>
+    <td><code>no-store</code> для API с персональными данными</td>
+  </tr>
+</table>
+
+<h3>Добавление заголовков через Middleware</h3>
+
+<pre>// Способ 1: inline middleware в Program.cs (простой вариант)
+app.Use(async (context, next) =>
+{
+    // Запрет фреймирования сайта в iframe — защита от clickjacking
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+
+    // Запрет MIME-sniffing — браузер не должен угадывать Content-Type
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+
+    // Политика Referrer — не отправлять полный URL в Referer при кросс-доменных переходах
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+
+    // Запрет устаревшей XSS-фильтрации браузера (CSP надёжнее)
+    context.Response.Headers.Append("X-XSS-Protection", "0");
+
+    // Permissions-Policy — ограничение доступа к API браузера
+    context.Response.Headers.Append("Permissions-Policy",
+        "camera=(), microphone=(), geolocation=(), payment=()");
+
+    await next(context);
+});
+
+// Способ 2: отдельный класс SecurityHeadersMiddleware (рекомендуется для production)
+public class SecurityHeadersMiddleware(RequestDelegate next)
+{
+    public async Task InvokeAsync(HttpContext context)
+    {
+        context.Response.Headers.Append("X-Frame-Options", "DENY");
+        context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+        context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+        context.Response.Headers.Append("X-XSS-Protection", "0");
+        context.Response.Headers.Append("Permissions-Policy",
+            "camera=(), microphone=(), geolocation=()");
+
+        await next(context);
+    }
+}
+
+app.UseMiddleware&lt;SecurityHeadersMiddleware&gt;();
+</pre>
+
+<h3>HSTS — HTTP Strict Transport Security</h3>
+
+<pre>// HSTS инструктирует браузер всегда использовать HTTPS для данного домена.
+// После первого посещения браузер кэширует политику на max-age секунд.
+
+// Встроенная поддержка в ASP.NET Core:
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge           = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;   // применять к поддоменам
+    options.Preload          = true;    // заявка на включение в HSTS Preload List
+    // options.ExcludedHosts.Add("api.example.com"); // исключение конкретных хостов
+});
+
+// Применение — только в production (в Development HTTPS необязателен):
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+    // ↑ Добавляет заголовок: Strict-Transport-Security: max-age=31536000; includeSubDomains
+    app.UseHttpsRedirection();
+    // ↑ Редиректит HTTP → HTTPS (301/307)
+}
+
+// В WebMessenger HSTS отключён — HTTPS-терминация на уровне реверс-прокси
+// (nginx/Caddy снаружи контейнера), Kestrel работает только на HTTP.
+</pre>
+
+<h3>Content-Security-Policy</h3>
+
+<pre>// CSP — мощный механизм: указывает браузеру, откуда можно загружать ресурсы.
+// Главная защита от XSS: даже если атакующий вставил скрипт,
+// браузер не выполнит его, если он не из разрешённого источника.
+
+// Для чистого REST API (без HTML, только JSON):
+context.Response.Headers.Append("Content-Security-Policy", "default-src 'none'");
+// ↑ Ничего нельзя загружать — API возвращает только JSON, нет необходимости в ресурсах.
+
+// Для приложения с Swagger UI (нужны inline-стили и скрипты):
+context.Response.Headers.Append("Content-Security-Policy",
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline'; " +  // Swagger требует inline JS
+    "style-src 'self' 'unsafe-inline'; " +   // Swagger требует inline CSS
+    "img-src 'self' data:;");
+
+// Директивы CSP:
+// default-src  — источник по умолчанию для всех типов ресурсов
+// script-src   — JavaScript
+// style-src    — CSS
+// img-src      — изображения
+// font-src     — шрифты
+// connect-src  — XHR/fetch/WebSocket
+// frame-src    — iframe
+// 'self'       — только тот же origin
+// 'none'       — ничего
+// 'unsafe-inline' — разрешить inline скрипты (избегать в продакшене!)
+// https:       — только HTTPS ресурсы
+</pre>
+
+<!-- ============================================================ -->
+<h2>8.4 Secure Cookies — разбор кода WebMessenger</h2>
+<!-- ============================================================ -->
+
+<p>Cookie с JWT-токеном в WebMessenger настроена с учётом всех важных security-опций. Разберём каждую:</p>
+
+<pre>// WebMessenger.Api/Controllers/AuthController.cs — Login
+Response.Cookies.Append("auth-token", token, new CookieOptions
+{
+    HttpOnly = true,
+    // ↑ КРИТИЧНО: JavaScript не может прочитать эту cookie (document.cookie).
+    //   Защищает от XSS-атаки: даже если XSS есть — токен не украсть через JS.
+
+    Secure = Request.IsHttps,
+    // ↑ Cookie отправляется только по HTTPS-соединению.
+    //   В Development (HTTP) = false, в Production (HTTPS через nginx) = true.
+    //   Без этого токен может утечь через незашифрованный HTTP.
+
+    SameSite = SameSiteMode.Lax,
+    // ↑ Политика отправки cookie при кросс-доменных запросах:
+    //   Strict — cookie не отправляется ни при каких кросс-доменных запросах
+    //   Lax    — cookie отправляется при top-level навигации (переход по ссылке),
+    //            но не при AJAX/fetch кросс-доменных запросах (защита от CSRF)
+    //   None   — всегда отправляется (требует Secure=true)
+    //
+    //   Lax — хороший баланс: защита от CSRF + работает при переходе по ссылкам.
+
+    Expires = DateTimeOffset.UtcNow.AddDays(1)
+    // ↑ Время жизни cookie — 1 день (совпадает с ExpireDays в JwtOptions).
+    //   Persistent cookie (с Expires) vs Session cookie (без Expires — живёт до закрытия вкладки).
+});
+</pre>
+
+<!-- ============================================================ -->
+<h2>8.5 Полная картина: безопасность в WebMessenger</h2>
+<!-- ============================================================ -->
+
+<table>
+  <tr>
+    <th>Механизм</th>
+    <th>Реализация в проекте</th>
+    <th>Защищает от</th>
+  </tr>
+  <tr>
+    <td>JWT + HMAC-SHA256</td>
+    <td><code>AuthService.GenerateJwtToken()</code>, <code>TokenValidationParameters</code></td>
+    <td>Подделки токена, использования чужого токена</td>
+  </tr>
+  <tr>
+    <td>BCrypt + SHA-256</td>
+    <td><code>BCrypt.Net.BCrypt.Verify(..., HashType.SHA256)</code></td>
+    <td>Компрометации паролей при утечке БД</td>
+  </tr>
+  <tr>
+    <td>HttpOnly Cookie</td>
+    <td><code>CookieOptions { HttpOnly = true }</code></td>
+    <td>Кражи токена через XSS</td>
+  </tr>
+  <tr>
+    <td>SameSite=Lax</td>
+    <td><code>CookieOptions { SameSite = SameSiteMode.Lax }</code></td>
+    <td>CSRF-атаки</td>
+  </tr>
+  <tr>
+    <td>Secure Cookie</td>
+    <td><code>CookieOptions { Secure = Request.IsHttps }</code></td>
+    <td>Перехвата токена по HTTP</td>
+  </tr>
+  <tr>
+    <td>CORS</td>
+    <td><code>AddCors(FrontCors)</code> с явными Origins</td>
+    <td>Несанкционированных кросс-доменных запросов</td>
+  </tr>
+  <tr>
+    <td>JWT Validation</td>
+    <td><code>ValidateIssuer + ValidateAudience + ValidateLifetime + ValidateIssuerSigningKey</code></td>
+    <td>Использования токенов от других сервисов / истёкших токенов</td>
+  </tr>
+  <tr>
+    <td>Options Validation</td>
+    <td><code>ValidateDataAnnotations().ValidateOnStart()</code> для <code>JwtOptions</code></td>
+    <td>Запуска с небезопасной конфигурацией (короткий ключ и т.д.)</td>
+  </tr>
+  <tr>
+    <td>ProblemDetails</td>
+    <td><code>AddProblemDetails()</code> без раскрытия стека</td>
+    <td>Утечки деталей реализации в ошибках</td>
+  </tr>
+  <tr>
+    <td>Secrets не в git</td>
+    <td>Пустые значения в <code>appsettings.json</code>, env vars в Docker</td>
+    <td>Утечки секретов через репозиторий</td>
+  </tr>
+  <tr>
+    <td>Security Headers</td>
+    <td>Не настроены явно — рекомендация: добавить middleware</td>
+    <td>XSS, clickjacking, MIME-sniffing</td>
+  </tr>
+  <tr>
+    <td>Data Protection</td>
+    <td>Не настроен явно — актуально при добавлении email-токенов/Anti-Forgery</td>
+    <td>Подделки токенов подтверждения</td>
+  </tr>
+</table>
+
+<div class="note"><strong>Что добавить в WebMessenger для улучшения безопасности:</strong>
+<ol>
+  <li>Security Headers middleware (<code>X-Frame-Options</code>, <code>X-Content-Type-Options</code>, <code>Referrer-Policy</code>)</li>
+  <li><code>AddDataProtection().PersistKeysToFileSystem()</code> — для сохранения ключей при перезапуске контейнера</li>
+  <li>Rate limiting (<code>AddRateLimiter()</code>) на эндпоинты аутентификации — защита от brute-force атак</li>
+  <li>JWT-поддержка в Swagger UI (<code>AddSecurityDefinition</code>) — для удобного тестирования</li>
+</ol>
+</div>
+
+<hr>
+
+<p style="color:#888;font-size:11px;text-align:center;margin-top:40px;">ASP.NET Core (Level 1) — WebMessenger · Разделы: Structure · Servers &amp; Host · HTTP Pipeline · Routing · Validation · Exception Handling · Web API · Security</p>
+
+</body>
+</html>
