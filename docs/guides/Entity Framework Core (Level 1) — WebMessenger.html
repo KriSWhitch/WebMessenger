@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Entity Framework Core (Level 1) — WebMessenger</title>
+<title>Entity Framework Core (Level 1) &#8212; WebMessenger</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1a1a1a; background: #fff; padding: 40px 60px; max-width: 980px; margin: auto; }
@@ -15,559 +15,2884 @@
   li { margin: 3px 0; }
   code { font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; background: #f0f4f8; color: #c0392b; padding: 1px 5px; border-radius: 3px; }
   pre { background: #1e2a3a; color: #abb2bf; font-family: 'Consolas', 'Courier New', monospace; font-size: 11.5px; line-height: 1.55; padding: 14px 18px; border-radius: 6px; margin: 10px 0; overflow-x: auto; border-left: 4px solid #2980b9; white-space: pre-wrap; word-break: break-word; }
+  pre .kw  { color: #c678dd; }
+  pre .str { color: #98c379; }
+  pre .cmt { color: #5c6370; font-style: italic; }
+  pre .cls { color: #e5c07b; }
+  pre .mth { color: #61afef; }
+  pre .num { color: #d19a66; }
+  pre .att { color: #e06c75; }
   table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
   th { background: #2471a3; color: #fff; padding: 8px 10px; text-align: left; }
   td { padding: 7px 10px; border: 1px solid #d5d8dc; }
   tr:nth-child(even) td { background: #f4f6f8; }
-  .badge { display: inline-block; background: #2980b9; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; margin-right: 4px; }
-  .badge.green { background: #27ae60; }
-  .badge.orange { background: #d35400; }
   .note { background: #eaf4fb; border-left: 4px solid #2980b9; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
   .warn { background: #fef9e7; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
-  .gap { background: #fdecea; border-left: 4px solid #c0392b; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
+  .gap  { background: #fdecea; border-left: 4px solid #c0392b; padding: 10px 14px; margin: 10px 0; border-radius: 0 4px 4px 0; font-size: 12px; }
   hr { border: none; border-top: 1px solid #d5d8dc; margin: 24px 0; }
   @media print {
     body { padding: 10px 20px; font-size: 12px; }
-    pre { font-size: 10.5px; }
-    h1 { page-break-before: auto; }
-    h2 { page-break-after: avoid; }
+    pre  { font-size: 10.5px; }
+    h1   { page-break-before: auto; }
+    h2   { page-break-after: avoid; }
     pre, table { page-break-inside: avoid; }
   }
 </style>
 </head>
 <body>
 
-<h1>Entity Framework Core (Level 1) — WebMessenger</h1>
-<p>Practical skill guide to EF Core patterns, based on the current WebMessenger implementation.</p>
-<p style="color:#888;font-size:11px;">Project: ASP.NET Core 8 + EF Core 8 + MySQL + Pomelo.EntityFrameworkCore.MySql 8.0.3 + Code-First approach</p>
+<h1>Entity Framework Core (Level 1) &#8212; WebMessenger</h1>
+<p>Полный практический гайд по основам Entity Framework Core 8 на базе реального проекта WebMessenger.</p>
+<p style="color:#888;font-size:11px;">Проект: WebMessenger.Api &middot; WebMessenger.DAL &middot; .NET 8 &middot; C# 12 &middot; EF Core 8 &middot; Pomelo MySQL &middot; Code-First &middot; Migrations</p>
 
 <hr>
 
-<h1>1. Environment and Tooling</h1>
 
-<h3>Current setup in WebMessenger</h3>
-<ul>
-  <li><strong>Provider:</strong> Pomelo.EntityFrameworkCore.MySql v8.0.3 (MySQL 8.0+)</li>
-  <li><strong>DbContext registration:</strong> in <code>Program.cs</code> with options builder</li>
-  <li><strong>Approach:</strong> Code-first (entities define schema, migrations follow)</li>
-  <li><strong>Connection string:</strong> from <code>appsettings.json</code> section <code>ConnectionStrings:DefaultConnection</code></li>
-  <li><strong>Migration strategy:</strong> Applied at startup in retry loop</li>
-</ul>
-
-<pre>// Program.cs
-builder.Services.AddDbContext&lt;ApplicationDbContext&gt;((sp, options) =&gt;
-{
-  options.UseMySql(
-    builder.Configuration.GetConnectionString("DefaultConnection"),
-    new MySqlServerVersion(new Version(8, 0, 42)),
-    mysqlOptions =&gt; { mysqlOptions.EnableRetryOnFailure(); }
-  );
-
-  if (sp.GetRequiredService&lt;IHostEnvironment&gt;().IsDevelopment())
-  {
-    options.EnableSensitiveDataLogging();
-    options.EnableDetailedErrors();
-  }
-});</pre>
-
-<h3>Key concepts</h3>
-<ul>
-  <li><strong>DbContext lifetime:</strong> scoped per request (best practice for web)</li>
-  <li><strong>Connection pooling:</strong> Pomelo handles this automatically</li>
-  <li><strong>Retry on failure:</strong> enabled for transient network issues</li>
-  <li><strong>Dev diagnostics:</strong> detailed EF errors and sensitive SQL parameter logging enabled only in Development</li>
-  <li><strong>Migrations in git:</strong> all migrations tracked and applied deterministically</li>
-</ul>
-
-<hr>
-
-<h1>2. DbContext and Entities</h1>
-
-<h3>DbContext as unit of work pattern</h3>
-<p>The <code>ApplicationDbContext</code> serves as both:</p>
-<ul>
-  <li>Gateway to query and save entities</li>
-  <li>Unit of Work for coordinated SaveChangesAsync across multiple operations</li>
-</ul>
-
-<pre>// ApplicationDbContext.cs
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
-{
-    public DbSet&lt;User&gt; Users { get; set; }
-    public DbSet&lt;Chat&gt; Chats { get; set; }
-    public DbSet&lt;Message&gt; Messages { get; set; }
-    public DbSet&lt;ChatMember&gt; ChatMembers { get; set; }
-    public DbSet&lt;Contact&gt; Contacts { get; set; }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        // Fluent API configuration
-    }
-}</pre>
-
-<h3>DbSet semantics</h3>
-<ul>
-  <li><code>DbSet&lt;T&gt;</code> represents a table mapped to entity type <code>T</code></li>
-  <li>LINQ queries on DbSet are compiled to SQL and executed on the database</li>
-  <li>Navigation properties create relationships without explicit joins in code</li>
-</ul>
-
-<h3>Key conventions</h3>
-<table>
-  <tr><th>Convention</th><th>What it means</th><th>Example in project</th></tr>
-  <tr><td>Property name = Column name (unless overridden)</td><td>User.Username → Users.Username</td><td>User entity properties map directly</td></tr>
-  <tr><td>Id property = Primary Key</td><td>Automatic</td><td>All entities have Guid Id</td></tr>
-  <tr><td>Navigation property + Collection = FK relationship</td><td>User.Contacts creates one-to-many</td><td>Contact has FK to both OwnerUser and ContactUser</td></tr>
-  <tr><td>Required (non-nullable) = NOT NULL</td><td>Enforced in database</td><td>Message.Content is required, EditedAt is nullable</td></tr>
-</table>
-
-<hr>
-
-<h1>3. Basic Modeling (Fluent API + Annotations)</h1>
-
-<h3>Modeling approach in WebMessenger</h3>
-<p>This project uses <strong>Fluent API in OnModelCreating</strong> for database configuration and <strong>Data Annotations on entities</strong> for constraints.</p>
-
-<h3>Examples from ApplicationDbContext</h3>
-<pre>// Timestamps with server-side defaults
-modelBuilder.Entity<User>(entity =>
-{
-    entity.Property(u => u.CreatedAt)
-        .HasColumnType("datetime(6)")
-        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
-        .ValueGeneratedOnAdd();
-
-    entity.Property(u => u.LastSeenAt)
-        .HasColumnType("datetime(6)")
-        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
-        .ValueGeneratedOnAddOrUpdate();
-});
-
-// Composite unique index (user can only add another user as contact once)
-modelBuilder.Entity<Contact>(entity =>
-{
-    entity.HasIndex(c => new { c.OwnerUserId, c.ContactUserId }).IsUnique();
-
-    // Relationship with Restrict behavior (no cascading deletes of users)
-    entity.HasOne(c => c.OwnerUser)
-        .WithMany(u => u.Contacts)
-        .HasForeignKey(c => c.OwnerUserId)
-        .OnDelete(DeleteBehavior.Restrict);
-});</pre>
-
-<h3>Simple vs complex relationships</h3>
-<table>
-  <tr><th>Relationship</th><th>Type</th><th>Example in WebMessenger</th></tr>
-  <tr><td>One-to-Many</td><td>User has many Contacts</td><td>User.Contacts → Contact[].OwnerUserId</td></tr>
-  <tr><td>Many-to-Many (via join table)</td><td>User has many Chats (through ChatMember)</td><td>User → ChatMember → Chat</td></tr>
-  <tr><td>One-to-One implicit</td><td>Message.Sender → User</td><td>Each Message has one Sender</td></tr>
-</table>
-
-<h3>Required vs Optional</h3>
-<ul>
-  <li><strong>Required (not nullable):</strong> <code>Message.Content</code> (enforced by <code>[Required]</code> annotation and non-null C# property)</li>
-  <li><strong>Optional (nullable):</strong> <code>Message.EditedAt</code> (nullable C# property maps to NULL column)</li>
-  <li><strong>Foreign keys:</strong> always required (if relationship is required)</li>
-</ul>
-
-<hr>
-
-<h1>4. Basic Querying</h1>
-
-<h3>LINQ basics and materialization</h3>
-
-<h4>Query that returns a list:</h4>
-<pre>// From Repository.cs
-public IQueryable<T> GetAll(params string[] navigationProperties)
-{
-    var query = _dbSet.AsNoTracking();
-    foreach (var navProp in navigationProperties)
-    {
-        query = query.Include(navProp);
-    }
-    return query;  // Not materialized yet — still IQueryable
-}
-
-// Service layer — materialization
-var users = await _unitOfWork.UserRepository.GetAll()
-    .Where(x => x.Username.ToLower().Contains(queryLower))
-    .OrderBy(u => u.Username)
-    .Take(limit)
-    .ToListAsync();  // Materialization happens here</pre>
-
-<h4>Find by primary key:</h4>
-<pre>// Fast lookup by ID
-var user = await _dbSet.FindAsync(new object[] { id }, ct);
-// FindAsync checks local cache first, then database</pre>
-
-<h4>FirstOrDefault and SingleOrDefault:</h4>
-<pre>// FirstOrDefault — first match, or null
-var chat = await _uow.ChatRepository.GetAll()
-    .FirstOrDefaultAsync(c => c.Id == chatId);
-
-// SingleOrDefault — exactly one match, or null (throws if >1)
-var chatInfo = await _uow.ChatRepository.GetAll()
-    .AsNoTracking()
-    .Where(c => c.Id == chatId)
-    .SingleOrDefaultAsync(ct);</pre>
-
-<h4>Projections (select specific columns):</h4>
-<pre>// UserService.cs — EF-translatable projection to DTO
-var profile = await _unitOfWork.UserRepository.GetAll()
-  .Where(u => u.Id == userId)
-  .Select(UserProjections.ToProfileDto)
-  .FirstOrDefaultAsync();
-
-// ChatService.cs — centralized message projection
-var items = await q
-  .OrderByDescending(m => m.SentAt)
-  .Take(take)
-  .Select(MessageProjections.ToChatMessageDto)
-  .ToListAsync();</pre>
-
-<h4>Pagination:</h4>
-<pre>// Cursor-based pagination (used in chats/messages listing)
-var baseQuery = _uow.MessageRepository.GetAll();
-
-if (before.HasValue)
-    baseQuery = baseQuery.Where(m => m.SentAt < before.Value);
-
-var items = await baseQuery
-    .OrderByDescending(m => m.SentAt)
-    .Take(limit)
-    .ToListAsync();</pre>
-
-<hr>
-
-<h1>5. Loading Related Data (Include/ThenInclude)</h1>
-
-<h3>Eager loading with Include</h3>
-<pre>// From ContactsService.cs
-var contacts = await _unitOfWork.ContactRepository.GetAll()
-    .Where(x => x.OwnerUserId == currentUserId && x.ContactUser!.Username.ToLower().Contains(query.ToLower()))
-    .Include(x => x.ContactUser)  // Eager load the related user
-    .ToListAsync();
-// Single query with JOIN instead of N+1 problem</pre>
-
-<h3>Multi-level loading with ThenInclude</h3>
-<div class="note">
-  <strong>Currently not used in this project, but recommended:</strong>
-</div>
-<pre>// Example (not yet in WebMessenger):
-var chats = await _dbContext.Chats
-    .Include(c => c.Members)
-        .ThenInclude(cm => cm.User)  // Load users within members
-    .Where(c => c.Id == chatId)
-    .ToListAsync();
-// Loads: Chat → ChatMembers → Users in a single query</pre>
-
-<h3>AsNoTracking for read-only queries</h3>
-<p>Used throughout the repository to improve performance on queries that don't modify entities:</p>
-<pre>var query = _dbSet.AsNoTracking();  // Skip change tracking overhead</pre>
-
-<h3>Avoiding N+1 queries</h3>
-<table>
-  <tr><th>Pattern</th><th>Problem</th><th>Solution</th></tr>
-  <tr><td>Loop + separate query per item</td><td>N+1 queries (1 + N)</td><td>Use Include before the loop</td></tr>
-  <tr><td>foreach (var item in list) { db.Get(item.Id) }</td><td>If list has 100 items: 101 queries</td><td>Materialize all first, then reference in memory</td></tr>
-  <tr><td>Per-chat unread count query</td><td>N queries for N chats</td><td>Use grouped batch query + dictionary map (implemented in ChatService)</td></tr>
-</table>
-
-<div class="note">
-  <strong>Implemented optimization:</strong> <code>ChatService.GetUserChatsAsync</code> now batch-loads chat read states, unread counts, and DM peer info, then builds maps in memory instead of querying per chat.
-</div>
-
-<hr>
-
-<h1>6. Saving Data (Add/Update/Remove + SaveChanges)</h1>
-
-<h3>Change tracking and state management</h3>
-
-<h4>Adding:</h4>
-<pre>// From Repository.cs
-public async Task InsertAsync(T entity, CancellationToken ct = default)
-{
-    if (entity == null) throw new ArgumentNullException(nameof(entity));
-    await _dbSet.AddAsync(entity, ct);  // Entity state = Added
-    // Not committed yet — waiting for SaveChangesAsync
-}</pre>
-
-<h4>Updating:</h4>
-<pre>// From Repository.cs
-public Task UpdateAsync(T entity, CancellationToken ct = default)
-{
-    if (entity == null) throw new ArgumentNullException(nameof(entity));
-    _dbSet.Attach(entity);
-    _context.Entry(entity).State = EntityState.Modified;  // Mark as modified
-    return Task.CompletedTask;
-}</pre>
-
-<h4>Removing:</h4>
-<pre>// From Repository.cs
-public async Task DeleteAsync(Guid id, CancellationToken ct = default)
-{
-    var entity = await _dbSet.FindAsync(new object[] { id }, ct);
-    if (entity == null) throw new KeyNotFoundException($"Entity not found");
-    _dbSet.Remove(entity);  // Entity state = Deleted
-}</pre>
-
-<h4>SaveChanges (Unit of Work pattern):</h4>
-<pre>// From UnitOfWork.cs
-public async Task CommitAsync(CancellationToken ct = default)
-{
-    await _context.SaveChangesAsync(ct);
-    // All tracked changes (Add/Update/Remove) are batched and sent in single transaction
-}</pre>
-
-<h3>Common exceptions</h3>
-<table>
-  <tr><th>Exception</th><th>When it occurs</th><th>How to handle</th></tr>
-  <tr><td>DbUpdateException</td><td>FK violation, unique constraint failure, or other DB error</td><td>Catch and log; return 400 or 409 to client</td></tr>
-  <tr><td>DbUpdateConcurrencyException</td><td>Optimistic concurrency conflict (rare without explicit concurrency tokens)</td><td>Reload entity and retry or return conflict response</td></tr>
-  <tr><td>OperationCanceledException</td><td>Query/save cancelled via CancellationToken</td><td>Handle gracefully in middleware</td></tr>
-</table>
-
-<hr>
-
-<h1>7. Basic Migrations</h1>
-
-<h3>Creating migrations</h3>
-<pre>// CLI command
-dotnet ef migrations add AddBasicModels -p Server/WebMessenger.DAL -s Server/WebMessenger.Api
-
-// Creates two files:
-// - 20250717131146_AddBasicModels.cs (Up/Down methods)
-// - 20250717131146_AddBasicModels.Designer.cs (snapshot, auto-generated)</pre>
-
-<h3>Migration structure</h3>
-<pre>// AddBasicModels.cs — Up method (schema changes to apply)
-protected override void Up(MigrationBuilder migrationBuilder)
-{
-    migrationBuilder.CreateTable(
-        name: "Chats",
-        columns: table => new
-        {
-            Id = table.Column<Guid>(type: "char(36)", nullable: false),
-            Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
-            IsGroup = table.Column<bool>(type: "tinyint(1)", nullable: false),
-            CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false, 
-                defaultValueSql: "CURRENT_TIMESTAMP(6)")
-        },
-        constraints: table =>
-        {
-            table.PrimaryKey("PK_Chats", x => x.Id);
-        });
-}
-
-// Down method (undo the changes — for rollback)
-protected override void Down(MigrationBuilder migrationBuilder)
-{
-    migrationBuilder.DropTable(name: "Chats");
-}</pre>
-
-<h3>Applying migrations</h3>
-<pre>// At startup (Program.cs)
-var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-db.Database.Migrate();  // Applies all pending migrations</pre>
-
-<h3>Reverting migrations</h3>
-<div class="warn">
-  <strong>Only for development</strong> — in production, always create new migrations to undo changes.
-</div>
-<pre>// CLI
-dotnet ef database update RemoveUniqueIndexFromEmail  // Revert to specific migration
-dotnet ef database update 0                           // Remove all migrations</pre>
-
-<hr>
-
-<h1>8. Value Conversions</h1>
-
-<h3>When to use value converters</h3>
-<p>Value converters transform property values between CLR type and database representation.</p>
-
-<h3>Common scenarios</h3>
-<table>
-  <tr><th>CLR Type</th><th>Database Type</th><th>Use Case</th></tr>
-  <tr><td>enum</td><td>int or string</td><td>Store enum as integer or name</td></tr>
-  <tr><td>bool</td><td>bit or char(1)</td><td>Database-specific boolean</td></tr>
-  <tr><td>DateTime</td><td>VARCHAR + timezone conversion</td><td>UTC storage with local display</td></tr>
-  <tr><td>List&lt;T&gt;</td><td>JSON string</td><td>Store collection as JSON column</td></tr>
-</table>
-
-<div class="gap">
-  <strong>Not currently used in WebMessenger</strong>, but a recommended next step for handling enum status fields or JSON arrays in future features.
-</div>
-
-<h3>Theoretical example</h3>
-<pre>// Example: store enum as string in database
-public enum MessageStatus { Sent, Delivered, Read }
-
-modelBuilder.Entity<Message>()
-    .Property(m => m.Status)
-    .HasConversion(
-        v => v.ToString(),                    // To database
-        v => Enum.Parse<MessageStatus>(v)     // From database
-    );</pre>
-
-<hr>
-
-<h1>9. Logging and Diagnostics</h1>
-
-<h3>Current state in WebMessenger</h3>
-<div class="note">
-  <strong>Partially implemented:</strong> EF diagnostics are enabled in Development via <code>EnableDetailedErrors()</code> and <code>EnableSensitiveDataLogging()</code> in <code>Program.cs</code>.
-</div>
-<pre>// Program.cs
-if (sp.GetRequiredService&lt;IHostEnvironment&gt;().IsDevelopment())
-{
-    options.EnableSensitiveDataLogging();
-    options.EnableDetailedErrors();
-}</pre>
-
-<h3>Optional next step: SQL command logging</h3>
-<div class="gap">
-  <strong>Still not configured:</strong> <code>LogTo(...)</code> for raw SQL command logging.
-</div>
-<pre>// Example optional addition
-options.LogTo(Console.WriteLine, LogLevel.Information);
-</pre>
-
-<h3>Sensitive logging awareness</h3>
-<p>By default, EF Core logs parameter values in SQL. In production, disable this:</p>
-<pre>// Disable sensitive logging in production
-.EnableSensitiveDataLogging(isDevelopment)</pre>
-
-<h3>Query tags for diagnostics</h3>
-<div class="gap">
-  <strong>Not currently used</strong>, but recommended for tracing queries:
-</div>
-<pre>// Tag queries for easier debugging
-var users = await _userRepository.GetAll()
-    .TagWith("GetUsersBySearchQuery")
-    .Where(u => u.Username.Contains(query))
-    .ToListAsync();
-// Tagged query appears in logs with the string</pre>
-
-<hr>
-
-<h1>10. Performance Fundamentals</h1>
-
-<h3>Reducing round trips</h3>
-<ul>
-  <li><strong>Batch operations:</strong> use <code>AddRangeAsync</code> instead of loop + Add</li>
-  <li><strong>Include related data:</strong> load chats + members in one query vs separate queries</li>
-  <li><strong>Use pagination:</strong> don't load all 10K messages at once</li>
-</ul>
-
-<h3>Async database operations</h3>
-<p>All DAL queries use async operators to avoid blocking:</p>
-<table>
-  <tr><th>Sync (avoid)</th><th>Async (use)</th></tr>
-  <tr><td>.ToList()</td><td>.ToListAsync()</td></tr>
-  <tr><td>.FirstOrDefault()</td><td>.FirstOrDefaultAsync()</td></tr>
-  <tr><td>.Count()</td><td>.CountAsync()</td></tr>
-  <tr><td>.Any()</td><td>.AnyAsync()</td></tr>
-  <tr><td>.Single()</td><td>.SingleAsync()</td></tr>
-</table>
-
-<h3>Projection for memory efficiency</h3>
-<pre>// Centralized projection expressions (implemented)
-// Server/WebMessenger.Api/Projections/Users/UserProjections.cs
-public static readonly Expression&lt;Func&lt;User, UserProfileDto&gt;&gt; ToProfileDto = ...;
-
-// Usage from UserService.cs
-return await _unitOfWork.UserRepository.GetAll()
-    .Where(u => u.Id == userId)
-    .Select(UserProjections.ToProfileDto)
-    .FirstOrDefaultAsync();</pre>
-
-<div class="note">
-  This pattern is now used in <code>UserService</code>, <code>ChatService</code>, and <code>ContactsService</code> through <code>UserProjections</code>, <code>MessageProjections</code>, and <code>ContactProjections</code>.
-</div>
-
-<h3>Avoiding heavy eager loading</h3>
-<ul>
-  <li>Don't include all related collections by default</li>
-  <li>Use <code>AsNoTracking()</code> for read-only queries</li>
-  <li>Explicit loading when needed, not automatic</li>
-</ul>
-
-<hr>
-
-<h1>11. Security Fundamentals</h1>
-
-<h3>SQL parameterization</h3>
-<p>LINQ to Entities automatically parameterizes all queries — no manual escaping needed:</p>
-<pre>// SAFE — parameters are automatically bound
-var username = userInput;  // Could contain ' or malicious SQL
-var user = await _userRepository.GetAll()
-    .FirstOrDefaultAsync(u => u.Username == username);
-// EF Core sends: SELECT ... WHERE Username = @p0, with value as separate parameter</pre>
-
-<h3>What NOT to do — raw SQL concatenation</h3>
-<pre>// DANGEROUS — never do this
-string sql = $"SELECT * FROM Users WHERE Username = '{userInput}'";  // SQL injection risk
-var users = await _dbContext.Users.FromSqlRaw(sql).ToListAsync();
-
-// SAFE — use parameterization
-var users = await _dbContext.Users
-    .FromSqlInterpolated($"SELECT * FROM Users WHERE Username = {userInput}")
-    .ToListAsync();</pre>
-
-<h3>Permission boundaries</h3>
-<p>In WebMessenger, business logic enforces:</p>
-<ul>
-  <li>Users can only view chats they're members of</li>
-  <li>Users can only update their own profile</li>
-  <li>Contacts can only be managed by the owner</li>
-</ul>
-
-<pre>// Service-level check (required + contact ownership)
-if (!isMember)
-    throw new UnauthorizedAccessException("Not a member of this chat");
-
-var cm = await _uow.ChatMemberRepository.GetAll()
-    .FirstOrDefaultAsync(x => x.ChatId == chatId && x.UserId == me);
-// Only the current user can fetch their own read state</pre>
-
-<hr>
-
-<h1>12. Practical Skill Demonstration Checklist</h1>
-
-<ol>
-  <li>Explain the role of DbContext as both gateway and Unit of Work.</li>
-  <li>Show a DbSet mapped to entities in ApplicationDbContext.</li>
-  <li>Demonstrate Fluent API configuration (indexes, relationships, timestamps).</li>
-  <li>Write a LINQ query with Where, OrderBy, Take — show materialization with ToListAsync.</li>
-  <li>Show a migration file with Up (create table) and Down (drop table) methods.</li>
-  <li>Explain Include and ThenInclude for eager loading related data.</li>
-  <li>Demonstrate AsNoTracking for read-only optimization.</li>
-  <li>Show Add/Update/Remove in repository and SaveChangesAsync in UnitOfWork.</li>
-  <li>Explain the N+1 problem and how Include solves it.</li>
-  <li>Show parameterized LINQ query (safe from SQL injection).</li>
-  <li>Demonstrate pagination cursor pattern (before + limit).</li>
-  <li>Explain CancellationToken usage in async DAL operations.</li>
-</ol>
-
-<hr>
-
-<h1>13. Recommended Next Steps for Level 2</h1>
-
-<ul>
-  <li><strong>Explicit loading:</strong> load related data on demand via <code>LoadAsync()</code></li>
-  <li><strong>Value converters:</strong> for enums, JSON columns, or custom type mappings</li>
-  <li><strong>Owned entities:</strong> embed value objects without separate tables</li>
-  <li><strong>Query filters:</strong> global filters for tenant/soft-delete patterns</li>
-  <li><strong>Concurrency tokens:</strong> optimistic locking for conflict detection</li>
-  <li><strong>Shadow properties:</strong> properties not in the CLR entity</li>
-  <li><strong>Complex types (8.0+):</strong> structured value types as complex properties</li>
-</ul>
-
-<hr>
-<p style="text-align:center;color:#888;font-size:11px;">
-  Entity Framework Core (Level 1) — WebMessenger · EF Core 8 · Pomelo MySQL · Code-First · Fluent API<br />
-  Export to PDF: open in browser -> Ctrl+P -> Save as PDF
+<!-- ============================================================ -->
+<h1>1. Setup and Configuration &#8212; Настройка и конфигурация</h1>
+
+<!-- 1.1 -->
+<h2>1.1 Пакеты и провайдеры</h2>
+
+<p>
+  EF Core (Entity Framework Core) &#8212; это ORM (Object-Relational Mapper) от Microsoft:
+  он позволяет работать с реляционной базой данных через обычные C#-классы и LINQ-запросы,
+  не писать SQL вручную. Сам по себе <code>Microsoft.EntityFrameworkCore</code> не умеет
+  разговаривать ни с одной конкретной СУБД &#8212; для этого нужен <strong>провайдер</strong>.
+  Провайдер транслирует LINQ-дерево выражений в SQL нужного диалекта и передаёт команды
+  низкоуровневому ADO.NET-драйверу базы данных.
+</p>
+<p>
+  В WebMessenger используется <strong>MySQL 8</strong> через community-провайдер
+  <code>Pomelo.EntityFrameworkCore.MySql</code> &#8212; наиболее популярный и активно
+  поддерживаемый вариант для MySQL / MariaDB.
 </p>
 
+<h3>Пакеты WebMessenger.DAL.csproj &#8212; разбор каждого</h3>
+<pre><span class="cmt">&lt;!-- WebMessenger.DAL/WebMessenger.DAL.csproj --&gt;</span>
+&lt;ItemGroup&gt;
+  <span class="cmt">&lt;!-- Ядро EF Core: DbContext, DbSet&lt;T&gt;, Change Tracker, LINQ-провайдер.
+       Без него ничего не работает. --&gt;</span>
+  &lt;PackageReference Include=<span class="str">"Microsoft.EntityFrameworkCore"</span> Version=<span class="str">"8.0.18"</span> /&gt;
+
+  <span class="cmt">&lt;!-- Реляционные расширения поверх ядра: HasIndex, HasForeignKey, HasColumnType,
+       HasDefaultValueSql, OnDelete и весь Fluent API для реляционных таблиц. --&gt;</span>
+  &lt;PackageReference Include=<span class="str">"Microsoft.EntityFrameworkCore.Relational"</span> Version=<span class="str">"8.0.18"</span> /&gt;
+
+  <span class="cmt">&lt;!-- CLI-инструменты: dotnet ef migrations add / database update / script.
+       PrivateAssets=all &#8212; не попадает в финальную сборку, только для разработки. --&gt;</span>
+  &lt;PackageReference Include=<span class="str">"Microsoft.EntityFrameworkCore.Tools"</span> Version=<span class="str">"8.0.18"</span>&gt;
+    &lt;PrivateAssets&gt;all&lt;/PrivateAssets&gt;
+    &lt;IncludeAssets&gt;runtime; build; native; contentfiles; analyzers; buildtransitive&lt;/IncludeAssets&gt;
+  &lt;/PackageReference&gt;
+
+  <span class="cmt">&lt;!-- Design-time сервисы: генерация C#-кода миграций, scaffolding схемы БД.
+       Тоже только для разработки &#8212; в продакшн-образ не включается. --&gt;</span>
+  &lt;PackageReference Include=<span class="str">"Microsoft.EntityFrameworkCore.Design"</span> Version=<span class="str">"8.0.18"</span>&gt;
+    &lt;PrivateAssets&gt;all&lt;/PrivateAssets&gt;
+    &lt;IncludeAssets&gt;runtime; build; native; contentfiles; analyzers; buildtransitive&lt;/IncludeAssets&gt;
+  &lt;/PackageReference&gt;
+
+  <span class="cmt">&lt;!-- Провайдер MySQL / MariaDB. Знает про datetime(6), ENGINE=InnoDB,
+       MySQL-специфичный SQL, режимы аутентификации MySQL 8. --&gt;</span>
+  &lt;PackageReference Include=<span class="str">"Pomelo.EntityFrameworkCore.MySql"</span> Version=<span class="str">"8.0.3"</span> /&gt;
+&lt;/ItemGroup&gt;</pre>
+
+<h3>Популярные провайдеры EF Core</h3>
+<table>
+  <tr><th>Пакет провайдера</th><th>СУБД</th><th>Кто поддерживает</th></tr>
+  <tr><td><code>Pomelo.EntityFrameworkCore.MySql</code></td><td>MySQL 5.7+, MariaDB 10.3+</td><td>Community &#8212; <strong>используется в WebMessenger</strong></td></tr>
+  <tr><td><code>MySql.EntityFrameworkCore</code></td><td>MySQL 8.0+</td><td>Oracle (официальный) &#8212; менее популярен</td></tr>
+  <tr><td><code>Npgsql.EntityFrameworkCore.PostgreSQL</code></td><td>PostgreSQL</td><td>Community &#8212; очень зрелый, богатые возможности</td></tr>
+  <tr><td><code>Microsoft.EntityFrameworkCore.SqlServer</code></td><td>SQL Server, Azure SQL</td><td>Microsoft (официальный)</td></tr>
+  <tr><td><code>Microsoft.EntityFrameworkCore.Sqlite</code></td><td>SQLite</td><td>Microsoft &#8212; удобен для unit-тестов</td></tr>
+  <tr><td><code>Microsoft.EntityFrameworkCore.InMemory</code></td><td>Только в памяти</td><td>Microsoft &#8212; только для тестов, не генерирует SQL</td></tr>
+</table>
+
+<div class="note">
+  <strong>Версии должны совпадать по мажорному номеру:</strong> все пакеты
+  <code>Microsoft.EntityFrameworkCore.*</code> и провайдер должны быть совместимы.
+  В WebMessenger EF Core 8.0.18 + Pomelo 8.0.3 &#8212; оба <strong>8.x</strong>.
+  Смешивать 8.x ядро с 7.x провайдером нельзя &#8212; возникнут runtime-исключения при старте.
+</div>
+
+<!-- 1.2 -->
+<h2>1.2 Code-First vs Database-First</h2>
+
+<p>
+  EF Core поддерживает два основных подхода к работе со схемой базы данных.
+  Выбор определяет, что является <em>источником истины</em>: C#-классы или существующая БД.
+</p>
+
+<table>
+  <tr><th></th><th>Code-First (WebMessenger)</th><th>Database-First</th></tr>
+  <tr>
+    <td><strong>Источник истины</strong></td>
+    <td>C#-классы сущностей + конфигурация в <code>OnModelCreating</code></td>
+    <td>Существующая структура таблиц в БД</td>
+  </tr>
+  <tr>
+    <td><strong>Рабочий процесс</strong></td>
+    <td>Пишешь классы &#8594; <code>dotnet ef migrations add</code> &#8594; <code>database update</code></td>
+    <td><code>dotnet ef dbcontext scaffold</code> &#8594; EF генерирует классы по схеме БД</td>
+  </tr>
+  <tr>
+    <td><strong>История изменений</strong></td>
+    <td>Файлы миграций в git &#8212; видно кто, когда и что изменил в схеме</td>
+    <td>Только в БД или отдельных SQL DDL-скриптах вне системы контроля версий</td>
+  </tr>
+  <tr>
+    <td><strong>Когда выбирать</strong></td>
+    <td>Новый проект &#8212; полный контроль над схемой, команда работает через код</td>
+    <td>Есть legacy БД которую нельзя менять; DBA контролирует схему вручную</td>
+  </tr>
+  <tr>
+    <td><strong>Риски</strong></td>
+    <td>Нужна дисциплина с миграциями: нельзя терять или редактировать применённые файлы</td>
+    <td>Регенерация классов затирает ручные правки; схема и код могут разойтись</td>
+  </tr>
+</table>
+
+<p>
+  В WebMessenger используется <strong>Code-First</strong>: классы <code>User</code>,
+  <code>Chat</code>, <code>Message</code>, <code>ChatMember</code>, <code>Contact</code>
+  в папке <code>WebMessenger.DAL/Entities/</code> &#8212; источник истины схемы.
+  Папка <code>Migrations/</code> хранит полную историю изменений в виде C#-файлов,
+  коммитируемых вместе с остальным кодом.
+</p>
+
+<!-- 1.3 -->
+<h2>1.3 DbContext &#8212; Unit of Work и Identity Map</h2>
+
+<p>
+  <code>DbContext</code> &#8212; центральный класс EF Core, реализующий два классических паттерна:
+</p>
+<ul>
+  <li>
+    <strong>Unit of Work</strong> &#8212; отслеживает все изменения сущностей с момента создания
+    контекста и сбрасывает их в БД единой транзакцией при вызове <code>SaveChangesAsync</code>.
+    Не нужно вручную писать <code>BEGIN / COMMIT</code> для каждой операции.
+  </li>
+  <li>
+    <strong>Identity Map</strong> &#8212; гарантирует, что один и тот же ряд таблицы (по PK)
+    представлен ровно одним объектом в памяти. Два запроса с одинаковым <code>Guid</code> вернут
+    один и тот же экземпляр &#8212; не дубликат.
+  </li>
+</ul>
+<p>
+  Каждый <code>DbSet&lt;T&gt;</code> &#8212; это <strong>репозиторий</strong> для конкретной
+  сущности: через него строятся LINQ-запросы и выполняются <code>Add</code> / <code>Remove</code>.
+</p>
+
+<pre><span class="cmt">// WebMessenger.DAL/Data/ApplicationDbContext.cs
+// Primary constructor C# 12 &#8212; DbContextOptions содержит строку подключения,
+// провайдер и все опции, заданные в Program.cs через AddDbContext.</span>
+<span class="kw">public class</span> <span class="cls">ApplicationDbContext</span>(<span class="cls">DbContextOptions</span>&lt;<span class="cls">ApplicationDbContext</span>&gt; options)
+    : <span class="cls">DbContext</span>(options)
+{
+    <span class="cmt">// DbSet&lt;T&gt; &#8212; одна таблица = один DbSet.
+    // Имя свойства &#8212; имя таблицы по умолчанию (EF плюрализует: User &#8594; Users).
+    // EF Core сам инициализирует свойства при создании контекста через рефлексию.</span>
+    <span class="kw">public</span> <span class="cls">DbSet</span>&lt;<span class="cls">User</span>&gt;       Users       { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public</span> <span class="cls">DbSet</span>&lt;<span class="cls">Chat</span>&gt;       Chats       { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public</span> <span class="cls">DbSet</span>&lt;<span class="cls">Message</span>&gt;    Messages    { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public</span> <span class="cls">DbSet</span>&lt;<span class="cls">ChatMember</span>&gt; ChatMembers { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public</span> <span class="cls">DbSet</span>&lt;<span class="cls">Contact</span>&gt;    Contacts    { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    <span class="cmt">// OnModelCreating &#8212; вызывается один раз при первой инициализации модели.
+    // Здесь задаётся то, что нельзя выразить Data Annotations:
+    // составные индексы, SQL-дефолты, поведение при удалении (Cascade / Restrict).</span>
+    <span class="kw">protected override void</span> <span class="mth">OnModelCreating</span>(<span class="cls">ModelBuilder</span> modelBuilder)
+    {
+        <span class="kw">var</span> ts = <span class="str">"CURRENT_TIMESTAMP(6)"</span>;  <span class="cmt">// MySQL: точность до микросекунды</span>
+
+        modelBuilder.<span class="mth">Entity</span>&lt;<span class="cls">Message</span>&gt;(entity =>
+        {
+            entity.<span class="mth">Property</span>(m => m.SentAt)
+                  .<span class="mth">HasColumnType</span>(<span class="str">"datetime(6)"</span>)
+                  .<span class="mth">HasDefaultValueSql</span>(ts)   <span class="cmt">// БД проставит метку времени при INSERT</span>
+                  .<span class="mth">ValueGeneratedOnAdd</span>();    <span class="cmt">// EF знает: значение генерирует БД, не C#</span>
+
+            <span class="cmt">// Составной индекс &#8212; критичен для курсорной пагинации истории чата:
+            // WHERE ChatId = ? AND SentAt &lt; ? ORDER BY SentAt DESC LIMIT ?</span>
+            entity.<span class="mth">HasIndex</span>(m => <span class="kw">new</span> { m.ChatId, m.SentAt });
+        });
+
+        modelBuilder.<span class="mth">Entity</span>&lt;<span class="cls">ChatMember</span>&gt;(entity =>
+        {
+            <span class="cmt">// Уникальный составной индекс: один пользователь &#8212; один раз в чате</span>
+            entity.<span class="mth">HasIndex</span>(cm => <span class="kw">new</span> { cm.UserId, cm.ChatId }).<span class="mth">IsUnique</span>();
+        });
+
+        modelBuilder.<span class="mth">Entity</span>&lt;<span class="cls">Contact</span>&gt;(entity =>
+        {
+            <span class="cmt">// Restrict &#8212; нельзя удалить User, если у него есть Contact-записи.
+            // Без явного OnDelete Pomelo/MySQL выбрал бы CASCADE или NO ACTION.</span>
+            entity.<span class="mth">HasOne</span>(c => c.OwnerUser)
+                  .<span class="mth">WithMany</span>(u => u.Contacts)
+                  .<span class="mth">HasForeignKey</span>(c => c.OwnerUserId)
+                  .<span class="mth">OnDelete</span>(<span class="cls">DeleteBehavior</span>.Restrict);
+
+            entity.<span class="mth">HasOne</span>(c => c.ContactUser)
+                  .<span class="mth">WithMany</span>()
+                  .<span class="mth">HasForeignKey</span>(c => c.ContactUserId)
+                  .<span class="mth">OnDelete</span>(<span class="cls">DeleteBehavior</span>.Restrict);
+        });
+    }
+}</pre>
+
+<div class="note">
+  <strong>DbContext не является потокобезопасным</strong> &#8212; нельзя использовать один
+  экземпляр из нескольких потоков одновременно. Именно поэтому он регистрируется как
+  <strong>Scoped</strong>: один экземпляр на один HTTP-запрос. Singleton-использование
+  DbContext &#8212; распространённая ошибка, ведущая к гонкам данных и
+  <code>InvalidOperationException</code> вида
+  <em>"A second operation was started on this context before a previous operation completed"</em>.
+</div>
+
+<!-- 1.4 -->
+<h2>1.4 Регистрация DbContext в DI-контейнере</h2>
+
+<p>
+  <code>AddDbContext&lt;T&gt;</code> регистрирует <code>ApplicationDbContext</code> как
+  <strong>Scoped</strong>-сервис. В конце каждого HTTP-запроса DI-контейнер автоматически
+  вызовет <code>Dispose()</code>, закрыв контекст и вернув соединение в connection pool.
+</p>
+
+<pre><span class="cmt">// Program.cs &#8212; полная регистрация из WebMessenger с разбором каждой строки</span>
+builder.Services.<span class="mth">AddDbContext</span>&lt;<span class="cls">ApplicationDbContext</span>&gt;((sp, options) =>
+{
+    <span class="cmt">// UseMySql &#8212; метод расширения из Pomelo.
+    // MySqlServerVersion нужен чтобы Pomelo генерировал SQL под нужную версию MySQL:
+    // JSON-функции, точность datetime, LIMIT/OFFSET и т.д.</span>
+    options.<span class="mth">UseMySql</span>(
+        builder.Configuration.<span class="mth">GetConnectionString</span>(<span class="str">"DefaultConnection"</span>),
+        <span class="kw">new</span> <span class="cls">MySqlServerVersion</span>(<span class="kw">new</span> <span class="cls">Version</span>(<span class="num">8</span>, <span class="num">0</span>, <span class="num">42</span>)),
+        mysqlOptions =>
+        {
+            <span class="cmt">// Автоматически повторять запрос при transient-ошибках:
+            // обрыв сети, временная недоступность БД, таймаут соединения.
+            // По умолчанию &#8212; до 6 попыток с экспоненциальной задержкой.
+            // Особенно важно в Docker и облаке при перезапуске контейнера БД.</span>
+            mysqlOptions.<span class="mth">EnableRetryOnFailure</span>();
+        }
+    );
+
+    <span class="cmt">// Диагностические опции включаем только в Development</span>
+    <span class="kw">if</span> (sp.<span class="mth">GetRequiredService</span>&lt;<span class="cls">IHostEnvironment</span>&gt;().<span class="mth">IsDevelopment</span>())
+    {
+        <span class="cmt">// Показывать фактические значения параметров SQL в логах.
+        // Без этого: Executed ... WHERE UserId = @p0
+        // С этим:    Executed ... WHERE UserId = '3fa85f64-5717-4562-b3fc-2c963f66afa6'
+        // ЗАПРЕЩЕНО в продакшне &#8212; пароли и персональные данные попадут в лог-файлы.</span>
+        options.<span class="mth">EnableSensitiveDataLogging</span>();
+
+        <span class="cmt">// Расширенные сообщения об ошибках трансляции LINQ &#8594; SQL.
+        // Помогает понять почему конкретный LINQ-запрос не транслируется в SQL
+        // и выполняется in-memory (что может вызвать загрузку всей таблицы).</span>
+        options.<span class="mth">EnableDetailedErrors</span>();
+    }
+});</pre>
+
+<h3>Форма (sp, options) vs просто (options)</h3>
+<p>
+  Обычно пишут <code>AddDbContext&lt;T&gt;(options =&gt; ...)</code>. Форма с двумя
+  параметрами <code>(sp, options)</code> предоставляет доступ к уже зарегистрированным
+  сервисам внутри конфигурационной лямбды. В WebMessenger это нужно для
+  <code>IHostEnvironment</code> &#8212; чтобы включать детальное логирование только в
+  Development без хардкода имени окружения.
+</p>
+
+<!-- 1.5 -->
+<h2>1.5 Строка подключения и управление секретами</h2>
+
+<pre><span class="cmt">// appsettings.json &#8212; шаблон для разработки, без реальных паролей в git</span>
+{
+  <span class="str">"ConnectionStrings"</span>: {
+    <span class="str">"DefaultConnection"</span>: <span class="str">"Server=localhost;Port=3306;Database=webmessenger;User=root;Password=REPLACE_IN_SECRETS;"</span>
+  }
+}
+
+<span class="cmt">// Реальный пароль &#8212; в User Secrets (хранятся вне репозитория, в системной папке пользователя)
+// $ dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;..."
+// Файл: %APPDATA%\Microsoft\UserSecrets\webmessenger-api-secrets\secrets.json
+// UserSecretsId прописан в WebMessenger.Api.csproj: &lt;UserSecretsId&gt;webmessenger-api-secrets&lt;/UserSecretsId&gt;</span>
+
+<span class="cmt">// В Docker / продакшне &#8212; переменные окружения переопределяют appsettings.
+// Двойное подчёркивание __ = двоеточие : в иерархии конфигурации ASP.NET Core.</span>
+<span class="cmt">// ENV ConnectionStrings__DefaultConnection="Server=db;Database=webmessenger;User=app;Password=secret;"</span></pre>
+
+<h3>Параметры строки подключения Pomelo MySQL</h3>
+<table>
+  <tr><th>Параметр</th><th>Что задаёт</th><th>Типичное значение</th></tr>
+  <tr><td><code>Server</code></td><td>Хост или IP MySQL-сервера</td><td><code>localhost</code>, <code>db</code> (имя сервиса в Docker)</td></tr>
+  <tr><td><code>Port</code></td><td>Порт подключения</td><td><code>3306</code> (по умолчанию)</td></tr>
+  <tr><td><code>Database</code></td><td>Имя базы данных</td><td><code>webmessenger</code></td></tr>
+  <tr><td><code>User</code> / <code>Password</code></td><td>Учётные данные</td><td>Только в User Secrets или env-переменных</td></tr>
+  <tr><td><code>AllowPublicKeyRetrieval=true</code></td><td>Нужен для MySQL 8 при SHA2-аутентификации</td><td><code>true</code> при проблемах с подключением</td></tr>
+  <tr><td><code>SslMode=None</code></td><td>Режим TLS-соединения</td><td><code>None</code> для локальной разработки</td></tr>
+  <tr><td><code>CharSet=utf8mb4</code></td><td>Кодировка: поддержка Unicode и emoji</td><td><code>utf8mb4</code></td></tr>
+</table>
+
+<h3>Приоритет источников конфигурации в ASP.NET Core</h3>
+<table>
+  <tr><th>Источник</th><th>Приоритет</th><th>Где используется</th></tr>
+  <tr><td><code>appsettings.json</code></td><td>1 (низший)</td><td>Дефолты, коммитится в git без секретов</td></tr>
+  <tr><td><code>appsettings.Development.json</code></td><td>2</td><td>Настройки только для локальной разработки</td></tr>
+  <tr><td>User Secrets</td><td>3</td><td>Реальные пароли локально &#8212; не попадают в git</td></tr>
+  <tr><td>Переменные окружения</td><td>4</td><td>Docker, Kubernetes, CI/CD, продакшн</td></tr>
+  <tr><td>Аргументы командной строки</td><td>5 (высший)</td><td>Переопределение при запуске</td></tr>
+</table>
+
+<div class="warn">
+  <strong>Никогда не храни реальные пароли БД в <code>appsettings.json</code></strong> &#8212;
+  этот файл коммитится в git и может оказаться в публичном репозитории. В WebMessenger
+  <code>UserSecretsId = "webmessenger-api-secrets"</code> прописан в
+  <code>WebMessenger.Api.csproj</code> &#8212; это привязывает проект к локальному хранилищу
+  секретов. Реальные строки подключения задаются через <code>dotnet user-secrets set</code>
+  и переменные окружения при деплое.
+</div>
+
+<hr>
+
+
+<!-- ============================================================ -->
+<h1>2. DbContext &amp; Entities &#8212; Контекст и сущности</h1>
+
+<!-- 2.1 -->
+<h2>2.1 DbContext как Unit of Work и Identity Map</h2>
+
+<p>
+  <code>DbContext</code> одновременно выполняет роль трёх вещей:
+</p>
+<ul>
+  <li>
+    <strong>Unit of Work</strong> &#8212; отслеживает все изменения сущностей (добавление,
+    изменение, удаление) с момента своего создания. Вызов <code>SaveChangesAsync()</code>
+    транслирует накопленные изменения в минимально необходимый набор SQL-команд и выполняет
+    их в одной транзакции.
+  </li>
+  <li>
+    <strong>Identity Map</strong> &#8212; гарантирует, что один и тот же первичный ключ
+    всегда соответствует одному объекту в памяти. Два последовательных запроса одного
+    <code>User</code> по <code>Id</code> вернут <em>один и тот же</em> экземпляр, а не
+    два независимых объекта с одинаковыми данными.
+  </li>
+  <li>
+    <strong>Change Tracker</strong> &#8212; внутренний реестр состояний сущностей.
+    Каждая отслеживаемая сущность имеет одно из состояний:
+    <code>Detached</code>, <code>Unchanged</code>, <code>Added</code>,
+    <code>Modified</code>, <code>Deleted</code>.
+  </li>
+</ul>
+
+<h3>Состояния Change Tracker</h3>
+<table>
+  <tr><th>Состояние</th><th>Что означает</th><th>Что сделает SaveChanges</th></tr>
+  <tr><td><code>Detached</code></td><td>Объект создан, но контекст его не отслеживает (AsNoTracking или новый объект до Add)</td><td>Ничего</td></tr>
+  <tr><td><code>Unchanged</code></td><td>Загружен из БД, свойства не изменились</td><td>Ничего</td></tr>
+  <tr><td><code>Added</code></td><td>Добавлен через <code>Add()</code> / <code>InsertAsync</code></td><td>INSERT</td></tr>
+  <tr><td><code>Modified</code></td><td>Свойство изменено или Attach + EntityState.Modified</td><td>UPDATE (только изменённые столбцы)</td></tr>
+  <tr><td><code>Deleted</code></td><td>Помечен через <code>Remove()</code></td><td>DELETE</td></tr>
+</table>
+
+<pre><span class="cmt">// WebMessenger.DAL/Repository.cs — UpdateAsync: Attach + EntityState.Modified
+// Attach говорит трекеру "начни следить за этим объектом",
+// EntityState.Modified — "считай все поля изменёнными" → UPDATE всех колонок.</span>
+<span class="kw">public async</span> <span class="cls">Task</span> <span class="mth">UpdateAsync</span>(<span class="cls">T</span> entity, <span class="cls">CancellationToken</span> ct = <span class="kw">default</span>)
+{
+    _context.<span class="mth">Set</span>&lt;<span class="cls">T</span>&gt;().<span class="mth">Attach</span>(entity);
+    _context.<span class="mth">Entry</span>(entity).State = <span class="cls">EntityState</span>.Modified;
+}
+
+<span class="cmt">// WebMessenger.DAL/UnitOfWork.cs — CommitAsync: единственная точка вызова SaveChangesAsync.
+// Все накопленные Add/Update/Remove из ВСЕХ репозиториев записываются в БД разом.</span>
+<span class="kw">public async</span> <span class="cls">Task</span>&lt;<span class="kw">int</span>&gt; <span class="mth">CommitAsync</span>(<span class="cls">CancellationToken</span> ct = <span class="kw">default</span>)
+    => <span class="kw">await</span> _context.<span class="mth">SaveChangesAsync</span>(ct);</pre>
+
+<div class="note">
+  <strong>UpdateAsync и полный UPDATE:</strong> подход <code>Attach + EntityState.Modified</code>
+  помечает <em>все</em> столбцы как изменённые &#8212; EF отправит UPDATE для каждого поля.
+  Если нужно обновлять только конкретные поля, загружают сущность из БД, меняют нужные
+  свойства, и вызывают <code>SaveChangesAsync()</code>. Change Tracker сам определит что
+  изменилось и сгенерирует минимальный SQL с только изменёнными столбцами.
+</div>
+
+<!-- 2.2 -->
+<h2>2.2 DbSet&lt;T&gt; как репозиторий</h2>
+
+<p>
+  <code>DbSet&lt;T&gt;</code> &#8212; это <strong>представление таблицы</strong> в C#.
+  Он одновременно является:
+</p>
+<ul>
+  <li>
+    <code>IQueryable&lt;T&gt;</code> &#8212; позволяет строить отложенные LINQ-запросы,
+    которые транслируются в SQL только при материализации
+    (<code>ToListAsync</code>, <code>FirstOrDefaultAsync</code> и т.п.).
+  </li>
+  <li>
+    Точкой входа для <code>Add</code> / <code>AddRange</code> / <code>Remove</code> /
+    <code>RemoveRange</code> &#8212; регистрирует изменения в Change Tracker.
+  </li>
+  <li>
+    Источником для <code>Find</code> / <code>FindAsync</code> &#8212; сначала ищет в кеше
+    Change Tracker, только потом обращается к БД (оптимально при повторных обращениях
+    к одной сущности в рамках одного запроса).
+  </li>
+</ul>
+
+<pre><span class="cmt">// ApplicationDbContext.cs — каждый DbSet&lt;T&gt; соответствует одной таблице.
+// Имя свойства = имя таблицы по умолчанию (плюрализация встроена в EF Core).</span>
+<span class="kw">public</span> <span class="cls">DbSet</span>&lt;<span class="cls">User</span>&gt;       Users       { <span class="kw">get</span>; <span class="kw">set</span>; }  <span class="cmt">// → таблица Users</span>
+<span class="kw">public</span> <span class="cls">DbSet</span>&lt;<span class="cls">Chat</span>&gt;       Chats       { <span class="kw">get</span>; <span class="kw">set</span>; }  <span class="cmt">// → таблица Chats</span>
+<span class="kw">public</span> <span class="cls">DbSet</span>&lt;<span class="cls">Message</span>&gt;    Messages    { <span class="kw">get</span>; <span class="kw">set</span>; }  <span class="cmt">// → таблица Messages</span>
+<span class="kw">public</span> <span class="cls">DbSet</span>&lt;<span class="cls">ChatMember</span>&gt; ChatMembers { <span class="kw">get</span>; <span class="kw">set</span>; }  <span class="cmt">// → таблица ChatMembers</span>
+<span class="kw">public</span> <span class="cls">DbSet</span>&lt;<span class="cls">Contact</span>&gt;    Contacts    { <span class="kw">get</span>; <span class="kw">set</span>; }  <span class="cmt">// → таблица Contacts</span>
+
+<span class="cmt">// Repository&lt;T&gt; оборачивает DbSet, добавляя eager-loading и async CRUD</span>
+<span class="kw">public class</span> <span class="cls">Repository</span>&lt;<span class="cls">T</span>&gt; : <span class="cls">IRepository</span>&lt;<span class="cls">T</span>&gt; <span class="kw">where</span> <span class="cls">T</span> : <span class="kw">class</span>
+{
+    <span class="kw">private readonly</span> <span class="cls">ApplicationDbContext</span> _context;
+    <span class="kw">private</span> <span class="cls">DbSet</span>&lt;<span class="cls">T</span>&gt; _dbSet => _context.<span class="mth">Set</span>&lt;<span class="cls">T</span>&gt;();
+
+    <span class="cmt">// AsNoTracking — объекты не попадают в Change Tracker: экономия памяти и CPU
+    // при запросах "только на чтение". Include по именам строит JOIN-ы.</span>
+    <span class="kw">public</span> <span class="cls">IQueryable</span>&lt;<span class="cls">T</span>&gt; <span class="mth">GetAll</span>(<span class="kw">params string</span>[] navigationProperties)
+    {
+        <span class="kw">var</span> query = _dbSet.<span class="mth">AsNoTracking</span>();
+        <span class="kw">foreach</span> (<span class="kw">var</span> nav <span class="kw">in</span> navigationProperties)
+            query = query.<span class="mth">Include</span>(nav);
+        <span class="kw">return</span> query;
+    }
+
+    <span class="cmt">// FindAsync ищет сначала в кеше Change Tracker, потом в БД —
+    // оптимально когда сущность уже могла быть загружена ранее в том же запросе.</span>
+    <span class="kw">public async</span> <span class="cls">Task</span>&lt;<span class="cls">T</span>?&gt; <span class="mth">GetAsync</span>(<span class="cls">Guid</span> id, <span class="cls">CancellationToken</span> ct = <span class="kw">default</span>)
+        => <span class="kw">await</span> _dbSet.<span class="mth">FindAsync</span>(<span class="kw">new object</span>[] { id }, ct);
+
+    <span class="cmt">// AddAsync помечает сущность как Added → SaveChanges сделает INSERT</span>
+    <span class="kw">public async</span> <span class="cls">Task</span> <span class="mth">InsertAsync</span>(<span class="cls">T</span> entity, <span class="cls">CancellationToken</span> ct = <span class="kw">default</span>)
+        => <span class="kw">await</span> _dbSet.<span class="mth">AddAsync</span>(entity, ct);
+}</pre>
+
+<!-- 2.3 -->
+<h2>2.3 Конвенции EF Core &#8212; что работает без явной настройки</h2>
+
+<p>
+  EF Core содержит набор встроенных конвенций, которые автоматически определяют
+  структуру схемы по именам классов и свойств. Это главное преимущество Code-First:
+  минимум явной конфигурации для большинства случаев.
+</p>
+
+<table>
+  <tr><th>Конвенция</th><th>Правило</th><th>Пример из WebMessenger</th></tr>
+  <tr>
+    <td>Имя таблицы</td>
+    <td>Имя <code>DbSet&lt;T&gt;</code>-свойства в контексте</td>
+    <td><code>DbSet&lt;Message&gt; Messages</code> → таблица <code>Messages</code></td>
+  </tr>
+  <tr>
+    <td>Первичный ключ</td>
+    <td>Свойство <code>Id</code> или <code>{ClassName}Id</code></td>
+    <td><code>Message.Id</code> → PRIMARY KEY автоматически</td>
+  </tr>
+  <tr>
+    <td>Required / Optional</td>
+    <td>Non-nullable тип → NOT NULL; <code>string?</code> / <code>T?</code> → NULL</td>
+    <td><code>string Content</code> → NOT NULL; <code>DateTime? EditedAt</code> → NULL</td>
+  </tr>
+  <tr>
+    <td>Внешний ключ</td>
+    <td>Свойство <code>{NavProp}Id</code> рядом с навигационным</td>
+    <td><code>SenderId</code> + навигация <code>Sender</code> → FK на Users.Id</td>
+  </tr>
+  <tr>
+    <td>Cascade delete</td>
+    <td>Обязательная связь (required) → CASCADE по умолчанию</td>
+    <td>Для <code>Contact</code> переопределён на RESTRICT в <code>OnModelCreating</code></td>
+  </tr>
+  <tr>
+    <td>Индекс PK</td>
+    <td>PRIMARY KEY создаётся автоматически на свойстве <code>Id</code></td>
+    <td>Все сущности — <code>Guid Id</code> становится PK без аннотации</td>
+  </tr>
+  <tr>
+    <td>MaxLength string</td>
+    <td>Без <code>[MaxLength]</code> — <code>longtext</code> в MySQL</td>
+    <td><code>[MaxLength(5000)]</code> на <code>Content</code> → <code>varchar(5000)</code></td>
+  </tr>
+</table>
+
+<pre><span class="cmt">// WebMessenger.DAL/Entities/Message.cs — конвенции в действии</span>
+<span class="kw">public class</span> <span class="cls">Message</span>
+{
+    [<span class="att">Key</span>]                              <span class="cmt">// явно, хотя конвенция нашла бы Id сама</span>
+    <span class="kw">public</span> <span class="cls">Guid</span>      Id        { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    [<span class="att">MaxLength</span>(<span class="num">5000</span>)]
+    <span class="kw">public required string</span> Content  { <span class="kw">get</span>; <span class="kw">set</span>; }  <span class="cmt">// required + non-nullable → NOT NULL</span>
+
+    <span class="kw">public</span> <span class="cls">Guid</span>      SenderId  { <span class="kw">get</span>; <span class="kw">set</span>; }  <span class="cmt">// FK на Users.Id — конвенция по имени</span>
+    <span class="kw">public</span> <span class="cls">Guid</span>      ChatId    { <span class="kw">get</span>; <span class="kw">set</span>; }  <span class="cmt">// FK на Chats.Id — конвенция по имени</span>
+
+    <span class="kw">public</span> <span class="cls">DateTime</span>  SentAt    { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="cls">DateTime</span>.UtcNow;
+    <span class="kw">public</span> <span class="cls">DateTime</span>? EditedAt  { <span class="kw">get</span>; <span class="kw">set</span>; }  <span class="cmt">// nullable → NULL в БД</span>
+
+    <span class="cmt">// [ForeignKey] явно — при двух FK на одну таблицу EF не может выбрать сам</span>
+    [<span class="att">ForeignKey</span>(<span class="kw">nameof</span>(SenderId))]
+    <span class="kw">public virtual</span> <span class="cls">User</span> Sender { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="kw">null</span>!;
+
+    [<span class="att">ForeignKey</span>(<span class="kw">nameof</span>(ChatId))]
+    <span class="kw">public virtual</span> <span class="cls">Chat</span> Chat   { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="kw">null</span>!;
+}</pre>
+
+<!-- 2.4 -->
+<h2>2.4 Навигационные свойства</h2>
+
+<p>
+  Навигационные свойства &#8212; C#-свойства сущности, ссылающиеся на <em>связанные</em>
+  сущности вместо хранения только FK-значения. EF Core использует их для построения JOIN
+  в SQL и для заполнения объектного графа при загрузке.
+</p>
+
+<h3>Reference-навигация (сторона «один»)</h3>
+<p>
+  Ссылка на единственную связанную сущность. Пример: <code>Message.Sender</code> &#8212;
+  ровно один <code>User</code>, отправивший сообщение. Инициализируется
+  <code>null!</code> (null-forgiving operator): компилятор не предупреждает о null,
+  реальное значение будет заполнено EF при загрузке с <code>Include</code>.
+</p>
+
+<h3>Collection-навигация (сторона «много»)</h3>
+<p>
+  Коллекция связанных сущностей. Пример: <code>User.Messages</code> &#8212; все сообщения
+  пользователя. Инициализируется <code>[]</code> (C# 12 collection expression): защита от
+  <code>NullReferenceException</code>, когда EF не подгружал коллекцию &#8212; итерация
+  вернёт пустой список вместо исключения.
+</p>
+
+<pre><span class="cmt">// WebMessenger.DAL/Entities/User.cs — оба вида навигационных свойств</span>
+<span class="kw">public class</span> <span class="cls">User</span>
+{
+    [<span class="att">Key</span>]
+    <span class="kw">public</span> <span class="cls">Guid</span>   Id           { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public required string</span> Username     { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public required string</span> PasswordHash { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public</span> <span class="kw">string</span>? Bio          { <span class="kw">get</span>; <span class="kw">set</span>; }  <span class="cmt">// nullable → NULL</span>
+    <span class="kw">public</span> <span class="kw">string</span>? AvatarUrl    { <span class="kw">get</span>; <span class="kw">set</span>; }  <span class="cmt">// nullable → NULL</span>
+
+    <span class="cmt">// Collection-навигации, инициализированы пустой коллекцией (C# 12).
+    // virtual — зарезервировано для lazy loading.
+    // Без Include — коллекция пустая, но не null.</span>
+    <span class="kw">public virtual</span> <span class="cls">ICollection</span>&lt;<span class="cls">Contact</span>&gt;    Contacts        { <span class="kw">get</span>; <span class="kw">set</span>; } = [];
+    <span class="kw">public virtual</span> <span class="cls">ICollection</span>&lt;<span class="cls">ChatMember</span>&gt; ChatMemberships { <span class="kw">get</span>; <span class="kw">set</span>; } = [];
+    <span class="kw">public virtual</span> <span class="cls">ICollection</span>&lt;<span class="cls">Message</span>&gt;   Messages        { <span class="kw">get</span>; <span class="kw">set</span>; } = [];
+}
+
+<span class="cmt">// WebMessenger.DAL/Entities/Contact.cs — две reference-навигации на одну таблицу.
+// EF не может автоматически определить какой FK к какому свойству —
+// [ForeignKey] обязателен при нескольких FK на одну сущность.</span>
+<span class="kw">public class</span> <span class="cls">Contact</span>
+{
+    <span class="kw">public</span> <span class="cls">Guid</span> OwnerUserId   { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public</span> <span class="cls">Guid</span> ContactUserId { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    [<span class="att">ForeignKey</span>(<span class="kw">nameof</span>(OwnerUserId))]
+    <span class="kw">public required virtual</span> <span class="cls">User</span> OwnerUser   { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    [<span class="att">ForeignKey</span>(<span class="kw">nameof</span>(ContactUserId))]
+    <span class="kw">public required virtual</span> <span class="cls">User</span> ContactUser { <span class="kw">get</span>; <span class="kw">set</span>; }
+}</pre>
+
+<div class="warn">
+  <strong>virtual и lazy loading:</strong> ключевое слово <code>virtual</code> на
+  навигационных свойствах нужно для ленивой загрузки через прокси-классы
+  (требует пакет <code>Microsoft.EntityFrameworkCore.Proxies</code> и вызов
+  <code>UseLazyLoadingProxies()</code>). В WebMessenger lazy loading не включён,
+  поэтому <code>virtual</code> не оказывает никакого эффекта на производительность
+  и поведение &#8212; это хорошая практика, зарезервированная на будущее.
+</div>
+
+<!-- 2.5 -->
+<h2>2.5 Паттерн Repository + Unit of Work поверх DbContext</h2>
+
+<p>
+  В WebMessenger <code>DbContext</code> не используется напрямую в сервисах API.
+  Вместо этого применяется двухуровневая обёртка:
+</p>
+<ul>
+  <li>
+    <strong>Repository&lt;T&gt;</strong> &#8212; инкапсулирует доступ к конкретному
+    <code>DbSet&lt;T&gt;</code>. Сервисы работают через <code>IRepository&lt;T&gt;</code>
+    не зная об EF Core.
+  </li>
+  <li>
+    <strong>UnitOfWork</strong> &#8212; агрегирует все репозитории и единственный
+    <code>ApplicationDbContext</code>. <code>CommitAsync()</code> вызывает
+    <code>SaveChangesAsync()</code>, сохраняя изменения из всех репозиториев разом.
+    Поддерживает явные транзакции.
+  </li>
+</ul>
+
+<pre><span class="cmt">// WebMessenger.DAL/UnitOfWork.cs — ленивая инициализация через ??=</span>
+<span class="kw">public class</span> <span class="cls">UnitOfWork</span>(<span class="cls">ApplicationDbContext</span> context) : <span class="cls">IUnitOfWork</span>
+{
+    <span class="kw">private readonly</span> <span class="cls">ApplicationDbContext</span> _context = context;
+
+    <span class="cmt">// Все репозитории разделяют один _context — один Change Tracker,
+    // один набор отслеживаемых объектов, одна транзакция в CommitAsync.</span>
+    <span class="kw">private</span> <span class="cls">IRepository</span>&lt;<span class="cls">User</span>&gt;?       _users;
+    <span class="kw">public</span>  <span class="cls">IRepository</span>&lt;<span class="cls">User</span>&gt;        Users       => _users       ??= <span class="kw">new</span> <span class="cls">Repository</span>&lt;<span class="cls">User</span>&gt;(_context);
+
+    <span class="kw">private</span> <span class="cls">IRepository</span>&lt;<span class="cls">Chat</span>&gt;?       _chats;
+    <span class="kw">public</span>  <span class="cls">IRepository</span>&lt;<span class="cls">Chat</span>&gt;        Chats       => _chats       ??= <span class="kw">new</span> <span class="cls">Repository</span>&lt;<span class="cls">Chat</span>&gt;(_context);
+
+    <span class="kw">private</span> <span class="cls">IRepository</span>&lt;<span class="cls">Message</span>&gt;?    _messages;
+    <span class="kw">public</span>  <span class="cls">IRepository</span>&lt;<span class="cls">Message</span>&gt;     Messages    => _messages    ??= <span class="kw">new</span> <span class="cls">Repository</span>&lt;<span class="cls">Message</span>&gt;(_context);
+
+    <span class="kw">private</span> <span class="cls">IRepository</span>&lt;<span class="cls">ChatMember</span>&gt;? _chatMembers;
+    <span class="kw">public</span>  <span class="cls">IRepository</span>&lt;<span class="cls">ChatMember</span>&gt;  ChatMembers => _chatMembers ??= <span class="kw">new</span> <span class="cls">Repository</span>&lt;<span class="cls">ChatMember</span>&gt;(_context);
+
+    <span class="kw">private</span> <span class="cls">IRepository</span>&lt;<span class="cls">Contact</span>&gt;?    _contacts;
+    <span class="kw">public</span>  <span class="cls">IRepository</span>&lt;<span class="cls">Contact</span>&gt;     Contacts    => _contacts    ??= <span class="kw">new</span> <span class="cls">Repository</span>&lt;<span class="cls">Contact</span>&gt;(_context);
+
+    <span class="cmt">// Единственная точка сохранения — все изменения из всех репозиториев разом</span>
+    <span class="kw">public async</span> <span class="cls">Task</span>&lt;<span class="kw">int</span>&gt; <span class="mth">CommitAsync</span>(<span class="cls">CancellationToken</span> ct = <span class="kw">default</span>)
+        => <span class="kw">await</span> _context.<span class="mth">SaveChangesAsync</span>(ct);
+
+    <span class="cmt">// Явные транзакции — для атомарности нескольких SaveChangesAsync</span>
+    <span class="kw">public async</span> <span class="cls">Task</span> <span class="mth">BeginTransactionAsync</span>(<span class="cls">CancellationToken</span> ct = <span class="kw">default</span>)
+        => _transaction = <span class="kw">await</span> _context.Database.<span class="mth">BeginTransactionAsync</span>(ct);
+
+    <span class="kw">public async</span> <span class="cls">Task</span> <span class="mth">CommitTransactionAsync</span>(<span class="cls">CancellationToken</span> ct = <span class="kw">default</span>)
+    {
+        <span class="kw">await</span> _context.<span class="mth">SaveChangesAsync</span>(ct);
+        <span class="kw">await</span> _transaction!.<span class="mth">CommitAsync</span>(ct);
+    }
+
+    <span class="kw">public void</span> <span class="mth">Dispose</span>() => _context.<span class="mth">Dispose</span>();
+}</pre>
+
+<div class="note">
+  <strong>Один контекст &#8212; один Change Tracker:</strong> все пять репозиториев получают
+  один и тот же <code>_context</code>. Это значит, что <code>CommitAsync()</code>
+  запишет в БД изменения из <em>любого</em> репозитория, накопленные с начала
+  HTTP-запроса. Разные экземпляры контекста имеют разные Change Tracker — изменения
+  одного не видны другому.
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>3. Data Modeling &#8212; Моделирование данных</h1>
+
+<!-- 3.1 -->
+<h2>3.1 Convention-based mapping &#8212; маппинг по соглашениям</h2>
+
+<p>
+  EF Core строит модель базы данных <em>автоматически</em>, анализируя классы C# по набору
+  встроенных правил-конвенций. Большинство решений принимается без явной конфигурации:
+  нужно лишь следовать соглашениям об именах и типах.
+</p>
+
+<h3>Как EF Core строит модель при старте</h3>
+<ol>
+  <li>Сканирует все <code>DbSet&lt;T&gt;</code>-свойства контекста.</li>
+  <li>Для каждого типа <code>T</code> определяет: имя таблицы, первичный ключ, столбцы, типы данных.</li>
+  <li>Анализирует навигационные свойства и автоматически добавляет обнаруженные связанные типы в модель.</li>
+  <li>Применяет атрибуты Data Annotations (если есть).</li>
+  <li>Применяет Fluent API из <code>OnModelCreating</code> (наивысший приоритет).</li>
+</ol>
+
+<table>
+  <tr><th>Что определяется автоматически</th><th>Правило конвенции</th><th>Пример из WebMessenger</th></tr>
+  <tr>
+    <td>Имя таблицы</td>
+    <td>Имя <code>DbSet&lt;T&gt;</code>-свойства в контексте</td>
+    <td><code>DbSet&lt;ChatMember&gt; ChatMembers</code> → таблица <code>ChatMembers</code></td>
+  </tr>
+  <tr>
+    <td>Первичный ключ</td>
+    <td>Свойство <code>Id</code> или <code>{ClassName}Id</code></td>
+    <td>Все сущности: <code>Guid Id</code> → PRIMARY KEY</td>
+  </tr>
+  <tr>
+    <td>Тип столбца</td>
+    <td>Маппинг CLR → SQL через провайдер</td>
+    <td><code>string</code> → <code>longtext</code>, <code>Guid</code> → <code>char(36)</code>, <code>bool</code> → <code>tinyint(1)</code> в MySQL</td>
+  </tr>
+  <tr>
+    <td>NOT NULL / NULL</td>
+    <td>Non-nullable CLR-тип → NOT NULL; <code>?</code> → NULL</td>
+    <td><code>string Content</code> → NOT NULL; <code>DateTime? EditedAt</code> → NULL</td>
+  </tr>
+  <tr>
+    <td>Внешний ключ</td>
+    <td><code>{NavProp}Id</code> рядом с навигационным свойством</td>
+    <td><code>ChatId</code> + <code>Chat Chat</code> → FK на <code>Chats.Id</code></td>
+  </tr>
+  <tr>
+    <td>Cascade delete</td>
+    <td>Required-навигация → CASCADE; optional → SET NULL</td>
+    <td>Переопределено на RESTRICT для <code>Contact</code> в Fluent API</td>
+  </tr>
+</table>
+
+<pre><span class="cmt">// WebMessenger.DAL/Entities/Chat.cs — пример маппинга исключительно по конвенциям</span>
+[<span class="att">Index</span>(<span class="kw">nameof</span>(IsGroup))]          <span class="cmt">// индекс через Data Annotation</span>
+<span class="kw">public class</span> <span class="cls">Chat</span>
+{
+    <span class="cmt">// Id — конвенция PK, тип Guid → char(36) в MySQL</span>
+    <span class="kw">public</span> <span class="cls">Guid</span>    Id        { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    <span class="cmt">// string? → nullable varchar, string → NOT NULL varchar</span>
+    <span class="kw">public</span> <span class="kw">string</span>? Name      { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public</span> <span class="kw">string</span>? AvatarUrl  { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    <span class="cmt">// bool → tinyint(1) NOT NULL</span>
+    <span class="kw">public</span> <span class="kw">bool</span>    IsGroup   { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    <span class="cmt">// DateTime → datetime(6) (после HasColumnType в OnModelCreating)</span>
+    <span class="kw">public</span> <span class="cls">DateTime</span> CreatedAt { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="cls">DateTime</span>.UtcNow;
+
+    <span class="cmt">// Collection-навигации — EF обнаруживает связи автоматически</span>
+    <span class="kw">public virtual</span> <span class="cls">ICollection</span>&lt;<span class="cls">ChatMember</span>&gt; Members  { <span class="kw">get</span>; <span class="kw">set</span>; } = [];
+    <span class="kw">public virtual</span> <span class="cls">ICollection</span>&lt;<span class="cls">Message</span>&gt;    Messages { <span class="kw">get</span>; <span class="kw">set</span>; } = [];
+}</pre>
+
+<!-- 3.2 -->
+<h2>3.2 Required vs Optional свойства</h2>
+
+<p>
+  В EF Core 8 с включённым <code>&lt;Nullable&gt;enable&lt;/Nullable&gt;</code> nullable-контекст
+  C# напрямую определяет nullable-схему в БД. Это позволяет выражать
+  бизнес-ограничения через систему типов C# без дополнительных атрибутов.
+</p>
+
+<table>
+  <tr><th>C#-объявление</th><th>Схема в MySQL</th><th>EF-поведение</th></tr>
+  <tr><td><code>public string Username</code></td><td>NOT NULL</td><td>Генерирует ошибку если null при SaveChanges</td></tr>
+  <tr><td><code>public required string Username</code></td><td>NOT NULL</td><td>Компилятор требует инициализации + NOT NULL в БД</td></tr>
+  <tr><td><code>public string? Bio</code></td><td>NULL</td><td>NULL допустим, EF не проверяет</td></tr>
+  <tr><td><code>public DateTime CreatedAt</code></td><td>NOT NULL datetime(6)</td><td>Значение обязательно; C# default = DateTime.MinValue если не задано</td></tr>
+  <tr><td><code>public DateTime? EditedAt</code></td><td>NULL datetime(6)</td><td>NULL когда сообщение не редактировалось</td></tr>
+  <tr><td><code>public bool IsGroup</code></td><td>NOT NULL tinyint(1)</td><td>false = 0, true = 1</td></tr>
+</table>
+
+<pre><span class="cmt">// WebMessenger.DAL/Entities/User.cs — демонстрация required vs optional</span>
+<span class="kw">public class</span> <span class="cls">User</span>
+{
+    [<span class="att">Key</span>]
+    <span class="kw">public</span> <span class="cls">Guid</span>    Id           { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    <span class="cmt">// required string — NOT NULL в БД + компилятор требует задать при создании объекта</span>
+    <span class="kw">public required string</span> Username     { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public required string</span> PasswordHash { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    <span class="cmt">// string? — NULL допустим; пользователь может не заполнять профиль</span>
+    <span class="kw">public</span> <span class="kw">string</span>? Bio          { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public</span> <span class="kw">string</span>? AvatarUrl    { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    <span class="cmt">// DateTime — NOT NULL; задаётся значение по умолчанию на стороне C#</span>
+    <span class="kw">public</span> <span class="cls">DateTime</span> CreatedAt    { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="cls">DateTime</span>.UtcNow;
+    <span class="kw">public</span> <span class="cls">DateTime</span> LastLoginAt  { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="cls">DateTime</span>.UtcNow;
+
+    <span class="cmt">// DateTime? — NULL когда пользователь ещё не был онлайн после регистрации</span>
+    <span class="kw">public</span> <span class="cls">DateTime</span>? LastSeenAt  { <span class="kw">get</span>; <span class="kw">set</span>; }
+}</pre>
+
+<div class="note">
+  <strong>required в C# 11+:</strong> ключевое слово <code>required</code> гарантирует, что
+  при создании объекта через object initializer свойство <em>обязательно</em> должно быть
+  задано &#8212; иначе ошибка компиляции. Это дополняет NOT NULL в БД: ошибка обнаруживается
+  ещё на этапе компиляции, а не во время выполнения при вызове <code>SaveChangesAsync</code>.
+</div>
+
+<!-- 3.3 -->
+<h2>3.3 Data Annotations vs Fluent API</h2>
+
+<p>
+  EF Core поддерживает два способа явной конфигурации модели помимо конвенций:
+  <strong>Data Annotations</strong> (атрибуты прямо на классах/свойствах) и
+  <strong>Fluent API</strong> (цепочки вызовов в <code>OnModelCreating</code>).
+  В WebMessenger используются оба &#8212; в зависимости от сложности конфигурации.
+</p>
+
+<table>
+  <tr><th></th><th>Data Annotations</th><th>Fluent API</th></tr>
+  <tr>
+    <td><strong>Место конфигурации</strong></td>
+    <td>Атрибуты на классе или свойстве</td>
+    <td>Метод <code>OnModelCreating</code> в контексте</td>
+  </tr>
+  <tr>
+    <td><strong>Читаемость</strong></td>
+    <td>Наглядно &#8212; конфигурация рядом с кодом</td>
+    <td>Отдельно от сущностей; требует знать где искать</td>
+  </tr>
+  <tr>
+    <td><strong>Возможности</strong></td>
+    <td>Ограничены: индексы, MaxLength, Required, Key, ForeignKey</td>
+    <td>Полные: составные ключи, SQL-дефолты, поведение удаления, HasConversion и др.</td>
+  </tr>
+  <tr>
+    <td><strong>Приоритет</strong></td>
+    <td>Ниже &#8212; Fluent API перекрывает аннотации</td>
+    <td>Высший &#8212; всегда имеет приоритет над конвенциями и аннотациями</td>
+  </tr>
+  <tr>
+    <td><strong>Зависимость от EF</strong></td>
+    <td>Часть атрибутов в <code>System.ComponentModel.DataAnnotations</code> — нет зависимости от EF</td>
+    <td>Только EF Core &#8212; сущности не загрязняются ORM-зависимостью</td>
+  </tr>
+  <tr>
+    <td><strong>Когда применять</strong></td>
+    <td>Простые ограничения: [MaxLength], [Key], [ForeignKey], [Index]</td>
+    <td>Сложные случаи: составные индексы, OnDelete, HasDefaultValueSql, HasConversion</td>
+  </tr>
+</table>
+
+<pre><span class="cmt">// Data Annotations — WebMessenger.DAL/Entities/User.cs</span>
+[<span class="att">Index</span>(<span class="kw">nameof</span>(Username), IsUnique = <span class="kw">true</span>)]   <span class="cmt">// уникальный индекс на одно поле</span>
+[<span class="att">Index</span>(<span class="kw">nameof</span>(Email),    IsUnique = <span class="kw">true</span>)]   <span class="cmt">// (в последней миграции снят)</span>
+[<span class="att">Index</span>(<span class="kw">nameof</span>(IsOnline))]                      <span class="cmt">// обычный индекс — ускоряет фильтр "кто онлайн"</span>
+<span class="kw">public class</span> <span class="cls">User</span> { ... }
+
+[<span class="att">MaxLength</span>(<span class="num">5000</span>)]                              <span class="cmt">// varchar(5000) вместо longtext</span>
+<span class="kw">public required string</span> Content { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+[<span class="att">ForeignKey</span>(<span class="kw">nameof</span>(SenderId))]               <span class="cmt">// явное указание FK при неоднозначности</span>
+<span class="kw">public virtual</span> <span class="cls">User</span> Sender { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="kw">null</span>!</pre>
+
+<pre><span class="cmt">// Fluent API — WebMessenger.DAL/Data/ApplicationDbContext.cs
+// Используется для того что Data Annotations не умеют:</span>
+<span class="kw">protected override void</span> <span class="mth">OnModelCreating</span>(<span class="cls">ModelBuilder</span> modelBuilder)
+{
+    <span class="cmt">// HasColumnType — явный тип колонки (без этого Pomelo выберет datetime без дробных секунд)</span>
+    <span class="cmt">// HasDefaultValueSql — SQL-выражение как DEFAULT: БД сама проставит метку времени</span>
+    <span class="cmt">// ValueGeneratedOnAdd — EF знает: значение генерирует БД, не читать C#-свойство при INSERT</span>
+    modelBuilder.<span class="mth">Entity</span>&lt;<span class="cls">Message</span>&gt;(entity =>
+    {
+        entity.<span class="mth">Property</span>(m => m.SentAt)
+              .<span class="mth">HasColumnType</span>(<span class="str">"datetime(6)"</span>)
+              .<span class="mth">HasDefaultValueSql</span>(<span class="str">"CURRENT_TIMESTAMP(6)"</span>)
+              .<span class="mth">ValueGeneratedOnAdd</span>();
+
+        <span class="cmt">// Составной индекс (ChatId, SentAt) — критичен для пагинации истории чата:
+        // WHERE ChatId = ? ORDER BY SentAt DESC LIMIT ?
+        // Без него — полный скан таблицы Messages на каждый запрос истории.</span>
+        entity.<span class="mth">HasIndex</span>(m => <span class="kw">new</span> { m.ChatId, m.SentAt });
+    });
+
+    <span class="cmt">// Уникальный составной индекс — один пользователь не может войти в чат дважды</span>
+    modelBuilder.<span class="mth">Entity</span>&lt;<span class="cls">ChatMember</span>&gt;(entity =>
+    {
+        entity.<span class="mth">HasIndex</span>(cm => <span class="kw">new</span> { cm.UserId, cm.ChatId }).<span class="mth">IsUnique</span>();
+    });
+
+    <span class="cmt">// DeleteBehavior.Restrict — нельзя удалить User у которого есть контакты.
+    // Без явного OnDelete Pomelo выбрал бы CASCADE — удаление User удалило бы все его контакты.</span>
+    modelBuilder.<span class="mth">Entity</span>&lt;<span class="cls">Contact</span>&gt;(entity =>
+    {
+        entity.<span class="mth">HasOne</span>(c => c.OwnerUser)
+              .<span class="mth">WithMany</span>(u => u.Contacts)
+              .<span class="mth">HasForeignKey</span>(c => c.OwnerUserId)
+              .<span class="mth">OnDelete</span>(<span class="cls">DeleteBehavior</span>.Restrict);
+
+        entity.<span class="mth">HasOne</span>(c => c.ContactUser)
+              .<span class="mth">WithMany</span>()
+              .<span class="mth">HasForeignKey</span>(c => c.ContactUserId)
+              .<span class="mth">OnDelete</span>(<span class="cls">DeleteBehavior</span>.Restrict);
+    });
+}</pre>
+
+<!-- 3.4 -->
+<h2>3.4 Конфигурация связей (Relationships)</h2>
+
+<p>
+  EF Core поддерживает три вида связей. В WebMessenger используются все три:
+</p>
+
+<table>
+  <tr><th>Вид связи</th><th>Пример в WebMessenger</th><th>Как настроено</th></tr>
+  <tr>
+    <td>One-to-Many (один ко многим)</td>
+    <td><code>User</code> → <code>Message[]</code>; <code>Chat</code> → <code>ChatMember[]</code></td>
+    <td>Конвенция по FK <code>SenderId</code> / <code>ChatId</code></td>
+  </tr>
+  <tr>
+    <td>Many-to-Many через join-сущность</td>
+    <td><code>User</code> ↔ <code>Chat</code> через <code>ChatMember</code></td>
+    <td>Явная join-сущность <code>ChatMember</code> с дополнительными полями (<code>JoinedAt</code>, <code>LastReadAt</code>)</td>
+  </tr>
+  <tr>
+    <td>Self-referencing One-to-Many</td>
+    <td><code>User</code> → <code>Contact[]</code> (два FK на одну таблицу)</td>
+    <td>Fluent API с явными <code>HasOne</code> / <code>WithMany</code> / <code>HasForeignKey</code></td>
+  </tr>
+</table>
+
+<pre><span class="cmt">// Many-to-Many через явную join-сущность ChatMember
+// Это предпочтительный подход когда join-таблица содержит собственные данные.</span>
+<span class="kw">public class</span> <span class="cls">ChatMember</span>
+{
+    <span class="kw">public</span> <span class="cls">Guid</span>      Id         { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public</span> <span class="cls">Guid</span>      UserId     { <span class="kw">get</span>; <span class="kw">set</span>; }   <span class="cmt">// FK на Users</span>
+    <span class="kw">public</span> <span class="cls">Guid</span>      ChatId     { <span class="kw">get</span>; <span class="kw">set</span>; }   <span class="cmt">// FK на Chats</span>
+    <span class="kw">public</span> <span class="cls">DateTime</span>  JoinedAt   { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="cls">DateTime</span>.UtcNow;
+    <span class="kw">public</span> <span class="cls">DateTime</span>? LastReadAt { <span class="kw">get</span>; <span class="kw">set</span>; }   <span class="cmt">// NULL = не читал ни одного сообщения</span>
+
+    <span class="kw">public virtual</span> <span class="cls">User</span> User { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="kw">null</span>!;
+    <span class="kw">public virtual</span> <span class="cls">Chat</span> Chat { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="kw">null</span>!;
+}
+
+<span class="cmt">// ApplicationDbContext.cs — уникальный составной индекс:
+// один пользователь не может быть членом одного чата дважды.</span>
+modelBuilder.<span class="mth">Entity</span>&lt;<span class="cls">ChatMember</span>&gt;(entity =>
+{
+    entity.<span class="mth">HasIndex</span>(cm => <span class="kw">new</span> { cm.UserId, cm.ChatId }).<span class="mth">IsUnique</span>();
+});</pre>
+
+<pre><span class="cmt">// Self-referencing — Contact: User владеет списком контактов (других User).
+// Два FK на одну таблицу Users — EF не может разобраться сам, нужен Fluent API.</span>
+modelBuilder.<span class="mth">Entity</span>&lt;<span class="cls">Contact</span>&gt;(entity =>
+{
+    entity.<span class="mth">HasOne</span>(c => c.OwnerUser)      <span class="cmt">// Contact.OwnerUser → Users</span>
+          .<span class="mth">WithMany</span>(u => u.Contacts)       <span class="cmt">// User.Contacts — обратная коллекция</span>
+          .<span class="mth">HasForeignKey</span>(c => c.OwnerUserId) <span class="cmt">// FK — OwnerUserId</span>
+          .<span class="mth">OnDelete</span>(<span class="cls">DeleteBehavior</span>.Restrict); <span class="cmt">// запрет каскадного удаления</span>
+
+    entity.<span class="mth">HasOne</span>(c => c.ContactUser)
+          .<span class="mth">WithMany</span>()                        <span class="cmt">// нет обратной коллекции на User</span>
+          .<span class="mth">HasForeignKey</span>(c => c.ContactUserId)
+          .<span class="mth">OnDelete</span>(<span class="cls">DeleteBehavior</span>.Restrict);
+});</pre>
+
+<!-- 3.5 -->
+<h2>3.5 Value Conversions &#8212; конвертация значений</h2>
+
+<p>
+  <strong>Value Conversion</strong> (HasConversion) позволяет хранить в БД одно значение,
+  а в C#-модели работать с другим типом. Типичные применения:
+  <code>enum</code> → <code>string</code>, кастомные типы → примитивы, зашифрованные строки.
+</p>
+
+<h3>Enum → string (абстрактный пример, расширение для WebMessenger)</h3>
+<pre><span class="cmt">// Допустим, в WebMessenger добавляется статус сообщения</span>
+<span class="kw">public enum</span> <span class="cls">MessageStatus</span> { Sent, Delivered, Read }
+
+<span class="kw">public class</span> <span class="cls">Message</span>
+{
+    <span class="kw">public</span> <span class="cls">MessageStatus</span> Status { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="cls">MessageStatus</span>.Sent;
+    <span class="cmt">// Без конвертации: хранится как int (0, 1, 2) — трудно читать в БД напрямую.</span>
+    <span class="cmt">// С конвертацией: хранится как "Sent", "Delivered", "Read" — читаемо.</span>
+}
+
+<span class="cmt">// OnModelCreating — HasConversion&lt;string&gt; — встроенный конвертер EF Core</span>
+modelBuilder.<span class="mth">Entity</span>&lt;<span class="cls">Message</span>&gt;()
+    .<span class="mth">Property</span>(m => m.Status)
+    .<span class="mth">HasConversion</span>&lt;<span class="kw">string</span>&gt;()  <span class="cmt">// enum.ToString() при записи, Enum.Parse при чтении</span>
+    .<span class="mth">HasMaxLength</span>(<span class="num">20</span>);        <span class="cmt">// varchar(20) вместо longtext</span></pre>
+
+<h3>Кастомный конвертер</h3>
+<pre><span class="cmt">// Хранить список тегов как JSON-строку в одном столбце</span>
+modelBuilder.<span class="mth">Entity</span>&lt;<span class="cls">Chat</span>&gt;()
+    .<span class="mth">Property</span>(c => c.Tags)
+    .<span class="mth">HasConversion</span>(
+        tags => <span class="cls">JsonSerializer</span>.<span class="mth">Serialize</span>(tags, (<span class="cls">JsonSerializerOptions</span>?)<span class="kw">null</span>),
+        json => <span class="cls">JsonSerializer</span>.<span class="mth">Deserialize</span>&lt;<span class="cls">List</span>&lt;<span class="kw">string</span>&gt;&gt;(json, (<span class="cls">JsonSerializerOptions</span>?)<span class="kw">null</span>)!
+    );
+<span class="cmt">// Внимание: EF Core не умеет строить WHERE-условия внутри JSON-строки через LINQ без JSON-функций провайдера.</span></pre>
+
+<div class="note">
+  <strong>Встроенные конвертеры EF Core 8:</strong> <code>HasConversion&lt;string&gt;()</code>
+  для enum, <code>HasConversion&lt;int&gt;()</code> для enum-как-int (явно),
+  <code>DateTimeOffsetToBinaryConverter</code>, <code>BoolToZeroOneConverter&lt;T&gt;</code>
+  и другие из пространства имён <code>Microsoft.EntityFrameworkCore.Storage.ValueConversion</code>.
+</div>
+
+<!-- 3.6 -->
+<h2>3.6 DateTime vs DateTimeOffset</h2>
+
+<p>
+  Выбор между <code>DateTime</code> и <code>DateTimeOffset</code> имеет значение как для
+  логики приложения, так и для хранения в БД.
+</p>
+
+<table>
+  <tr><th></th><th>DateTime</th><th>DateTimeOffset</th></tr>
+  <tr>
+    <td><strong>Хранит часовой пояс?</strong></td>
+    <td>Нет. Kind: Unspecified / Local / Utc</td>
+    <td>Да. Хранит смещение от UTC (например +03:00)</td>
+  </tr>
+  <tr>
+    <td><strong>В MySQL через Pomelo</strong></td>
+    <td><code>datetime(6)</code></td>
+    <td><code>datetime(6)</code> (смещение теряется!) или <code>varchar</code> с кастомным конвертером</td>
+  </tr>
+  <tr>
+    <td><strong>Рекомендация</strong></td>
+    <td>Хранить только UTC (всегда использовать <code>DateTime.UtcNow</code>)</td>
+    <td>Использовать когда важно сохранить исходный часовой пояс пользователя</td>
+  </tr>
+  <tr>
+    <td><strong>Пример в WebMessenger</strong></td>
+    <td>Все временные метки: <code>SentAt</code>, <code>CreatedAt</code>, <code>JoinedAt</code></td>
+    <td>Не используется — все операции в UTC</td>
+  </tr>
+</table>
+
+<pre><span class="cmt">// WebMessenger: всегда DateTime.UtcNow — явное UTC, без риска путаницы часовых поясов</span>
+<span class="kw">public</span> <span class="cls">DateTime</span> CreatedAt  { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="cls">DateTime</span>.UtcNow;
+<span class="kw">public</span> <span class="cls">DateTime</span> JoinedAt   { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="cls">DateTime</span>.UtcNow;
+<span class="kw">public</span> <span class="cls">DateTime</span> SentAt     { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="cls">DateTime</span>.UtcNow;
+
+<span class="cmt">// В ApplicationDbContext — явный HasColumnType("datetime(6)") для точности до микросекунды.
+// Без этого Pomelo может выбрать datetime без дробной части → потеря точности при сравнении.</span>
+entity.<span class="mth">Property</span>(m => m.SentAt).<span class="mth">HasColumnType</span>(<span class="str">"datetime(6)"</span>);
+
+<span class="cmt">// HasDefaultValueSql — БД проставляет метку времени при INSERT, не C#.
+// Это гарантирует согласованность: даже если C# не задал значение — БД запишет правильное время.</span>
+entity.<span class="mth">Property</span>(m => m.SentAt).<span class="mth">HasDefaultValueSql</span>(<span class="str">"CURRENT_TIMESTAMP(6)"</span>).<span class="mth">ValueGeneratedOnAdd</span>();</pre>
+
+<div class="warn">
+  <strong>Ловушка DateTime.Now vs DateTime.UtcNow:</strong> при использовании
+  <code>DateTime.Now</code> значение зависит от часового пояса сервера. Если сервер
+  переедет в другой дата-центр &#8212; все временные метки сдвинутся. В WebMessenger
+  везде используется <code>DateTime.UtcNow</code>: хранение в UTC и конвертация
+  в локальное время на клиенте &#8212; правильный подход для распределённых систем.
+</div>
+
+<!-- 3.7 -->
+<h2>3.7 Индексы</h2>
+
+<p>
+  Индексы критичны для производительности. В WebMessenger они сконфигурированы
+  как через Data Annotations, так и через Fluent API, в зависимости от сложности.
+</p>
+
+<pre><span class="cmt">// Data Annotations — одиночные индексы на уровне класса</span>
+[<span class="att">Index</span>(<span class="kw">nameof</span>(Username), IsUnique = <span class="kw">true</span>)]  <span class="cmt">// CREATE UNIQUE INDEX ON Users(Username)</span>
+[<span class="att">Index</span>(<span class="kw">nameof</span>(IsOnline))]                    <span class="cmt">// CREATE INDEX ON Users(IsOnline)</span>
+[<span class="att">Index</span>(<span class="kw">nameof</span>(IsGroup))]                     <span class="cmt">// CREATE INDEX ON Chats(IsGroup)</span>
+
+<span class="cmt">// Fluent API — составные и уникальные составные индексы</span>
+
+<span class="cmt">// Составной индекс (ChatId, SentAt): покрывает запрос истории чата
+// SELECT * FROM Messages WHERE ChatId = ? ORDER BY SentAt DESC LIMIT ?
+// Без индекса — полный скан Messages. С индексом — поиск за O(log n).</span>
+entity.<span class="mth">HasIndex</span>(m => <span class="kw">new</span> { m.ChatId, m.SentAt });
+
+<span class="cmt">// Уникальный составной индекс: гарантирует что (UserId, ChatId) уникально в ChatMembers.
+// Дублирует бизнес-правило "один пользователь = один раз в чате" на уровне БД.</span>
+entity.<span class="mth">HasIndex</span>(cm => <span class="kw">new</span> { cm.UserId, cm.ChatId }).<span class="mth">IsUnique</span>();</pre>
+
+<div class="note">
+  <strong>Порядок полей в составном индексе важен:</strong> индекс
+  <code>(ChatId, SentAt)</code> эффективен для запросов <code>WHERE ChatId = ?</code>
+  и <code>WHERE ChatId = ? AND SentAt &lt; ?</code>. Но не эффективен для запросов
+  только по <code>SentAt</code> без <code>ChatId</code>. Поле с высокой
+  селективностью (<code>ChatId</code>) ставится первым.
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>4. Querying &#8212; Запросы к базе данных</h1>
+
+<!-- 4.1 -->
+<h2>4.1 LINQ-запросы в EF Core &#8212; принцип работы</h2>
+
+<p>
+  EF Core транслирует LINQ-выражения в SQL через <strong>Expression Tree</strong> &#8212;
+  дерево выражений, которое компилятор C# строит из лямбды и передаёт провайдеру как
+  данные (не код). Провайдер анализирует это дерево и генерирует SQL-команду.
+  Ключевое отличие от обычных делегатов: лямбда в <code>Where</code> на
+  <code>IQueryable&lt;T&gt;</code> не выполняется в C# &#8212; она <em>описывает</em>
+  условие, которое будет исполнено в базе данных.
+</p>
+
+<h3>IQueryable vs IEnumerable</h3>
+<table>
+  <tr><th></th><th>IQueryable&lt;T&gt;</th><th>IEnumerable&lt;T&gt;</th></tr>
+  <tr>
+    <td><strong>Где работает фильтр</strong></td>
+    <td>На сервере БД (SQL WHERE)</td>
+    <td>В памяти C# (после загрузки всех строк)</td>
+  </tr>
+  <tr>
+    <td><strong>Когда идёт запрос в БД</strong></td>
+    <td>При материализации: <code>ToListAsync</code>, <code>FirstOrDefaultAsync</code> и т.п.</td>
+    <td>При первой итерации — уже вся таблица в памяти</td>
+  </tr>
+  <tr>
+    <td><strong>Тип в EF Core</strong></td>
+    <td><code>DbSet&lt;T&gt;</code> и <code>Repository.GetAll()</code></td>
+    <td>После <code>ToList()</code> / <code>AsEnumerable()</code></td>
+  </tr>
+  <tr>
+    <td><strong>Риск</strong></td>
+    <td>Не все LINQ-операции транслируемы — часть выполняется in-memory молча</td>
+    <td>Загрузка всей таблицы при добавлении <code>.Where()</code> после <code>ToList()</code></td>
+  </tr>
+</table>
+
+<pre><span class="cmt">// Правильно — фильтр транслируется в SQL WHERE:
+// SELECT * FROM Messages WHERE ChatId = '...' ORDER BY SentAt DESC LIMIT 50</span>
+<span class="kw">var</span> items = <span class="kw">await</span> _uow.MessageRepository
+    .<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(m => m.ChatId == chatId)        <span class="cmt">// → WHERE ChatId = @p0</span>
+    .<span class="mth">OrderByDescending</span>(m => m.SentAt)       <span class="cmt">// → ORDER BY SentAt DESC</span>
+    .<span class="mth">Take</span>(take)                              <span class="cmt">// → LIMIT @p1</span>
+    .<span class="mth">Select</span>(<span class="cls">MessageProjections</span>.ToChatMessageDto) <span class="cmt">// → SELECT только нужных полей</span>
+    .<span class="mth">ToListAsync</span>();                          <span class="cmt">// ← здесь SQL отправляется в БД</span>
+
+<span class="cmt">// Опасно — ToList() материализует ВСЕ строки Messages, потом фильтр в C#:</span>
+<span class="kw">var</span> all  = <span class="kw">await</span> _uow.MessageRepository.<span class="mth">GetAll</span>().<span class="mth">ToListAsync</span>(); <span class="cmt">// вся таблица в память!</span>
+<span class="kw">var</span> bad  = all.<span class="mth">Where</span>(m => m.ChatId == chatId).<span class="mth">ToList</span>();        <span class="cmt">// фильтр в C#</span></pre>
+
+<!-- 4.2 -->
+<h2>4.2 Материализация запросов</h2>
+
+<p>
+  <strong>Материализация</strong> &#8212; момент, когда EF Core отправляет SQL в БД и
+  загружает результат в объекты C#. До материализации запрос существует только как
+  дерево выражений &#8212; никаких обращений к БД нет. Это называется
+  <em>отложенное выполнение</em> (deferred execution).
+</p>
+
+<table>
+  <tr><th>Метод</th><th>Что возвращает</th><th>Когда использовать</th></tr>
+  <tr><td><code>ToListAsync()</code></td><td><code>List&lt;T&gt;</code></td><td>Нужны все результаты в памяти сразу</td></tr>
+  <tr><td><code>ToArrayAsync()</code></td><td><code>T[]</code></td><td>Аналогично, когда нужен массив</td></tr>
+  <tr><td><code>ToDictionaryAsync()</code></td><td><code>Dictionary&lt;K,V&gt;</code></td><td>Батч-загрузка с последующим поиском по ключу</td></tr>
+  <tr><td><code>FirstOrDefaultAsync()</code></td><td><code>T?</code></td><td>Нужна одна запись, допустим null</td></tr>
+  <tr><td><code>FirstAsync()</code></td><td><code>T</code></td><td>Одна запись, бросит исключение если нет</td></tr>
+  <tr><td><code>SingleOrDefaultAsync()</code></td><td><code>T?</code></td><td>Ожидается не более одной записи; исключение при двух и более</td></tr>
+  <tr><td><code>AnyAsync()</code></td><td><code>bool</code></td><td>Проверка существования &#8212; SELECT EXISTS</td></tr>
+  <tr><td><code>CountAsync()</code></td><td><code>int</code></td><td>Подсчёт строк &#8212; SELECT COUNT(*)</td></tr>
+  <tr><td><code>AsAsyncEnumerable()</code></td><td><code>IAsyncEnumerable&lt;T&gt;</code></td><td>Потоковая обработка больших результатов без загрузки всего в память</td></tr>
+</table>
+
+<pre><span class="cmt">// WebMessenger.Api/Services/ChatService.cs — различные методы материализации</span>
+
+<span class="cmt">// AnyAsync — проверка членства: SELECT COUNT(*) = 0 или EXISTS — без загрузки данных</span>
+<span class="kw">var</span> isMember = <span class="kw">await</span> _uow.ChatMemberRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">AnyAsync</span>(cm => cm.ChatId == chatId &amp;&amp; cm.UserId == me);
+<span class="kw">if</span> (!isMember) <span class="kw">throw new</span> <span class="cls">UnauthorizedAccessException</span>(<span class="str">"Not a member of this chat"</span>);
+
+<span class="cmt">// FirstOrDefaultAsync — один результат или null; генерирует LIMIT 1</span>
+<span class="kw">var</span> myLastReadAt = <span class="kw">await</span> _uow.ChatMemberRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(cm => cm.ChatId == chatId &amp;&amp; cm.UserId == me)
+    .<span class="mth">Select</span>(cm => cm.LastReadAt)
+    .<span class="mth">FirstOrDefaultAsync</span>() ?? <span class="cls">DateTime</span>.MinValue;
+
+<span class="cmt">// ToDictionaryAsync — батч-загрузка данных для N чатов одним запросом
+// SELECT ChatId, LastReadAt FROM ChatMembers WHERE UserId = ? AND ChatId IN (...)
+// Потом словарь для O(1) поиска вместо N отдельных запросов.</span>
+<span class="kw">var</span> lastReadMap = <span class="kw">await</span> _uow.ChatMemberRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(cm => cm.UserId == me &amp;&amp; chatIds.<span class="mth">Contains</span>(cm.ChatId))
+    .<span class="mth">Select</span>(cm => <span class="kw">new</span> { cm.ChatId, cm.LastReadAt })
+    .<span class="mth">ToDictionaryAsync</span>(x => x.ChatId, x => x.LastReadAt);</pre>
+
+<!-- 4.3 -->
+<h2>4.3 Find vs FirstOrDefault &#8212; критерии выбора</h2>
+
+<p>
+  Оба метода возвращают одну сущность или <code>null</code>, но работают принципиально
+  по-разному:
+</p>
+
+<table>
+  <tr><th></th><th>FindAsync(id)</th><th>FirstOrDefaultAsync(predicate)</th></tr>
+  <tr>
+    <td><strong>Поиск в кеше</strong></td>
+    <td>Сначала в Change Tracker &#8212; возможно без SQL</td>
+    <td>Всегда идёт в БД, кеш не проверяется</td>
+  </tr>
+  <tr>
+    <td><strong>Только по PK?</strong></td>
+    <td>Да &#8212; только по первичному ключу</td>
+    <td>Любое условие, любые поля</td>
+  </tr>
+  <tr>
+    <td><strong>Поддержка Include</strong></td>
+    <td>Нет &#8212; не поддерживает Include / проекции</td>
+    <td>Да &#8212; полная поддержка Include, Select, OrderBy</td>
+  </tr>
+  <tr>
+    <td><strong>Когда использовать</strong></td>
+    <td>Нужна сущность по PK и она может быть уже загружена в контекст</td>
+    <td>Нужен гибкий поиск или Include связей</td>
+  </tr>
+</table>
+
+<pre><span class="cmt">// WebMessenger.DAL/Repository.cs — FindAsync: кеш Change Tracker → потом БД</span>
+<span class="kw">public async</span> <span class="cls">Task</span>&lt;<span class="cls">T</span>?&gt; <span class="mth">GetAsync</span>(<span class="cls">Guid</span> id, <span class="cls">CancellationToken</span> ct = <span class="kw">default</span>)
+    => <span class="kw">await</span> _dbSet.<span class="mth">FindAsync</span>(<span class="kw">new object</span>[] { id }, ct);
+<span class="cmt">// Хорошо: GetAsync используется когда сущность точно могла быть загружена ранее
+// в том же HTTP-запросе — например при update после проверки существования.</span>
+
+<span class="cmt">// FirstOrDefaultAsync: всегда SQL, поддерживает Include и Select — для read-запросов</span>
+<span class="kw">var</span> chat = <span class="kw">await</span> _uow.ChatRepository
+    .<span class="mth">GetAll</span>(<span class="kw">nameof</span>(<span class="cls">Chat</span>.Members))         <span class="cmt">// Include Members → JOIN</span>
+    .<span class="mth">FirstOrDefaultAsync</span>(c => c.Id == chatId);
+<span class="kw">if</span> (chat == <span class="kw">null</span>) <span class="kw">return null</span>;</pre>
+
+<!-- 4.4 -->
+<h2>4.4 Проекции (Select) &#8212; запрашивать только нужные поля</h2>
+
+<p>
+  <strong>Проекция</strong> &#8212; трансформация результата запроса в другой тип прямо
+  в SQL через <code>SELECT</code>. Вместо загрузки всей сущности (<code>SELECT *</code>)
+  EF Core генерирует <code>SELECT col1, col2, ...</code> только для нужных полей.
+  Это снижает нагрузку на сеть и память.
+</p>
+
+<p>
+  В WebMessenger для проекций используется паттерн
+  <strong>Expression&lt;Func&lt;T, TDto&gt;&gt;</strong> в классе
+  <code>MessageProjections</code>: выражение объявляется один раз и переиспользуется
+  во всех запросах.
+</p>
+
+<pre><span class="cmt">// WebMessenger.Api/Projections/Messages/MessageProjections.cs</span>
+
+<span class="cmt">// Expression&lt;Func&gt; — EF Core может транслировать в SQL (дерево выражений).
+// Используется в .Select(MessageProjections.ToChatMessageDto) в LINQ-запросах.</span>
+<span class="kw">public static readonly</span> <span class="cls">Expression</span>&lt;<span class="cls">Func</span>&lt;<span class="cls">Message</span>, <span class="cls">ChatMessageDto</span>&gt;&gt; ToChatMessageDto =
+    m => <span class="kw">new</span> <span class="cls">ChatMessageDto</span>
+    {
+        Id       = m.Id,
+        ChatId   = m.ChatId,
+        SenderId = m.SenderId,
+        Content  = m.Content,
+        SentAt   = m.SentAt,
+        EditedAt = m.EditedAt
+    };
+<span class="cmt">// EF генерирует: SELECT Id, ChatId, SenderId, Content, SentAt, EditedAt FROM Messages WHERE ...</span>
+
+<span class="cmt">// Func&lt;&gt; — скомпилированный делегат для маппинга в памяти.
+// Compile() один раз при старте, используется для свежесозданных сущностей
+// которые ещё не прошли через БД и не могут быть запрошены через IQueryable.</span>
+<span class="kw">public static readonly</span> <span class="cls">Func</span>&lt;<span class="cls">Message</span>, <span class="cls">ChatMessageDto</span>&gt; ToChatMessageDtoFunc =
+    ToChatMessageDto.<span class="mth">Compile</span>();</pre>
+
+<pre><span class="cmt">// Использование в ChatService.GetMessagesAsync — проекция прямо в SQL</span>
+<span class="kw">var</span> items = <span class="kw">await</span> q
+    .<span class="mth">OrderByDescending</span>(m => m.SentAt)
+    .<span class="mth">Take</span>(take)
+    .<span class="mth">Select</span>(<span class="cls">MessageProjections</span>.ToChatMessageDto)  <span class="cmt">// SELECT только 6 полей</span>
+    .<span class="mth">ToListAsync</span>();
+
+<span class="cmt">// Inline-проекция через анонимный тип — для разовых запросов без переиспользования</span>
+<span class="kw">var</span> peerMap = (<span class="kw">await</span> _uow.UserRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(u => peerIds.<span class="mth">Contains</span>(u.Id))
+    .<span class="mth">Select</span>(u => <span class="kw">new</span> { u.Id, u.Username, u.AvatarUrl })  <span class="cmt">// только 3 поля</span>
+    .<span class="mth">ToListAsync</span>())
+    .<span class="mth">ToDictionary</span>(u => u.Id, u => (u.Username, u.AvatarUrl));</pre>
+
+<div class="note">
+  <strong>Expression vs Func:</strong> ключевое различие в том, что
+  <code>Expression&lt;Func&lt;T, TDto&gt;&gt;</code> передаётся как <em>данные</em>
+  (дерево выражений) и транслируется EF Core в SQL. Обычный <code>Func&lt;T, TDto&gt;</code>
+  &#8212; это скомпилированный делегат, который выполняется в C# только <em>после</em>
+  загрузки данных из БД. Передача <code>Func</code> вместо <code>Expression</code>
+  в <code>.Select()</code> приведёт к загрузке всех столбцов сущности и маппингу в памяти.
+</div>
+
+<!-- 4.5 -->
+<h2>4.5 Пагинация</h2>
+
+<p>
+  В WebMessenger используется <strong>курсорная пагинация</strong> (keyset/cursor pagination)
+  по полю <code>DateTime? before</code> &#8212; в отличие от классической офсетной пагинации
+  через <code>Skip(page * size)</code>.
+</p>
+
+<table>
+  <tr><th></th><th>Офсетная пагинация (Skip/Take)</th><th>Курсорная пагинация (WebMessenger)</th></tr>
+  <tr>
+    <td><strong>SQL</strong></td>
+    <td><code>LIMIT 50 OFFSET 1000</code></td>
+    <td><code>WHERE SentAt &lt; @cursor ORDER BY SentAt DESC LIMIT 50</code></td>
+  </tr>
+  <tr>
+    <td><strong>Производительность</strong></td>
+    <td>Деградирует с ростом OFFSET — БД читает и выбрасывает N строк</td>
+    <td>Константная — индекс используется полностью</td>
+  </tr>
+  <tr>
+    <td><strong>Проблема сдвига</strong></td>
+    <td>При добавлении новых записей страницы сдвигаются — дубли или пропуски</td>
+    <td>Стабильно — курсор всегда указывает на конкретную точку</td>
+  </tr>
+  <tr>
+    <td><strong>Навигация</strong></td>
+    <td>Можно перейти на любую страницу произвольно</td>
+    <td>Только вперёд/назад по курсору</td>
+  </tr>
+</table>
+
+<pre><span class="cmt">// WebMessenger.Api/Services/ChatService.cs — GetMessagesAsync: курсорная пагинация</span>
+<span class="kw">public async</span> <span class="cls">Task</span>&lt;<span class="cls">PagedResult</span>&lt;<span class="cls">ChatMessageDto</span>&gt;&gt; <span class="mth">GetMessagesAsync</span>(
+    <span class="cls">Guid</span> me, <span class="cls">Guid</span> chatId, <span class="kw">int</span> limit, <span class="cls">DateTime</span>? before)
+{
+    <span class="cmt">// Clamp защищает от limit=0 или limit=999999 от клиента</span>
+    <span class="kw">var</span> take = <span class="cls">Math</span>.<span class="mth">Clamp</span>(limit, <span class="num">1</span>, <span class="num">200</span>);
+
+    <span class="kw">var</span> q = _uow.MessageRepository.<span class="mth">GetAll</span>()
+        .<span class="mth">Where</span>(m => m.ChatId == chatId);   <span class="cmt">// база фильтра</span>
+
+    <span class="cmt">// Курсор: загрузить сообщения старше указанной метки времени
+    // WHERE ChatId = ? AND SentAt &lt; @before ORDER BY SentAt DESC LIMIT ?</span>
+    <span class="kw">if</span> (before.HasValue)
+        q = q.<span class="mth">Where</span>(m => m.SentAt &lt; before.Value);
+
+    <span class="kw">var</span> items = <span class="kw">await</span> q
+        .<span class="mth">OrderByDescending</span>(m => m.SentAt)  <span class="cmt">// DESC: сначала новые</span>
+        .<span class="mth">Take</span>(take)
+        .<span class="mth">Select</span>(<span class="cls">MessageProjections</span>.ToChatMessageDto)
+        .<span class="mth">ToListAsync</span>();
+
+    items.<span class="mth">Reverse</span>();  <span class="cmt">// вернуть в хронологическом порядке клиенту</span>
+
+    <span class="kw">return new</span> <span class="cls">PagedResult</span>&lt;<span class="cls">ChatMessageDto</span>&gt;
+    {
+        Items   = items,
+        HasMore = items.Count == take,          <span class="cmt">// если вернули take — значит есть ещё</span>
+        NextBefore = items.Count > <span class="num">0</span>
+            ? items.<span class="mth">First</span>().SentAt            <span class="cmt">// курсор = SentAt самого старого в выборке</span>
+            : before
+    };
+}</pre>
+
+<!-- 4.6 -->
+<h2>4.6 Batch-запросы &#8212; избегаем N+1</h2>
+
+<p>
+  <strong>N+1 проблема</strong> &#8212; антипаттерн: один запрос возвращает N записей,
+  затем для каждой из них выполняется ещё один отдельный запрос. Итого N+1 круговых
+  обращений к БД вместо одного.
+</p>
+
+<pre><span class="cmt">// Антипаттерн N+1 — НЕ делайте так</span>
+<span class="kw">var</span> chats = <span class="kw">await</span> _uow.ChatRepository.<span class="mth">GetAll</span>().<span class="mth">ToListAsync</span>(); <span class="cmt">// 1 запрос</span>
+<span class="kw">foreach</span> (<span class="kw">var</span> chat <span class="kw">in</span> chats)
+{
+    <span class="cmt">// N запросов — по одному на каждый чат!</span>
+    <span class="kw">var</span> lastMsg = <span class="kw">await</span> _uow.MessageRepository.<span class="mth">GetAll</span>()
+        .<span class="mth">Where</span>(m => m.ChatId == chat.Id)
+        .<span class="mth">OrderByDescending</span>(m => m.SentAt)
+        .<span class="mth">FirstOrDefaultAsync</span>();
+}</pre>
+
+<pre><span class="cmt">// Решение из WebMessenger — всё в одном LINQ-запросе с подзапросами,
+// потом отдельный batch для счётчиков непрочитанных по всем chatIds разом.</span>
+
+<span class="cmt">// Шаг 1: один запрос — чаты + последнее сообщение через подзапрос</span>
+<span class="kw">var</span> baseQuery =
+    <span class="kw">from</span> c <span class="kw">in</span> _uow.ChatRepository.<span class="mth">GetAll</span>(<span class="kw">nameof</span>(<span class="cls">Chat</span>.Members))
+    <span class="kw">where</span> c.Members.<span class="mth">Any</span>(m => m.UserId == me)
+    <span class="kw">select new</span>
+    {
+        Chat = c,
+        LastMessage = _uow.MessageRepository.<span class="mth">GetAll</span>()
+            .<span class="mth">Where</span>(m => m.ChatId == c.Id)
+            .<span class="mth">OrderByDescending</span>(m => m.SentAt)
+            .<span class="mth">Select</span>(m => <span class="kw">new</span> { m.Id, m.SenderId, m.Content, m.SentAt })
+            .<span class="mth">FirstOrDefault</span>()  <span class="cmt">// коррелированный подзапрос в SQL</span>
+    };
+
+<span class="cmt">// Шаг 2: batch-fetch LastReadAt для всех чатов — один запрос вместо N</span>
+<span class="kw">var</span> lastReadMap = <span class="kw">await</span> _uow.ChatMemberRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(cm => cm.UserId == me &amp;&amp; chatIds.<span class="mth">Contains</span>(cm.ChatId))
+    .<span class="mth">ToDictionaryAsync</span>(x => x.ChatId, x => x.LastReadAt);
+<span class="cmt">// SELECT ChatId, LastReadAt FROM ChatMembers WHERE UserId=? AND ChatId IN (id1, id2, ...)</span>
+
+<span class="cmt">// Шаг 3: batch-fetch непрочитанных — GroupBy в SQL, один запрос</span>
+<span class="kw">var</span> unreadCounts = <span class="kw">await</span> _uow.MessageRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(m => chatIds.<span class="mth">Contains</span>(m.ChatId) &amp;&amp; m.SenderId != me)
+    .<span class="mth">GroupBy</span>(m => m.ChatId)
+    .<span class="mth">Select</span>(g => <span class="kw">new</span> { ChatId = g.Key, Count = g.<span class="mth">Count</span>() })
+    .<span class="mth">ToListAsync</span>();
+<span class="cmt">// SELECT ChatId, COUNT(*) FROM Messages WHERE ChatId IN (...) AND SenderId != ? GROUP BY ChatId</span></pre>
+
+<!-- 4.7 -->
+<h2>4.7 Хранимые процедуры и сырой SQL</h2>
+
+<p>
+  Иногда LINQ не позволяет выразить нужный запрос эффективно &#8212; например
+  при сложных рекурсивных CTE или специфичных для MySQL функциях.
+  EF Core предоставляет механизмы для сырого SQL.
+</p>
+
+<pre><span class="cmt">// FromSqlRaw — запрос возвращает сущности типа T, маппится EF Core.
+// Безопасно: параметры передаются как параметры SQL (не конкатенация строк).</span>
+<span class="kw">var</span> users = <span class="kw">await</span> context.Users
+    .<span class="mth">FromSqlRaw</span>(<span class="str">"SELECT * FROM Users WHERE Username = {0}"</span>, username)
+    .<span class="mth">ToListAsync</span>();
+
+<span class="cmt">// FromSqlInterpolated — C# интерполированная строка: EF Core автоматически
+// превращает {username} в параметр @p0. Предпочтительнее FromSqlRaw.</span>
+<span class="kw">var</span> users = <span class="kw">await</span> context.Users
+    .<span class="mth">FromSqlInterpolated</span>(<span class="str">$"SELECT * FROM Users WHERE Username = {username}"</span>)
+    .<span class="mth">ToListAsync</span>();
+
+<span class="cmt">// ExecuteSqlRawAsync — для команд без возвращаемых данных (UPDATE, DELETE, CALL).
+// Возвращает количество затронутых строк.</span>
+<span class="kw">await</span> context.Database
+    .<span class="mth">ExecuteSqlRawAsync</span>(<span class="str">"CALL archive_old_messages({0})"</span>, cutoffDate);
+
+<span class="cmt">// ВНИМАНИЕ: никогда не конкатенируйте пользовательский ввод в строку запроса!
+// SQL-инъекция:</span>
+<span class="kw">var</span> bad = <span class="kw">await</span> context.Users
+    .<span class="mth">FromSqlRaw</span>(<span class="str">"SELECT * FROM Users WHERE Username = '"</span> + username + <span class="str">"'"</span>) <span class="cmt">// ОПАСНО!</span>
+    .<span class="mth">ToListAsync</span>();</pre>
+
+<div class="note">
+  В WebMessenger сырой SQL не используется — все запросы выражены через LINQ.
+  Это оптимально для большинства случаев: LINQ читаем, безопасен, и EF Core
+  генерирует эффективный SQL с индексами. Сырой SQL нужен для исключительных случаев:
+  рекурсивные CTE, полнотекстовый поиск, специфичные функции СУБД.
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>5. Loading Related Data &#8212; Загрузка связанных данных</h1>
+
+<!-- 5.1 -->
+<h2>5.1 Три стратегии загрузки</h2>
+
+<p>
+  EF Core предоставляет три стратегии для загрузки навигационных свойств
+  (связанных сущностей). Выбор определяет: <em>когда</em> и <em>как</em>
+  связанные данные попадают в память.
+</p>
+
+<table>
+  <tr><th>Стратегия</th><th>Когда загружается</th><th>Как активируется</th><th>SQL-запросов</th></tr>
+  <tr>
+    <td><strong>Eager Loading</strong></td>
+    <td>Вместе с основным запросом</td>
+    <td><code>Include()</code> / <code>ThenInclude()</code></td>
+    <td>Один JOIN-запрос</td>
+  </tr>
+  <tr>
+    <td><strong>Explicit Loading</strong></td>
+    <td>По требованию вручную</td>
+    <td><code>Entry(entity).Collection(...).LoadAsync()</code></td>
+    <td>Отдельный запрос при вызове</td>
+  </tr>
+  <tr>
+    <td><strong>Lazy Loading</strong></td>
+    <td>При первом обращении к навигационному свойству</td>
+    <td>Прокси-классы + <code>UseLazyLoadingProxies()</code></td>
+    <td>По одному на каждое обращение</td>
+  </tr>
+</table>
+
+<!-- 5.2 -->
+<h2>5.2 Eager Loading &#8212; Include и ThenInclude</h2>
+
+<p>
+  <strong>Eager Loading</strong> &#8212; основной и рекомендуемый подход в WebMessenger.
+  <code>Include()</code> добавляет JOIN в SQL-запрос и загружает навигационные свойства
+  вместе с основной сущностью за один обход к БД.
+</p>
+
+<pre><span class="cmt">// WebMessenger.DAL/Repository.cs — GetAll принимает имена навигационных свойств.
+// Include добавляется через string-имя: не требует знать тип на уровне репозитория.</span>
+<span class="kw">public</span> <span class="cls">IQueryable</span>&lt;<span class="cls">T</span>&gt; <span class="mth">GetAll</span>(<span class="kw">params string</span>[] navigationProperties)
+{
+    <span class="kw">var</span> query = _dbSet.<span class="mth">AsNoTracking</span>();
+    <span class="kw">foreach</span> (<span class="kw">var</span> nav <span class="kw">in</span> navigationProperties)
+        query = query.<span class="mth">Include</span>(nav);   <span class="cmt">// → LEFT JOIN на каждый nav</span>
+    <span class="kw">return</span> query;
+}
+
+<span class="cmt">// ChatService.cs — Include(nameof(Chat.Members)):
+// SELECT Chats.*, ChatMembers.* FROM Chats
+// LEFT JOIN ChatMembers ON ChatMembers.ChatId = Chats.Id
+// WHERE ChatMembers.UserId = @me</span>
+<span class="kw">var</span> chat = <span class="kw">await</span> _uow.ChatRepository
+    .<span class="mth">GetAll</span>(<span class="kw">nameof</span>(<span class="cls">Chat</span>.Members))
+    .<span class="mth">FirstOrDefaultAsync</span>(c => c.Id == chatId);
+
+<span class="cmt">// ContactsService.cs — сначала Where с фильтром, потом Include.
+// EF Core оптимизирует порядок: Where применяется до JOIN в SQL.
+// Важно: Include указывается ПОСЛЕ Where — EF всё равно сгенерирует правильный SQL.</span>
+<span class="kw">return await</span> _unitOfWork.ContactRepository
+    .<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(x => x.OwnerUserId == currentUserId
+        &amp;&amp; x.ContactUser!.Username.<span class="mth">ToLower</span>().<span class="mth">Contains</span>(query.<span class="mth">ToLower</span>()))
+    .<span class="mth">Include</span>(x => x.ContactUser)   <span class="cmt">// строготипизированный Include с лямбдой</span>
+    .<span class="mth">ToListAsync</span>();</pre>
+
+<h3>ThenInclude &#8212; загрузка вложенных навигаций</h3>
+<pre><span class="cmt">// ThenInclude загружает навигацию у уже включённой навигации.
+// Пример (абстрактный — WebMessenger не требует такой глубины):
+// Загрузить чаты → участников → пользователей участников</span>
+<span class="kw">var</span> chats = <span class="kw">await</span> context.Chats
+    .<span class="mth">Include</span>(c => c.Members)               <span class="cmt">// загрузить ChatMember[]</span>
+        .<span class="mth">ThenInclude</span>(m => m.User)           <span class="cmt">// для каждого ChatMember загрузить User</span>
+    .<span class="mth">Include</span>(c => c.Messages)              <span class="cmt">// отдельная ветка Include</span>
+        .<span class="mth">ThenInclude</span>(msg => msg.Sender)     <span class="cmt">// для каждого Message загрузить User-отправителя</span>
+    .<span class="mth">ToListAsync</span>();
+<span class="cmt">// Генерирует несколько JOIN или split query в зависимости от настроек.
+// Для больших коллекций может привести к "картезианскому взрыву" строк —
+// в этом случае используют AsSplitQuery().</span></pre>
+
+<h3>Include строкой vs лямбдой</h3>
+<table>
+  <tr><th></th><th>Include(string)</th><th>Include(лямбда)</th></tr>
+  <tr>
+    <td><strong>Синтаксис</strong></td>
+    <td><code>Include("Members")</code> или <code>Include(nameof(Chat.Members))</code></td>
+    <td><code>Include(c =&gt; c.Members)</code></td>
+  </tr>
+  <tr>
+    <td><strong>Проверка компилятором</strong></td>
+    <td>Нет (строка), но <code>nameof</code> делает рефакторинг безопасным</td>
+    <td>Да &#8212; ошибка компиляции при неверном имени</td>
+  </tr>
+  <tr>
+    <td><strong>ThenInclude</strong></td>
+    <td>Не поддерживается через строку</td>
+    <td>Поддерживается</td>
+  </tr>
+  <tr>
+    <td><strong>Применение</strong></td>
+    <td>Обобщённый Repository&lt;T&gt; &#8212; не знает конкретный тип</td>
+    <td>Конкретные запросы в сервисах — рекомендуется</td>
+  </tr>
+</table>
+
+<!-- 5.3 -->
+<h2>5.3 Explicit Loading &#8212; явная загрузка по требованию</h2>
+
+<p>
+  <strong>Explicit Loading</strong> позволяет загружать навигационное свойство отдельным
+  запросом в любой момент после того, как основная сущность уже загружена в контекст.
+  Полезно когда навигация нужна только в части кода и заранее неизвестно &#8212; понадобится
+  она или нет.
+</p>
+
+<pre><span class="cmt">// Сущность уже в контексте (не AsNoTracking!)
+// Явно загружаем коллекцию Messages только когда она нужна</span>
+<span class="kw">var</span> chat = <span class="kw">await</span> context.Chats.<span class="mth">FindAsync</span>(chatId);  <span class="cmt">// загружен без навигаций</span>
+
+<span class="cmt">// LoadAsync — отдельный SELECT FROM Messages WHERE ChatId = @chatId</span>
+<span class="kw">await</span> context.<span class="mth">Entry</span>(chat!)
+    .<span class="mth">Collection</span>(c => c.Messages)
+    .<span class="mth">LoadAsync</span>();
+
+<span class="cmt">// Для reference-навигации (один объект) — Reference вместо Collection</span>
+<span class="kw">var</span> message = <span class="kw">await</span> context.Messages.<span class="mth">FindAsync</span>(msgId);
+<span class="kw">await</span> context.<span class="mth">Entry</span>(message!)
+    .<span class="mth">Reference</span>(m => m.Sender)
+    .<span class="mth">LoadAsync</span>();
+
+<span class="cmt">// Query() — добавить фильтр к явной загрузке</span>
+<span class="kw">await</span> context.<span class="mth">Entry</span>(chat!)
+    .<span class="mth">Collection</span>(c => c.Messages)
+    .<span class="mth">Query</span>()
+    .<span class="mth">Where</span>(m => m.SentAt > cutoff)   <span class="cmt">// фильтровать при загрузке</span>
+    .<span class="mth">LoadAsync</span>();</pre>
+
+<div class="note">
+  <strong>Explicit Loading требует отслеживаемой сущности:</strong> нельзя использовать
+  с <code>AsNoTracking()</code>. Сущность должна быть загружена через обычный запрос
+  (без AsNoTracking) и находиться в Change Tracker. В WebMessenger Repository.GetAll()
+  всегда использует AsNoTracking &#8212; поэтому Explicit Loading не применяется.
+  Для подобных сценариев используется Eager Loading или отдельный запрос.
+</div>
+
+<!-- 5.4 -->
+<h2>5.4 Lazy Loading &#8212; ленивая загрузка</h2>
+
+<p>
+  <strong>Lazy Loading</strong> &#8212; навигационное свойство загружается автоматически
+  при первом обращении к нему. EF Core подменяет сущность прокси-объектом, который
+  перехватывает обращение и выполняет SQL-запрос незаметно.
+</p>
+
+<h3>Как включить</h3>
+<pre><span class="cmt">// 1. Установить пакет прокси</span>
+<span class="cmt">// dotnet add package Microsoft.EntityFrameworkCore.Proxies</span>
+
+<span class="cmt">// 2. Включить в AddDbContext</span>
+options.<span class="mth">UseLazyLoadingProxies</span>().<span class="mth">UseMySql</span>(...);
+
+<span class="cmt">// 3. Все навигационные свойства должны быть virtual</span>
+<span class="kw">public virtual</span> <span class="cls">ICollection</span>&lt;<span class="cls">Message</span>&gt; Messages { <span class="kw">get</span>; <span class="kw">set</span>; } = [];</pre>
+
+<p>
+  В WebMessenger lazy loading <strong>не включён</strong>. Ключевое слово
+  <code>virtual</code> на навигационных свойствах присутствует по соглашению,
+  но прокси-пакет не установлен и <code>UseLazyLoadingProxies()</code> не вызывается.
+</p>
+
+<h3>Почему lazy loading опасен</h3>
+<pre><span class="cmt">// При включённом lazy loading — этот код делает N+1 запросов незаметно!</span>
+<span class="kw">var</span> chats = <span class="kw">await</span> context.Chats.<span class="mth">ToListAsync</span>();  <span class="cmt">// 1 запрос</span>
+<span class="kw">foreach</span> (<span class="kw">var</span> chat <span class="kw">in</span> chats)
+{
+    <span class="cmt">// При первом обращении к Members — EF тихо делает SELECT по каждому Chat!
+    // N чатов = N дополнительных запросов. Итого N+1.</span>
+    <span class="kw">var</span> count = chat.Members.Count;
+}
+
+<span class="cmt">// С Eager Loading тот же результат за 1 запрос:</span>
+<span class="kw">var</span> chats = <span class="kw">await</span> context.Chats
+    .<span class="mth">Include</span>(c => c.Members)
+    .<span class="mth">ToListAsync</span>();
+<span class="kw">foreach</span> (<span class="kw">var</span> chat <span class="kw">in</span> chats)
+{
+    <span class="kw">var</span> count = chat.Members.Count;  <span class="cmt">// данные уже в памяти — нет запросов</span>
+}</pre>
+
+<!-- 5.5 -->
+<h2>5.5 Проблема N+1 &#8212; диагностика и решение</h2>
+
+<p>
+  <strong>N+1</strong> &#8212; один из самых распространённых и незаметных дефектов
+  производительности в EF Core. Один запрос возвращает N записей, и для каждой из них
+  выполняется ещё по одному запросу. При N=100 это 101 обращение к БД вместо одного.
+</p>
+
+<h3>Как обнаружить</h3>
+<ul>
+  <li>
+    <strong>LogTo / EnableSensitiveDataLogging</strong> &#8212; включить логирование SQL
+    в Development и посмотреть сколько запросов выполняется на один HTTP-запрос.
+  </li>
+  <li>
+    <strong>EnableDetailedErrors</strong> &#8212; подробные сообщения при ошибках трансляции.
+  </li>
+  <li>
+    <strong>MiniProfiler / Application Insights</strong> &#8212; сторонние инструменты
+    для анализа запросов в реальном времени.
+  </li>
+</ul>
+
+<h3>Три сценария N+1 и их решения</h3>
+<table>
+  <tr><th>Сценарий</th><th>Причина</th><th>Решение</th></tr>
+  <tr>
+    <td>Обращение к навигации в цикле без Include</td>
+    <td>Lazy loading или не загруженное свойство</td>
+    <td>Eager Loading через <code>Include()</code></td>
+  </tr>
+  <tr>
+    <td>GetAsync в цикле по коллекции ID</td>
+    <td>Один <code>FindAsync</code> на итерацию</td>
+    <td>Batch-загрузка: <code>Where(x => ids.Contains(x.Id)).ToListAsync()</code></td>
+  </tr>
+  <tr>
+    <td>Проверка существования в цикле</td>
+    <td><code>Any()</code> вызывается для каждого элемента</td>
+    <td>Загрузить всё за один запрос, проверять в памяти через <code>HashSet</code></td>
+  </tr>
+</table>
+
+<pre><span class="cmt">// Антипаттерн: GetAsync в цикле — N SELECT по PK</span>
+<span class="kw">var</span> memberIds = <span class="kw">new</span> <span class="cls">List</span>&lt;<span class="cls">Guid</span>&gt; { id1, id2, id3 };
+<span class="kw">var</span> users = <span class="kw">new</span> <span class="cls">List</span>&lt;<span class="cls">User</span>&gt;();
+<span class="kw">foreach</span> (<span class="kw">var</span> id <span class="kw">in</span> memberIds)
+    users.<span class="mth">Add</span>((<span class="kw">await</span> _uow.Users.<span class="mth">GetAsync</span>(id))!);  <span class="cmt">// N запросов!</span>
+
+<span class="cmt">// Решение: один запрос с Contains</span>
+<span class="kw">var</span> users = <span class="kw">await</span> _uow.UserRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(u => memberIds.<span class="mth">Contains</span>(u.Id))   <span class="cmt">// WHERE Id IN (id1, id2, id3)</span>
+    .<span class="mth">ToListAsync</span>();                           <span class="cmt">// 1 запрос</span>
+
+<span class="cmt">// WebMessenger — ContactsService: HashSet для проверки без лишних запросов</span>
+<span class="kw">public async</span> <span class="cls">Task</span>&lt;<span class="cls">HashSet</span>&lt;<span class="cls">Guid</span>&gt;&gt; <span class="mth">GetContactIdsAsync</span>(<span class="cls">Guid</span> currentUserId)
+{
+    <span class="cmt">// Один запрос — SELECT ContactUserId FROM Contacts WHERE OwnerUserId = ?</span>
+    <span class="kw">return</span> (<span class="kw">await</span> _unitOfWork.ContactRepository.<span class="mth">GetAll</span>()
+        .<span class="mth">Where</span>(c => c.OwnerUserId == currentUserId)
+        .<span class="mth">Select</span>(c => c.ContactUserId)
+        .<span class="mth">ToListAsync</span>())
+        .<span class="mth">ToHashSet</span>();  <span class="cmt">// O(1) проверки в памяти вместо AnyAsync в цикле</span>
+}</pre>
+
+<!-- 5.6 -->
+<h2>5.6 Ограничения трансляции LINQ &#8212; реальный пример из проекта</h2>
+
+<p>
+  Не все C#-методы транслируются EF Core в SQL. Некоторые конструкции EF Core
+  не умеет перевести и либо выбрасывает исключение, либо молча переключается
+  на вычисление в памяти (с загрузкой лишних данных). Один из таких случаев
+  задокументирован в <code>ContactsService.cs</code>.
+</p>
+
+<pre><span class="cmt">// ContactsService.cs — реальный комментарий из кода проекта</span>
+
+<span class="cmt">// CA1862: Do not replace ToLower().Contains() with Contains(StringComparison) here.
+// EF Core cannot translate the Contains(string, StringComparison) overload to SQL
+// and will throw at runtime.</span>
+<span class="cmt">#pragma warning disable CA1862</span>
+<span class="kw">return await</span> _unitOfWork.ContactRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(x => x.OwnerUserId == currentUserId
+        &amp;&amp; x.ContactUser!.Username.<span class="mth">ToLower</span>().<span class="mth">Contains</span>(query.<span class="mth">ToLower</span>()))
+    .<span class="mth">Include</span>(x => x.ContactUser)
+    .<span class="mth">ToListAsync</span>();
+<span class="cmt">#pragma warning restore CA1862</span>
+
+<span class="cmt">// Почему не работает "правильный" вариант:
+// .Where(x => x.ContactUser!.Username.Contains(query, StringComparison.OrdinalIgnoreCase))
+// → InvalidOperationException: The LINQ expression ... could not be translated.
+// Pomelo/MySQL не поддерживает StringComparison.OrdinalIgnoreCase в WHERE.
+//
+// Рабочий вариант — ToLower().Contains() транслируется в:
+// WHERE LOWER(ContactUser.Username) LIKE LOWER('%query%')
+// Это работает, но не использует индекс на Username (функциональный вызов обёртывает поле).</span></pre>
+
+<div class="warn">
+  <strong>Правило:</strong> если EF Core не может транслировать часть LINQ-выражения в SQL,
+  он может либо бросить исключение <code>InvalidOperationException</code> с сообщением
+  <em>"could not be translated"</em>, либо (в некоторых версиях) тихо переключиться на
+  вычисление в памяти после загрузки всей таблицы. Второй вариант особенно опасен —
+  внешне всё работает, но на большой таблице запрос грузит миллионы строк в память.
+  При включённом <code>EnableDetailedErrors()</code> EF Core всегда явно сообщает
+  о нетранслируемых выражениях.
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>6. Data Modification &#8212; Изменение данных</h1>
+
+<!-- 6.1 -->
+<h2>6.1 Операции Add, Update, Remove</h2>
+
+<p>
+  EF Core изменяет данные через Change Tracker: сначала операция регистрируется в трекере,
+  затем единственный вызов <code>SaveChangesAsync()</code> сбрасывает все накопленные
+  изменения в базу данных одной транзакцией.
+</p>
+
+<table>
+  <tr><th>Операция</th><th>EF-метод</th><th>Состояние трекера</th><th>SQL</th></tr>
+  <tr><td>Создать</td><td><code>Add()</code> / <code>AddAsync()</code></td><td><code>Added</code></td><td>INSERT</td></tr>
+  <tr><td>Создать несколько</td><td><code>AddRange()</code> / <code>AddRangeAsync()</code></td><td><code>Added</code> (каждый)</td><td>Batch INSERT</td></tr>
+  <tr><td>Обновить</td><td><code>Update()</code> или изменить свойство + SaveChanges</td><td><code>Modified</code></td><td>UPDATE</td></tr>
+  <tr><td>Удалить</td><td><code>Remove()</code></td><td><code>Deleted</code></td><td>DELETE</td></tr>
+  <tr><td>Удалить несколько</td><td><code>RemoveRange()</code></td><td><code>Deleted</code> (каждый)</td><td>Batch DELETE</td></tr>
+  <tr><td>Сохранить изменения</td><td><code>SaveChangesAsync()</code></td><td>Сброс до <code>Unchanged</code></td><td>Всё вышеперечисленное</td></tr>
+</table>
+
+<!-- 6.2 -->
+<h2>6.2 InsertAsync — создание записи</h2>
+
+<pre><span class="cmt">// WebMessenger.Api/Services/ChatService.cs — SendMessageToUserAsync
+// Создание нового чата и двух участников атомарно через один CommitAsync</span>
+<span class="kw">var</span> chat = <span class="kw">new</span> <span class="cls">Chat</span> { IsGroup = <span class="kw">false</span> };
+
+<span class="cmt">// InsertAsync → AddAsync → EntityState.Added в Change Tracker</span>
+<span class="kw">await</span> _uow.ChatRepository.<span class="mth">InsertAsync</span>(chat, ct);
+
+<span class="cmt">// CreateRangeAsync → AddRangeAsync — батч: оба ChatMember добавляются как Added</span>
+<span class="kw">var</span> cm1 = <span class="kw">new</span> <span class="cls">ChatMember</span> { Chat = chat, UserId = me };
+<span class="kw">var</span> cm2 = <span class="kw">new</span> <span class="cls">ChatMember</span> { Chat = chat, UserId = other };
+<span class="kw">await</span> _uow.ChatMemberRepository.<span class="mth">CreateRangeAsync</span>([cm1, cm2], ct);
+
+<span class="cmt">// ОДИН CommitAsync → ОДИН SaveChangesAsync → INSERT Chat + INSERT ChatMember x2
+// Все три INSERT выполняются в одной транзакции.</span>
+<span class="kw">await</span> _uow.<span class="mth">CommitAsync</span>(ct);
+<span class="kw">var</span> chatId = chat.Id;  <span class="cmt">// Guid сгенерирован EF Core ещё до INSERT (Guid.NewGuid)</span>
+
+<span class="cmt">// Затем отправить сообщение в тот же чат</span>
+<span class="kw">var</span> message = <span class="kw">new</span> <span class="cls">Message</span>
+{
+    ChatId   = chatId,
+    SenderId = me,
+    Content  = content,
+    SentAt   = <span class="cls">DateTime</span>.UtcNow
+};
+<span class="kw">await</span> _uow.MessageRepository.<span class="mth">InsertAsync</span>(message, ct);
+<span class="kw">await</span> _uow.<span class="mth">CommitAsync</span>(ct);  <span class="cmt">// второй CommitAsync → INSERT Message</span></pre>
+
+<div class="note">
+  <strong>Guid генерируется до INSERT:</strong> при использовании <code>Guid</code> как PK
+  EF Core вызывает <code>Guid.NewGuid()</code> на стороне C# при вызове <code>Add()</code>.
+  Это значит, что <code>chat.Id</code> уже доступен <em>до</em> <code>SaveChangesAsync()</code>
+  &#8212; можно использовать его в дочерних объектах (<code>ChatMember.Chat = chat</code>)
+  без дополнительных запросов к БД для получения сгенерированного ключа.
+</div>
+
+<!-- 6.3 -->
+<h2>6.3 UpdateAsync — обновление записи</h2>
+
+<p>
+  В WebMessenger применяются два подхода к обновлению, в зависимости от ситуации:
+</p>
+
+<h3>Подход 1: загрузить → изменить → SaveChanges (точечный UPDATE)</h3>
+<pre><span class="cmt">// ChatService.cs — MarkChatReadAsync
+// Загружаем ChatMember из БД (FirstOrDefaultAsync — GetAll использует AsNoTracking!).
+// Внимание: GetAll возвращает AsNoTracking-объект — он НЕ отслеживается Change Tracker.
+// Поэтому UpdateAsync явно аттачит и помечает Modified.</span>
+<span class="kw">var</span> cm = <span class="kw">await</span> _uow.ChatMemberRepository
+    .<span class="mth">GetAll</span>()
+    .<span class="mth">FirstOrDefaultAsync</span>(x => x.ChatId == chatId &amp;&amp; x.UserId == me)
+    ?? <span class="kw">throw new</span> <span class="cls">UnauthorizedAccessException</span>(<span class="str">"Not a member of this chat"</span>);
+
+<span class="cmt">// Изменяем поле — но объект не отслеживается (AsNoTracking)!</span>
+<span class="kw">var</span> now = atUtc?.ToUniversalTime() ?? <span class="cls">DateTime</span>.UtcNow;
+cm.LastReadAt = cm.LastReadAt.HasValue &amp;&amp; cm.LastReadAt.Value > now
+    ? cm.LastReadAt : now;
+
+<span class="cmt">// UpdateAsync: Attach + EntityState.Modified → UPDATE всех колонок ChatMember
+// (не только LastReadAt — т.к. EntityState.Modified = все поля изменены)</span>
+<span class="kw">await</span> _uow.ChatMemberRepository.<span class="mth">UpdateAsync</span>(cm);
+<span class="kw">await</span> _uow.<span class="mth">CommitAsync</span>();</pre>
+
+<h3>Подход 2: загрузить с трекингом → изменить → SaveChanges (минимальный UPDATE)</h3>
+<pre><span class="cmt">// Если загрузить БЕЗ AsNoTracking — Change Tracker отслеживает изменения сам.
+// EF Core генерирует UPDATE только для изменённых столбцов.</span>
+<span class="kw">var</span> cm = <span class="kw">await</span> context.ChatMembers  <span class="cmt">// напрямую через DbSet, без AsNoTracking</span>
+    .<span class="mth">FirstOrDefaultAsync</span>(x => x.ChatId == chatId &amp;&amp; x.UserId == me);
+
+cm!.LastReadAt = <span class="cls">DateTime</span>.UtcNow;  <span class="cmt">// Change Tracker видит изменение</span>
+
+<span class="kw">await</span> context.<span class="mth">SaveChangesAsync</span>();
+<span class="cmt">// → UPDATE ChatMembers SET LastReadAt = @p0 WHERE Id = @p1
+//   Только LastReadAt — EF знает что остальные поля не менялись.</span></pre>
+
+<h3>ExecuteUpdateAsync &#8212; UPDATE без загрузки (EF Core 7+)</h3>
+<pre><span class="cmt">// Массовое обновление без загрузки сущностей в память — EF Core 7+
+// UPDATE Messages SET EditedAt = @now WHERE ChatId = @chatId AND SenderId = @me</span>
+<span class="kw">await</span> context.Messages
+    .<span class="mth">Where</span>(m => m.ChatId == chatId &amp;&amp; m.SenderId == me)
+    .<span class="mth">ExecuteUpdateAsync</span>(s => s.<span class="mth">SetProperty</span>(m => m.EditedAt, <span class="cls">DateTime</span>.UtcNow));
+<span class="cmt">// Не использует Change Tracker — минимальный overhead, эффективно для батч-обновлений.</span></pre>
+
+<!-- 6.4 -->
+<h2>6.4 DeleteAsync — удаление записи</h2>
+
+<pre><span class="cmt">// WebMessenger.DAL/Repository.cs — DeleteAsync</span>
+<span class="kw">public async</span> <span class="cls">Task</span> <span class="mth">DeleteAsync</span>(<span class="cls">Guid</span> id, <span class="cls">CancellationToken</span> ct = <span class="kw">default</span>)
+{
+    <span class="cmt">// FindAsync: сначала кеш Change Tracker, потом SELECT по PK</span>
+    <span class="kw">var</span> entity = <span class="kw">await</span> _dbSet.<span class="mth">FindAsync</span>(<span class="kw">new object</span>[] { id }, ct)
+        ?? <span class="kw">throw new</span> <span class="cls">KeyNotFoundException</span>(<span class="str">$"Entity with id {id} not found"</span>);
+
+    <span class="cmt">// Remove → EntityState.Deleted → SaveChanges → DELETE FROM ... WHERE Id = @id</span>
+    _dbSet.<span class="mth">Remove</span>(entity);
+}
+
+<span class="cmt">// DeleteRangeAsync — батч-удаление списка сущностей</span>
+<span class="kw">public async</span> <span class="cls">Task</span> <span class="mth">DeleteRangeAsync</span>(<span class="cls">IEnumerable</span>&lt;<span class="cls">T</span>&gt; entities, <span class="cls">CancellationToken</span> ct = <span class="kw">default</span>)
+    => _dbSet.<span class="mth">RemoveRange</span>(entities);</pre>
+
+<h3>ExecuteDeleteAsync &#8212; DELETE без загрузки (EF Core 7+)</h3>
+<pre><span class="cmt">// Удаление без загрузки сущностей — только SQL DELETE
+// DELETE FROM Messages WHERE ChatId = @chatId AND SentAt &lt; @cutoff</span>
+<span class="kw">var</span> deleted = <span class="kw">await</span> context.Messages
+    .<span class="mth">Where</span>(m => m.ChatId == chatId &amp;&amp; m.SentAt &lt; cutoff)
+    .<span class="mth">ExecuteDeleteAsync</span>();
+<span class="cmt">// Возвращает количество удалённых строк. Не проходит через Change Tracker.</span></pre>
+
+<table>
+  <tr><th></th><th>Remove() + SaveChanges</th><th>ExecuteDeleteAsync</th></tr>
+  <tr><td><strong>Change Tracker</strong></td><td>Задействован (загрузка в память)</td><td>Не задействован</td></tr>
+  <tr><td><strong>Cascade</strong></td><td>EF обрабатывает каскад в памяти</td><td>Только SQL ON DELETE</td></tr>
+  <tr><td><strong>События / перехватчики</strong></td><td>Срабатывают</td><td>Не срабатывают</td></tr>
+  <tr><td><strong>Производительность</strong></td><td>Хуже при большом числе записей</td><td>Значительно лучше для батч-операций</td></tr>
+</table>
+
+<!-- 6.5 -->
+<h2>6.5 SaveChanges и транзакции</h2>
+
+<p>
+  <code>SaveChangesAsync()</code> по умолчанию оборачивает все изменения в одну транзакцию.
+  Если хотя бы одна SQL-команда завершается ошибкой &#8212; транзакция откатывается полностью
+  и ни одно изменение не сохраняется.
+</p>
+
+<pre><span class="cmt">// WebMessenger.DAL/UnitOfWork.cs — CommitAsync: одна транзакция для всех изменений</span>
+<span class="kw">public async</span> <span class="cls">Task</span>&lt;<span class="kw">int</span>&gt; <span class="mth">CommitAsync</span>(<span class="cls">CancellationToken</span> ct = <span class="kw">default</span>)
+    => <span class="kw">await</span> _context.<span class="mth">SaveChangesAsync</span>(ct);
+
+<span class="cmt">// Явная транзакция — нужна когда несколько CommitAsync должны быть атомарными.
+// Пример: создать чат И перевести средства — либо оба, либо ни одного.</span>
+<span class="kw">await</span> _uow.<span class="mth">BeginTransactionAsync</span>(ct);
+<span class="kw">try</span>
+{
+    <span class="kw">await</span> _uow.ChatRepository.<span class="mth">InsertAsync</span>(chat, ct);
+    <span class="kw">await</span> _uow.<span class="mth">CommitAsync</span>(ct);           <span class="cmt">// SaveChanges #1</span>
+
+    <span class="kw">await</span> _uow.ChatMemberRepository.<span class="mth">CreateRangeAsync</span>(members, ct);
+    <span class="kw">await</span> _uow.<span class="mth">CommitTransactionAsync</span>(ct);  <span class="cmt">// SaveChanges #2 + COMMIT</span>
+}
+<span class="kw">catch</span>
+{
+    <span class="kw">await</span> _uow._transaction!.<span class="mth">RollbackAsync</span>(ct);  <span class="cmt">// ROLLBACK обоих</span>
+    <span class="kw">throw</span>;
+}</pre>
+
+<!-- 6.6 -->
+<h2>6.6 DbUpdateException и DbUpdateConcurrencyException</h2>
+
+<p>
+  При вызове <code>SaveChangesAsync()</code> могут возникнуть два характерных исключения EF Core:
+</p>
+
+<h3>DbUpdateException</h3>
+<p>
+  Базовый класс для всех ошибок при сохранении изменений в БД. Оборачивает исключение от
+  ADO.NET/провайдера. Типичные причины:
+</p>
+<ul>
+  <li>Нарушение уникального ограничения (UNIQUE constraint) &#8212; например, попытка
+    добавить <code>Username</code> который уже существует.</li>
+  <li>Нарушение NOT NULL &#8212; поле обязательно, но передан null.</li>
+  <li>Нарушение внешнего ключа &#8212; FK ссылается на несуществующую запись.</li>
+  <li>Превышение максимальной длины строки &#8212; <code>MaxLength</code> нарушен.</li>
+</ul>
+
+<pre><span class="cmt">// Обработка DbUpdateException — например при регистрации пользователя</span>
+<span class="kw">try</span>
+{
+    <span class="kw">await</span> _uow.UserRepository.<span class="mth">InsertAsync</span>(newUser);
+    <span class="kw">await</span> _uow.<span class="mth">CommitAsync</span>();
+}
+<span class="kw">catch</span> (<span class="cls">DbUpdateException</span> ex)
+{
+    <span class="cmt">// InnerException — конкретная ошибка провайдера (MySqlException, SqlException и т.п.)
+    // Проверяем код ошибки чтобы дать понятное сообщение клиенту</span>
+    <span class="kw">if</span> (ex.InnerException?.Message.<span class="mth">Contains</span>(<span class="str">"Duplicate entry"</span>) == <span class="kw">true</span>)
+        <span class="kw">throw new</span> <span class="cls">InvalidOperationException</span>(<span class="str">"Username already taken"</span>);
+    <span class="kw">throw</span>;  <span class="cmt">// прочие ошибки БД — пробрасываем</span>
+}</pre>
+
+<h3>DbUpdateConcurrencyException</h3>
+<p>
+  Возникает при конкурентном обновлении: EF Core обнаруживает, что строка в БД изменилась
+  с момента её загрузки. Требует настройки <strong>оптимистичной блокировки</strong> через
+  токен параллелизма (<code>[ConcurrencyCheck]</code> или <code>[Timestamp]</code>).
+</p>
+
+<pre><span class="cmt">// Настройка токена параллелизма (абстрактный пример — расширение для WebMessenger)</span>
+<span class="kw">public class</span> <span class="cls">Message</span>
+{
+    <span class="kw">public</span> <span class="cls">Guid</span> Id { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public required string</span> Content { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    <span class="cmt">// [Timestamp] — RowVersion: БД автоматически обновляет поле при каждом UPDATE.
+    // EF добавляет WHERE RowVersion = @original в UPDATE — если значение изменилось,
+    // значит кто-то другой обновил запись → DbUpdateConcurrencyException.</span>
+    [<span class="att">Timestamp</span>]
+    <span class="kw">public byte</span>[] RowVersion { <span class="kw">get</span>; <span class="kw">set</span>; } = [];
+}
+
+<span class="cmt">// Обработка конкурентного обновления</span>
+<span class="kw">try</span>
+{
+    <span class="kw">await</span> _uow.<span class="mth">CommitAsync</span>();
+}
+<span class="kw">catch</span> (<span class="cls">DbUpdateConcurrencyException</span> ex)
+{
+    <span class="kw">foreach</span> (<span class="kw">var</span> entry <span class="kw">in</span> ex.Entries)
+    {
+        <span class="kw">var</span> dbValues    = <span class="kw">await</span> entry.<span class="mth">GetDatabaseValuesAsync</span>();
+        <span class="kw">var</span> clientValues = entry.CurrentValues;
+        <span class="cmt">// Стратегия "database wins": перезаписать изменения клиента значениями из БД</span>
+        entry.OriginalValues.<span class="mth">SetValues</span>(dbValues!);
+        <span class="cmt">// Или "client wins": entry.CurrentValues остаётся — сохранить изменения клиента</span>
+    }
+    <span class="kw">await</span> _uow.<span class="mth">CommitAsync</span>();  <span class="cmt">// повторить попытку</span>
+}</pre>
+
+<table>
+  <tr><th></th><th>DbUpdateException</th><th>DbUpdateConcurrencyException</th></tr>
+  <tr>
+    <td><strong>Причина</strong></td>
+    <td>Ошибка БД: уникальность, NOT NULL, FK, MaxLength</td>
+    <td>Запись изменена другим процессом между загрузкой и сохранением</td>
+  </tr>
+  <tr>
+    <td><strong>Требует настройки?</strong></td>
+    <td>Нет — возникает автоматически при нарушении ограничений</td>
+    <td>Да &#8212; нужен <code>[Timestamp]</code> или <code>[ConcurrencyCheck]</code></td>
+  </tr>
+  <tr>
+    <td><strong>Наследование</strong></td>
+    <td>Базовый класс</td>
+    <td>Наследует <code>DbUpdateException</code></td>
+  </tr>
+  <tr>
+    <td><strong>В WebMessenger</strong></td>
+    <td>Возможна при регистрации (дублирование Username)</td>
+    <td>Не настроена — оптимистичная блокировка не используется</td>
+  </tr>
+</table>
+
+<!-- 6.7 -->
+<h2>6.7 Полный цикл операции на примере SendMessageToUserAsync</h2>
+
+<p>
+  Разбор полного жизненного цикла изменения данных на реальном методе из WebMessenger:
+</p>
+
+<pre><span class="cmt">// ChatService.cs — SendMessageToUserAsync: создать чат если нет, отправить сообщение</span>
+<span class="kw">public async</span> <span class="cls">Task</span>&lt;<span class="cls">SendMessageResponse</span>&gt; <span class="mth">SendMessageToUserAsync</span>(
+    <span class="cls">Guid</span> me, <span class="cls">Guid</span> other, <span class="kw">string</span> content, <span class="cls">CancellationToken</span> ct)
+{
+    <span class="kw">if</span> (<span class="kw">string</span>.<span class="mth">IsNullOrWhiteSpace</span>(content))
+        <span class="kw">throw new</span> <span class="cls">ArgumentException</span>(<span class="str">"Content is required"</span>);
+
+    <span class="cmt">// 1. Поиск существующего личного чата — SELECT с JOIN по Members</span>
+    <span class="kw">var</span> chatId = <span class="kw">await</span> <span class="mth">GetDirectChatIdAsync</span>(me, other);
+
+    <span class="kw">if</span> (!chatId.HasValue)
+    {
+        <span class="cmt">// 2a. Чата нет — создаём: Chat + 2 × ChatMember за один CommitAsync</span>
+        <span class="kw">var</span> chat = <span class="kw">new</span> <span class="cls">Chat</span> { IsGroup = <span class="kw">false</span> };
+        <span class="kw">await</span> _uow.ChatRepository.<span class="mth">InsertAsync</span>(chat, ct);         <span class="cmt">// Added</span>
+
+        <span class="kw">var</span> cm1 = <span class="kw">new</span> <span class="cls">ChatMember</span> { Chat = chat, UserId = me };
+        <span class="kw">var</span> cm2 = <span class="kw">new</span> <span class="cls">ChatMember</span> { Chat = chat, UserId = other };
+        <span class="kw">await</span> _uow.ChatMemberRepository.<span class="mth">CreateRangeAsync</span>([cm1, cm2], ct); <span class="cmt">// Added x2</span>
+
+        <span class="kw">await</span> _uow.<span class="mth">CommitAsync</span>(ct);  <span class="cmt">// INSERT Chat + INSERT ChatMember x2 (транзакция)</span>
+        chatId = chat.Id;
+    }
+
+    <span class="cmt">// 2b. Чат нашёлся или только что создан — добавляем Message</span>
+    <span class="kw">var</span> message = <span class="kw">new</span> <span class="cls">Message</span>
+    {
+        ChatId   = chatId.Value,
+        SenderId = me,
+        Content  = content,
+        SentAt   = <span class="cls">DateTime</span>.UtcNow
+    };
+    <span class="kw">await</span> _uow.MessageRepository.<span class="mth">InsertAsync</span>(message, ct);   <span class="cmt">// Added</span>
+    <span class="kw">await</span> _uow.<span class="mth">CommitAsync</span>(ct);  <span class="cmt">// INSERT Message</span>
+
+    <span class="cmt">// 3. Маппинг через скомпилированный Func (не Expression!) —
+    //    сущность только что создана и не прошла через IQueryable,
+    //    поэтому Expression&lt;Func&gt; нельзя использовать как Select.</span>
+    <span class="kw">var</span> dto = <span class="cls">MessageProjections</span>.ToChatMessageDtoFunc(message);
+
+    <span class="cmt">// 4. Уведомление SignalR подписчиков через события</span>
+    <span class="kw">await</span> _events.<span class="mth">MessageCreatedAsync</span>(chatId.Value, dto, other, ct);
+
+    <span class="kw">return new</span> <span class="cls">SendMessageResponse</span>(chatId.Value, dto);
+}
+<span class="cmt">// Итого SQL-операций: 1 SELECT + до 3 INSERT = максимум 4 обращения к БД.</span></pre>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>7. Migrations &#8212; Миграции</h1>
+
+<!-- 7.1 -->
+<h2>7.1 Что такое миграция</h2>
+
+<p>
+  <strong>Миграция</strong> &#8212; это C#-класс, который описывает <em>инкрементальное
+  изменение схемы БД</em>: что добавить, что удалить, что изменить. EF Core генерирует
+  этот класс автоматически, сравнивая текущую модель C# с последним известным
+  снапшотом схемы (<code>ApplicationDbContextModelSnapshot</code>).
+</p>
+
+<p>
+  Миграция решает ключевую проблему Code-First: C#-модель меняется в процессе разработки,
+  а схема БД должна за ней следовать &#8212; на всех средах (<em>dev</em>, <em>staging</em>,
+  <em>production</em>) воспроизводимо и без потери данных.
+</p>
+
+<h3>Файлы миграции</h3>
+<table>
+  <tr><th>Файл</th><th>Содержимое</th></tr>
+  <tr>
+    <td><code>{Timestamp}_{Name}.cs</code></td>
+    <td>Класс миграции: методы <code>Up()</code> и <code>Down()</code></td>
+  </tr>
+  <tr>
+    <td><code>{Timestamp}_{Name}.Designer.cs</code></td>
+    <td>Снапшот модели на момент создания миграции &#8212; нужен EF Core, не редактируется вручную</td>
+  </tr>
+  <tr>
+    <td><code>ApplicationDbContextModelSnapshot.cs</code></td>
+    <td>Актуальный снапшот всей модели &#8212; обновляется при каждой миграции</td>
+  </tr>
+</table>
+
+<h3>История миграций в WebMessenger</h3>
+<table>
+  <tr><th>Миграция</th><th>Что изменила</th></tr>
+  <tr><td><code>20250714170542_InitialCreate</code></td><td>Первоначальная схема: таблица <code>Users</code> с базовыми полями</td></tr>
+  <tr><td><code>20250717131146_AddBasicModels</code></td><td>Добавлены <code>Chats</code>, <code>Messages</code>, <code>ChatMembers</code>, <code>Contacts</code>; расширены поля <code>Users</code></td></tr>
+  <tr><td><code>20250721190131_RemoveUniqueIndexFromEmail</code></td><td>Снят UNIQUE с индекса по <code>Email</code> &#8212; оставлен обычный индекс</td></tr>
+  <tr><td><code>20251123161128_RemoveMessageIsRead</code></td><td>Удалён столбец <code>IsRead</code> из <code>Messages</code> (заменён логикой <code>LastReadAt</code> в <code>ChatMember</code>)</td></tr>
+</table>
+
+<!-- 7.2 -->
+<h2>7.2 Основные команды</h2>
+
+<pre><span class="cmt">// Все команды выполняются в папке решения или с указанием проекта.
+// --project WebMessenger.DAL       — проект где находятся миграции и DbContext
+// --startup-project WebMessenger.Api — проект с Program.cs (для конфигурации)</span>
+
+<span class="cmt">// Создать новую миграцию — EF Core сравнивает модель со снапшотом и генерирует Up()/Down()</span>
+dotnet ef migrations add AddMessageReactions --project WebMessenger.DAL --startup-project WebMessenger.Api
+
+<span class="cmt">// Применить все ожидающие миграции к БД</span>
+dotnet ef database update --project WebMessenger.DAL --startup-project WebMessenger.Api
+
+<span class="cmt">// Откатить до конкретной миграции (применяет Down() всех последующих)</span>
+dotnet ef database update AddBasicModels --project WebMessenger.DAL --startup-project WebMessenger.Api
+
+<span class="cmt">// Удалить последнюю миграцию (только если она ещё НЕ применена к БД)</span>
+dotnet ef migrations remove --project WebMessenger.DAL --startup-project WebMessenger.Api
+
+<span class="cmt">// Посмотреть список миграций и их статус (Applied / Pending)</span>
+dotnet ef migrations list --project WebMessenger.DAL --startup-project WebMessenger.Api
+
+<span class="cmt">// Сгенерировать SQL-скрипт миграции без применения — для ревью или ручного запуска на prod</span>
+dotnet ef migrations script AddBasicModels AddMessageReactions --project WebMessenger.DAL --startup-project WebMessenger.Api</pre>
+
+<!-- 7.3 -->
+<h2>7.3 Анатомия файла миграции</h2>
+
+<p>
+  Каждый файл миграции содержит два метода: <code>Up()</code> применяет изменения вперёд,
+  <code>Down()</code> откатывает их назад. EF Core использует <code>Down()</code>
+  при команде <code>database update {предыдущая_миграция}</code>.
+</p>
+
+<pre><span class="cmt">// WebMessenger.DAL/Migrations/20250721190131_RemoveUniqueIndexFromEmail.cs
+// Хороший пример минимальной миграции: одно точечное изменение</span>
+<span class="kw">public partial class</span> <span class="cls">RemoveUniqueIndexFromEmail</span> : <span class="cls">Migration</span>
+{
+    <span class="cmt">// Up() — применяется при database update: снять UNIQUE, создать обычный индекс</span>
+    <span class="kw">protected override void</span> <span class="mth">Up</span>(<span class="cls">MigrationBuilder</span> migrationBuilder)
+    {
+        migrationBuilder.<span class="mth">DropIndex</span>(
+            name: <span class="str">"IX_Users_Email"</span>,
+            table: <span class="str">"Users"</span>);
+
+        migrationBuilder.<span class="mth">CreateIndex</span>(
+            name: <span class="str">"IX_Users_Email"</span>,
+            table: <span class="str">"Users"</span>,
+            column: <span class="str">"Email"</span>);   <span class="cmt">// без unique: true → обычный индекс</span>
+    }
+
+    <span class="cmt">// Down() — откат: вернуть уникальный индекс</span>
+    <span class="kw">protected override void</span> <span class="mth">Down</span>(<span class="cls">MigrationBuilder</span> migrationBuilder)
+    {
+        migrationBuilder.<span class="mth">DropIndex</span>(
+            name: <span class="str">"IX_Users_Email"</span>,
+            table: <span class="str">"Users"</span>);
+
+        migrationBuilder.<span class="mth">CreateIndex</span>(
+            name: <span class="str">"IX_Users_Email"</span>,
+            table: <span class="str">"Users"</span>,
+            column: <span class="str">"Email"</span>,
+            unique: <span class="kw">true</span>);    <span class="cmt">// UNIQUE восстановлен</span>
+    }
+}</pre>
+
+<pre><span class="cmt">// WebMessenger.DAL/Migrations/20251123161128_RemoveMessageIsRead.cs
+// Пример удаления столбца — Up убирает колонку, Down восстанавливает с default</span>
+<span class="kw">public partial class</span> <span class="cls">RemoveMessageIsRead</span> : <span class="cls">Migration</span>
+{
+    <span class="kw">protected override void</span> <span class="mth">Up</span>(<span class="cls">MigrationBuilder</span> migrationBuilder)
+    {
+        migrationBuilder.<span class="mth">DropColumn</span>(
+            name: <span class="str">"IsRead"</span>,
+            table: <span class="str">"Messages"</span>);
+        <span class="cmt">// Деструктивная операция — данные в колонке IsRead потеряны безвозвратно.
+        // Down() может восстановить колонку, но не данные.</span>
+    }
+
+    <span class="kw">protected override void</span> <span class="mth">Down</span>(<span class="cls">MigrationBuilder</span> migrationBuilder)
+    {
+        migrationBuilder.<span class="mth">AddColumn</span>&lt;<span class="kw">bool</span>&gt;(
+            name: <span class="str">"IsRead"</span>,
+            table: <span class="str">"Messages"</span>,
+            type: <span class="str">"tinyint(1)"</span>,
+            nullable: <span class="kw">false</span>,
+            defaultValue: <span class="kw">false</span>);   <span class="cmt">// все строки получат false — исторические данные потеряны</span>
+    }
+}</pre>
+
+<!-- 7.4 -->
+<h2>7.4 Что генерирует AddBasicModels &#8212; разбор крупной миграции</h2>
+
+<p>
+  Миграция <code>AddBasicModels</code> &#8212; самая крупная в проекте: добавляет четыре
+  новых таблицы и расширяет <code>Users</code>. По ней хорошо видно как EF Core
+  транслирует C#-модель в DDL.
+</p>
+
+<pre><span class="cmt">// Фрагменты из 20250717131146_AddBasicModels.cs</span>
+
+<span class="cmt">// AlterColumn — изменение существующего столбца: добавлен DEFAULT CURRENT_TIMESTAMP(6)
+// oldClrType / oldType — состояние до миграции (для Down())</span>
+migrationBuilder.<span class="mth">AlterColumn</span>&lt;<span class="cls">DateTime</span>&gt;(
+    name: <span class="str">"CreatedAt"</span>, table: <span class="str">"Users"</span>,
+    type: <span class="str">"datetime(6)"</span>,
+    defaultValueSql: <span class="str">"CURRENT_TIMESTAMP(6)"</span>,
+    oldClrType: <span class="kw">typeof</span>(<span class="cls">DateTime</span>), oldType: <span class="str">"datetime(6)"</span>);
+
+<span class="cmt">// AddColumn — новое nullable поле: AvatarUrl string? → longtext NULL</span>
+migrationBuilder.<span class="mth">AddColumn</span>&lt;<span class="kw">string</span>&gt;(
+    name: <span class="str">"AvatarUrl"</span>, table: <span class="str">"Users"</span>,
+    type: <span class="str">"longtext"</span>, nullable: <span class="kw">true</span>);
+
+<span class="cmt">// AddColumn — NOT NULL поле с defaultValue для существующих строк:
+// при добавлении NOT NULL колонки в непустую таблицу нужен DEFAULT или defaultValue,
+// иначе БД откажет — существующие строки не знают что поставить.</span>
+migrationBuilder.<span class="mth">AddColumn</span>&lt;<span class="kw">bool</span>&gt;(
+    name: <span class="str">"IsOnline"</span>, table: <span class="str">"Users"</span>,
+    type: <span class="str">"tinyint(1)"</span>, nullable: <span class="kw">false</span>,
+    defaultValue: <span class="kw">false</span>);  <span class="cmt">// существующие пользователи → IsOnline = false</span>
+
+<span class="cmt">// CreateTable — новая таблица Chats с PK, столбцами, индексами</span>
+migrationBuilder.<span class="mth">CreateTable</span>(
+    name: <span class="str">"Chats"</span>,
+    columns: table => <span class="kw">new</span>
+    {
+        Id        = table.<span class="mth">Column</span>&lt;<span class="cls">Guid</span>&gt;(type: <span class="str">"char(36)"</span>, nullable: <span class="kw">false</span>),
+        Name      = table.<span class="mth">Column</span>&lt;<span class="kw">string</span>&gt;(type: <span class="str">"varchar(100)"</span>, maxLength: <span class="num">100</span>, nullable: <span class="kw">true</span>),
+        IsGroup   = table.<span class="mth">Column</span>&lt;<span class="kw">bool</span>&gt;(type: <span class="str">"tinyint(1)"</span>, nullable: <span class="kw">false</span>),
+        CreatedAt = table.<span class="mth">Column</span>&lt;<span class="cls">DateTime</span>&gt;(type: <span class="str">"datetime(6)"</span>,
+            defaultValueSql: <span class="str">"CURRENT_TIMESTAMP(6)"</span>),
+    },
+    constraints: table => table.<span class="mth">PrimaryKey</span>(<span class="str">"PK_Chats"</span>, x => x.Id));
+
+<span class="cmt">// AddForeignKey — явная FK с именованием и OnDelete: Restrict
+// EF Core автоматически добавляет FK после CreateTable для всех связанных таблиц</span>
+migrationBuilder.<span class="mth">AddForeignKey</span>(
+    name: <span class="str">"FK_Contacts_Users_ContactUserId"</span>,
+    table: <span class="str">"Contacts"</span>,
+    column: <span class="str">"ContactUserId"</span>,
+    principalTable: <span class="str">"Users"</span>,
+    principalColumn: <span class="str">"Id"</span>,
+    onDelete: <span class="cls">ReferentialAction</span>.Restrict);  <span class="cmt">// → ON DELETE RESTRICT</span></pre>
+
+<!-- 7.5 -->
+<h2>7.5 Применение миграций при запуске &#8212; MigrateAsync</h2>
+
+<p>
+  В WebMessenger миграции применяются <strong>автоматически при запуске приложения</strong>
+  через <code>MigrateAsync()</code>. Это удобно для Development и CI/CD &#8212; не нужно
+  запускать команды вручную перед стартом сервера.
+</p>
+
+<pre><span class="cmt">// WebMessenger.Api/Program.cs — автоматическое применение миграций при старте</span>
+<span class="kw">using var</span> scope = app.<span class="mth">Services</span>.<span class="mth">CreateScope</span>();
+<span class="kw">var</span> db = scope.ServiceProvider.<span class="mth">GetRequiredService</span>&lt;<span class="cls">ApplicationDbContext</span>&gt;();
+<span class="kw">await</span> db.Database.<span class="mth">MigrateAsync</span>();
+<span class="cmt">// MigrateAsync: применяет все Pending-миграции (Applied пропускает).
+// Таблица __EFMigrationsHistory отслеживает что уже применено.
+// В prod-среде часто заменяют на явный SQL-скрипт, сгенерированный заранее.</span></pre>
+
+<table>
+  <tr><th>Подход</th><th>Когда применять</th><th>Плюсы</th><th>Минусы</th></tr>
+  <tr>
+    <td><code>MigrateAsync()</code> при старте</td>
+    <td>Development, CI/CD, small teams</td>
+    <td>Автоматически, не нужно помнить про команды</td>
+    <td>Замедляет старт; риск на prod если миграция деструктивна</td>
+  </tr>
+  <tr>
+    <td><code>dotnet ef database update</code></td>
+    <td>Ручное управление миграциями</td>
+    <td>Полный контроль, можно ревьюить</td>
+    <td>Нужно запускать вручную на каждой среде</td>
+  </tr>
+  <tr>
+    <td>SQL-скрипт (<code>migrations script</code>)</td>
+    <td>Production, строгий контроль изменений</td>
+    <td>Можно ревьюить SQL до применения; DBA одобряет</td>
+    <td>Дополнительный шаг в деплое</td>
+  </tr>
+</table>
+
+<!-- 7.6 -->
+<h2>7.6 __EFMigrationsHistory &#8212; таблица истории</h2>
+
+<p>
+  EF Core создаёт в БД служебную таблицу <code>__EFMigrationsHistory</code> с двумя полями:
+  <code>MigrationId</code> (имя с временной меткой) и <code>ProductVersion</code>
+  (версия EF Core). При каждом применении миграции запись добавляется, при откате &#8212;
+  удаляется. <code>database update</code> и <code>MigrateAsync()</code> сверяют этот список
+  с кодом чтобы определить какие миграции ещё не применены (Pending).
+</p>
+
+<pre><span class="cmt">-- Содержимое таблицы __EFMigrationsHistory в WebMessenger после всех миграций</span>
+SELECT * FROM __EFMigrationsHistory;
+
+-- MigrationId                               | ProductVersion
+-- 20250714170542_InitialCreate              | 9.0.x
+-- 20250717131146_AddBasicModels             | 9.0.x
+-- 20250721190131_RemoveUniqueIndexFromEmail  | 9.0.x
+-- 20251123161128_RemoveMessageIsRead         | 9.0.x</pre>
+
+<!-- 7.7 -->
+<h2>7.7 Типичные ошибки и правила безопасной работы</h2>
+
+<table>
+  <tr><th>Ошибка</th><th>Последствие</th><th>Как избежать</th></tr>
+  <tr>
+    <td>Редактировать файл миграции вручную после применения к БД</td>
+    <td>Рассинхронизация снапшота и реальной схемы &#8212; следующие миграции некорректны</td>
+    <td>Не редактировать применённые миграции. Создать новую миграцию-исправление.</td>
+  </tr>
+  <tr>
+    <td>Удалить применённую миграцию (<code>migrations remove</code>)</td>
+    <td>Команда завершится ошибкой: EF проверяет статус последней миграции</td>
+    <td>Сначала откатить: <code>database update {предыдущая}</code>, затем <code>migrations remove</code></td>
+  </tr>
+  <tr>
+    <td>Деструктивная миграция без резервной копии</td>
+    <td><code>DropColumn</code> / <code>DropTable</code> уничтожают данные безвозвратно</td>
+    <td>Backup перед применением; использовать поэтапное удаление (сначала nullable, потом drop)</td>
+  </tr>
+  <tr>
+    <td>Добавить NOT NULL столбец без defaultValue в непустую таблицу</td>
+    <td>БД откажет: существующие строки не имеют значения для нового поля</td>
+    <td>Указать <code>defaultValue</code> в <code>AddColumn</code> или сделать столбец nullable сначала</td>
+  </tr>
+  <tr>
+    <td>Конфликт миграций в git (два разработчика создали миграцию одновременно)</td>
+    <td>Две миграции с разными именами но одинаковым снапшотом</td>
+    <td>Удалить одну, создать общую; или использовать <code>MigrationId</code>-ребейз</td>
+  </tr>
+</table>
+
+<div class="note">
+  <strong>Стратегия поэтапного удаления столбца</strong> (без потери данных при откате):
+  <ol>
+    <li>Миграция 1: сделать столбец nullable (<code>AlterColumn nullable: true</code>)
+      &#8212; данные сохранены, код может читать null.</li>
+    <li>Миграция 2: убрать использование столбца в C#-коде и деплой.</li>
+    <li>Миграция 3: <code>DropColumn</code> &#8212; только теперь данные удаляются,
+      и приложение уже не зависит от этого столбца.</li>
+  </ol>
+  В WebMessenger <code>RemoveMessageIsRead</code> применена напрямую &#8212; допустимо
+  когда столбец использовался только внутри и резервная копия сделана.
+</div>
+
+<hr>
+
+
+<!-- ============================================================ -->
+<h1>8. Logging and Diagnostics &#8212; Логирование и диагностика</h1>
+
+<!-- 8.1 -->
+<h2>8.1 Как EF Core логирует SQL-запросы</h2>
+
+<p>
+  EF Core интегрируется с <code>Microsoft.Extensions.Logging</code> и выводит
+  SQL-команды, предупреждения об производительности и внутренние события через
+  стандартный механизм логирования .NET. В WebMessenger логирование настроено
+  через <strong>Serilog</strong>.
+</p>
+
+<h3>Категории логов EF Core</h3>
+<table>
+  <tr><th>Категория</th><th>Содержимое</th></tr>
+  <tr><td><code>Microsoft.EntityFrameworkCore.Database.Command</code></td><td>SQL-запросы и время выполнения</td></tr>
+  <tr><td><code>Microsoft.EntityFrameworkCore.Database.Transaction</code></td><td>Начало, коммит, откат транзакций</td></tr>
+  <tr><td><code>Microsoft.EntityFrameworkCore.Query</code></td><td>Предупреждения о трансляции, N+1</td></tr>
+  <tr><td><code>Microsoft.EntityFrameworkCore.Update</code></td><td>INSERT/UPDATE/DELETE команды</td></tr>
+  <tr><td><code>Microsoft.EntityFrameworkCore.Infrastructure</code></td><td>Старт контекста, регистрация модели</td></tr>
+</table>
+
+<pre><span class="cmt">// appsettings.Development.json — включить SQL-запросы в лог через Serilog</span>
+{
+  <span class="str">"Serilog"</span>: {
+    <span class="str">"MinimumLevel"</span>: {
+      <span class="str">"Default"</span>: <span class="str">"Information"</span>,
+      <span class="str">"Override"</span>: {
+        <span class="cmt">// Все SQL-команды с параметрами и временем выполнения</span>
+        <span class="str">"Microsoft.EntityFrameworkCore.Database.Command"</span>: <span class="str">"Information"</span>,
+        <span class="cmt">// Предупреждения о потенциальных проблемах (N+1, неэффективные запросы)</span>
+        <span class="str">"Microsoft.EntityFrameworkCore.Query"</span>: <span class="str">"Warning"</span>,
+        <span class="cmt">// В prod — только Warning+: не засорять логи каждым SELECT</span>
+        <span class="str">"Microsoft.EntityFrameworkCore"</span>: <span class="str">"Warning"</span>
+      }
+    }
+  }
+}
+
+<span class="cmt">// Пример вывода в консоль при уровне Information:
+// [INF] Executed DbCommand (3ms) [Parameters=[@p0='?' (DbType = Guid)],
+//       CommandType='Text', CommandTimeout='30']
+//       SELECT c.Id, c.Name, c.IsGroup FROM Chats AS c
+//       WHERE c.Id = @p0 LIMIT 1</span></pre>
+
+<!-- 8.2 -->
+<h2>8.2 LogTo &#8212; быстрое логирование без DI</h2>
+
+<p>
+  <code>LogTo()</code> &#8212; лёгкий способ вывести SQL прямо в консоль
+  без настройки полного ILoggerFactory. Удобен для отладки и написания
+  изолированных примеров.
+</p>
+
+<pre><span class="cmt">// LogTo — вывод всех SQL-команд в Console.WriteLine</span>
+options.<span class="mth">UseMySql</span>(connectionString, serverVersion)
+       .<span class="mth">LogTo</span>(<span class="cls">Console</span>.WriteLine, <span class="cls">LogLevel</span>.Information);
+
+<span class="cmt">// Фильтрация по категории — только SQL-команды, без служебных сообщений</span>
+options.<span class="mth">LogTo</span>(
+    <span class="cls">Console</span>.WriteLine,
+    <span class="kw">new</span>[] { <span class="cls">DbLoggerCategory</span>.Database.Command.Name },
+    <span class="cls">LogLevel</span>.Information
+);
+
+<span class="cmt">// LogTo с форматированием — только SQL без лишних метаданных</span>
+options.<span class="mth">LogTo</span>(
+    <span class="cls">Console</span>.WriteLine,
+    <span class="cls">LogLevel</span>.Information,
+    <span class="cls">DbContextLoggerOptions</span>.DefaultWithLocalTime | <span class="cls">DbContextLoggerOptions</span>.SingleLine
+);
+
+<span class="cmt">// WebMessenger не использует LogTo напрямую —
+// вместо этого Serilog читает уровни из конфигурации через ReadFrom.Configuration.
+// LogTo удобен для быстрой отладки отдельного запроса в изолированном контексте.</span></pre>
+
+<!-- 8.3 -->
+<h2>8.3 EnableSensitiveDataLogging и EnableDetailedErrors</h2>
+
+<pre><span class="cmt">// WebMessenger.Api/Program.cs — включается ТОЛЬКО в Development</span>
+<span class="kw">if</span> (sp.<span class="mth">GetRequiredService</span>&lt;<span class="cls">IHostEnvironment</span>&gt;().<span class="mth">IsDevelopment</span>())
+{
+    <span class="cmt">// Параметры SQL видны в логах: @p0='secretPassword123'
+    // Критично для отладки — помогает понять что именно уходит в БД.</span>
+    options.<span class="mth">EnableSensitiveDataLogging</span>();
+
+    <span class="cmt">// Расширенные сообщения об ошибках трансляции LINQ и конфигурации модели.
+    // Без этого: "An error occurred while iterating over the results of a query."
+    // С этим: точное описание что именно EF не смог транслировать в SQL.</span>
+    options.<span class="mth">EnableDetailedErrors</span>();
+}</pre>
+
+<table>
+  <tr><th>Опция</th><th>Что раскрывает</th><th>Риск в Production</th></tr>
+  <tr>
+    <td><code>EnableSensitiveDataLogging()</code></td>
+    <td>Значения параметров: пароли, токены, персональные данные</td>
+    <td>Критический &#8212; утечка секретов в логи</td>
+  </tr>
+  <tr>
+    <td><code>EnableDetailedErrors()</code></td>
+    <td>Детали схемы БД, имена таблиц/колонок в сообщениях об ошибках</td>
+    <td>Средний &#8212; раскрытие структуры БД</td>
+  </tr>
+</table>
+
+<div class="warn">
+  <strong>Никогда не включайте <code>EnableSensitiveDataLogging()</code> в Production.</strong>
+  Логи агрегируются (Seq, ELK, CloudWatch) и хранятся долго. Значения параметров SQL
+  могут содержать пароли пользователей, JWT-токены, платёжные данные.
+  В WebMessenger оба флага защищены явной проверкой <code>IsDevelopment()</code>.
+</div>
+
+<!-- 8.4 -->
+<h2>8.4 TagWith &#8212; маркировка запросов</h2>
+
+<p>
+  <code>TagWith()</code> добавляет SQL-комментарий к запросу, генерируемому EF Core.
+  Это позволяет связать медленный запрос в логах базы данных (slow query log,
+  Performance Insights, pg_stat_statements) с конкретным местом в C#-коде.
+</p>
+
+<pre><span class="cmt">// TagWith — добавляет комментарий в SQL: /* tag text */</span>
+<span class="kw">var</span> messages = <span class="kw">await</span> _uow.MessageRepository
+    .<span class="mth">GetAll</span>()
+    .<span class="mth">TagWith</span>(<span class="str">"ChatService.GetMessagesAsync — history page"</span>)
+    .<span class="mth">Where</span>(m => m.ChatId == chatId)
+    .<span class="mth">OrderByDescending</span>(m => m.SentAt)
+    .<span class="mth">Take</span>(take)
+    .<span class="mth">ToListAsync</span>();
+
+<span class="cmt">// Итоговый SQL в БД:
+// -- ChatService.GetMessagesAsync — history page
+// SELECT m.Id, m.ChatId, m.SenderId, m.Content, m.SentAt, m.EditedAt
+// FROM Messages AS m
+// WHERE m.ChatId = @p0
+// ORDER BY m.SentAt DESC
+// LIMIT @p1</span>
+
+<span class="cmt">// TagWithCallSite() — автоматически добавляет файл и номер строки C#-кода</span>
+<span class="kw">var</span> chats = <span class="kw">await</span> _uow.ChatRepository
+    .<span class="mth">GetAll</span>()
+    .<span class="mth">TagWithCallSite</span>()   <span class="cmt">// → /* file: ChatService.cs line: 42 */</span>
+    .<span class="mth">Where</span>(c => c.Members.<span class="mth">Any</span>(m => m.UserId == me))
+    .<span class="mth">ToListAsync</span>();</pre>
+
+<div class="note">
+  <strong>Когда использовать TagWith:</strong> при оптимизации производительности,
+  когда MySQL Slow Query Log или APM-система показывает медленный запрос, но
+  непонятно откуда он пришёл. С тегом сразу видно: метод, назначение запроса.
+  В WebMessenger теги не добавлены в продакшн-код, но это хорошая практика
+  для высоконагруженных эндпоинтов.
+</div>
+
+<hr>
+<!-- ============================================================ -->
+<h1>9. Performance &#8212; Производительность</h1>
+
+<!-- 9.1 -->
+<h2>9.1 Сокращение числа round-trip к БД</h2>
+
+<p>
+  Каждое обращение к базе данных включает сетевую задержку, разбор SQL,
+  планирование запроса и передачу данных. В облачных и контейнерных средах
+  latency одного round-trip может составлять 1&#8211;10 мс.
+  При 100 запросах это 100&#8211;1000 мс &#8212; только на overhead.
+  Главный принцип: <strong>меньше запросов к БД — быстрее ответ</strong>.
+</p>
+
+<h3>Паттерны снижения числа запросов</h3>
+<table>
+  <tr><th>Антипаттерн</th><th>Решение</th><th>Пример из WebMessenger</th></tr>
+  <tr>
+    <td>N+1: запрос в цикле</td>
+    <td>Batch-запрос с <code>Contains()</code> или <code>GroupBy()</code></td>
+    <td><code>GetUserChatsAsync</code>: unread counts за один GROUP BY</td>
+  </tr>
+  <tr>
+    <td>Отдельный запрос для каждого чата</td>
+    <td><code>ToDictionaryAsync</code> по всем chatIds сразу</td>
+    <td><code>lastReadMap</code> — один SELECT IN (...)</td>
+  </tr>
+  <tr>
+    <td>Проверка существования в цикле</td>
+    <td>Загрузить HashSet один раз, проверять в памяти</td>
+    <td><code>GetContactIdsAsync</code> → <code>ToHashSet()</code></td>
+  </tr>
+  <tr>
+    <td>Include всего при нужде только в ID</td>
+    <td>Select только нужных полей через проекцию</td>
+    <td><code>.Select(u => new { u.Id, u.Username, u.AvatarUrl })</code></td>
+  </tr>
+</table>
+
+<!-- 9.2 -->
+<h2>9.2 Async-операции с БД</h2>
+
+<p>
+  Все методы материализации в WebMessenger используют <strong>async</strong>-варианты.
+  Синхронные вызовы (<code>ToList()</code>, <code>First()</code>, <code>Any()</code>)
+  блокируют поток ThreadPool на время ожидания ответа от БД &#8212; это критично
+  для ASP.NET Core, где каждый заблокированный поток не может обрабатывать другие запросы.
+</p>
+
+<table>
+  <tr><th>Синхронный</th><th>Async-аналог</th><th>Рекомендация</th></tr>
+  <tr><td><code>ToList()</code></td><td><code>ToListAsync()</code></td><td>Всегда async в веб-запросах</td></tr>
+  <tr><td><code>FirstOrDefault()</code></td><td><code>FirstOrDefaultAsync()</code></td><td>Всегда async в веб-запросах</td></tr>
+  <tr><td><code>Any()</code></td><td><code>AnyAsync()</code></td><td>Всегда async в веб-запросах</td></tr>
+  <tr><td><code>Count()</code></td><td><code>CountAsync()</code></td><td>Всегда async в веб-запросах</td></tr>
+  <tr><td><code>Single()</code></td><td><code>SingleAsync()</code></td><td>Когда ожидается строго одна запись</td></tr>
+  <tr><td><code>SaveChanges()</code></td><td><code>SaveChangesAsync()</code></td><td>Всегда async</td></tr>
+</table>
+
+<pre><span class="cmt">// Синхронный — блокирует поток на время IO (плохо в ASP.NET Core):</span>
+<span class="kw">var</span> items = _uow.MessageRepository.<span class="mth">GetAll</span>().<span class="mth">ToList</span>();  <span class="cmt">// ❌</span>
+
+<span class="cmt">// Async — освобождает поток пока БД обрабатывает запрос (правильно):</span>
+<span class="kw">var</span> items = <span class="kw">await</span> _uow.MessageRepository.<span class="mth">GetAll</span>().<span class="mth">ToListAsync</span>(ct);  <span class="cmt">// ✓</span>
+
+<span class="cmt">// SingleAsync vs FirstOrDefaultAsync:
+// SingleAsync — генерирует исключение если записей 0 или >1. Использовать когда
+// бизнес-логика гарантирует ровно одну запись (например PK-поиск).
+// FirstOrDefaultAsync — безопасен: возвращает null если не найдено.
+// В WebMessenger везде FirstOrDefaultAsync — защита от неожиданных данных.</span>
+<span class="kw">var</span> user = <span class="kw">await</span> _uow.UserRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">FirstOrDefaultAsync</span>(u => u.Username == username);
+<span class="kw">if</span> (user == <span class="kw">null</span>) <span class="kw">throw new</span> <span class="cls">KeyNotFoundException</span>();</pre>
+
+<!-- 9.3 -->
+<h2>9.3 AsAsyncEnumerable &#8212; потоковая обработка</h2>
+
+<p>
+  <code>ToListAsync()</code> загружает <em>весь</em> результат в память перед обработкой.
+  При больших выборках (тысячи строк) это создаёт пиковое потребление памяти.
+  <code>AsAsyncEnumerable()</code> позволяет обрабатывать строки <em>по одной</em>
+  по мере их получения от БД.
+</p>
+
+<pre><span class="cmt">// ToListAsync — всё в памяти сразу. Хорошо для небольших выборок (≤1000 строк).</span>
+<span class="kw">var</span> all = <span class="kw">await</span> _uow.MessageRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(m => m.ChatId == chatId)
+    .<span class="mth">ToListAsync</span>();  <span class="cmt">// например 50 000 сообщений → ~50 MB в памяти</span>
+
+<span class="cmt">// AsAsyncEnumerable — строки обрабатываются потоком, не накапливаются.
+// Используется для экспорта, аналитики, батч-обработки больших объёмов данных.</span>
+<span class="kw">await foreach</span> (<span class="kw">var</span> message <span class="kw">in</span> _uow.MessageRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(m => m.ChatId == chatId)
+    .<span class="mth">OrderBy</span>(m => m.SentAt)
+    .<span class="mth">AsAsyncEnumerable</span>())
+{
+    <span class="kw">await</span> <span class="mth">ProcessMessageAsync</span>(message);  <span class="cmt">// обработка по одному</span>
+    <span class="cmt">// GC может собрать предыдущий объект пока идёт следующий</span>
+}
+
+<span class="cmt">// В WebMessenger AsAsyncEnumerable не используется: все выборки ограничены
+// пагинацией (limit ≤ 200 записей) — ToListAsync достаточно и проще.</span></pre>
+
+<!-- 9.4 -->
+<h2>9.4 Избегать избыточного Eager Loading</h2>
+
+<p>
+  <code>Include()</code> добавляет JOIN и загружает дополнительные данные.
+  Каждый Include увеличивает объём данных, передаваемых по сети, и нагрузку на БД.
+  Загружать навигации нужно только когда они действительно используются.
+</p>
+
+<pre><span class="cmt">// Плохо: Include всего подряд, но реально нужен только Username участников</span>
+<span class="kw">var</span> chat = <span class="kw">await</span> _uow.ChatRepository
+    .<span class="mth">GetAll</span>(
+        <span class="kw">nameof</span>(<span class="cls">Chat</span>.Members),   <span class="cmt">// нужны</span>
+        <span class="kw">nameof</span>(<span class="cls">Chat</span>.Messages)   <span class="cmt">// не нужны для заголовка чата — лишний JOIN</span>
+    )
+    .<span class="mth">FirstOrDefaultAsync</span>(c => c.Id == chatId);
+
+<span class="cmt">// Хорошо: Include только Members + проекция только нужных полей User</span>
+<span class="kw">var</span> memberNames = <span class="kw">await</span> _uow.ChatMemberRepository
+    .<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(cm => cm.ChatId == chatId)
+    .<span class="mth">Select</span>(cm => cm.User!.Username)   <span class="cmt">// только Username — без Join на всю таблицу</span>
+    .<span class="mth">ToListAsync</span>();
+
+<span class="cmt">// WebMessenger — ChatService.GetChatHeaderByChatIdAsync:
+// Include только Members (нужен UserId), потом отдельный точечный запрос
+// для одного User через FirstOrDefaultAsync + Select проекция.</span>
+<span class="kw">var</span> chat = <span class="kw">await</span> _uow.ChatRepository
+    .<span class="mth">GetAll</span>(<span class="kw">nameof</span>(<span class="cls">Chat</span>.Members))   <span class="cmt">// только нужная навигация</span>
+    .<span class="mth">FirstOrDefaultAsync</span>(c => c.Id == chatId);
+
+<span class="kw">var</span> other = <span class="kw">await</span> _uow.UserRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(u => u.Id == otherId)
+    .<span class="mth">Select</span>(<span class="cls">UserProjections</span>.ToProfileDto)  <span class="cmt">// SELECT только нужных полей User</span>
+    .<span class="mth">FirstOrDefaultAsync</span>();</pre>
+
+<h3>Признаки избыточного eager loading</h3>
+<ul>
+  <li>Include-навигация присутствует, но в коде обращений к ней нет</li>
+  <li>Include коллекции с сотнями строк для операции, которой нужен только <code>Count</code></li>
+  <li>ThenInclude глубиной 3+ уровня — почти всегда картезианский взрыв строк</li>
+</ul>
+
+<!-- 9.5 -->
+<h2>9.5 Select только нужных полей &#8212; проекции</h2>
+
+<p>
+  <code>SELECT *</code> загружает все столбцы сущности, включая большие поля
+  (<code>longtext</code>, <code>blob</code>). Проекция через <code>Select()</code>
+  точно указывает EF Core какие столбцы нужны &#8212; генерируется минимальный SELECT.
+</p>
+
+<pre><span class="cmt">// SELECT * — все поля User (включая PasswordHash, Bio, AvatarUrl и т.д.)</span>
+<span class="kw">var</span> users = <span class="kw">await</span> _uow.UserRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(u => peerIds.<span class="mth">Contains</span>(u.Id))
+    .<span class="mth">ToListAsync</span>();  <span class="cmt">// тянем всё — нужны только Id, Username, AvatarUrl</span>
+
+<span class="cmt">// SELECT Id, Username, AvatarUrl — минимальный трафик</span>
+<span class="kw">var</span> peers = <span class="kw">await</span> _uow.UserRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(u => peerIds.<span class="mth">Contains</span>(u.Id))
+    .<span class="mth">Select</span>(u => <span class="kw">new</span> { u.Id, u.Username, u.AvatarUrl })  <span class="cmt">// только 3 поля</span>
+    .<span class="mth">ToListAsync</span>();
+
+<span class="cmt">// Переиспользуемая Expression-проекция (WebMessenger pattern):
+// объявить один раз в MessageProjections / UserProjections,
+// использовать во всех запросах — DRY + гарантия консистентности набора полей.</span>
+<span class="kw">public static readonly</span> <span class="cls">Expression</span>&lt;<span class="cls">Func</span>&lt;<span class="cls">Message</span>, <span class="cls">ChatMessageDto</span>&gt;&gt; ToChatMessageDto =
+    m => <span class="kw">new</span> <span class="cls">ChatMessageDto</span> { Id = m.Id, ChatId = m.ChatId, <span class="cmt">/* ... */</span> };
+<span class="cmt">// → SELECT Id, ChatId, SenderId, Content, SentAt, EditedAt FROM Messages</span></pre>
+
+<hr>
+
+<!-- ============================================================ -->
+<h1>10. Security &#8212; Безопасность</h1>
+
+<!-- 10.1 -->
+<h2>10.1 SQL-параметризация в EF Core</h2>
+
+<p>
+  EF Core <strong>всегда параметризует</strong> значения в LINQ-запросах.
+  Любое значение C#-переменной в <code>Where()</code>, <code>Select()</code> или
+  другом операторе передаётся в БД как параметр (<code>@p0</code>, <code>@p1</code>),
+  а не вставляется в строку SQL напрямую. Это делает LINQ-запросы
+  <em>иммунными к SQL-инъекции по умолчанию</em>.
+</p>
+
+<pre><span class="cmt">// Любое значение из C# → параметр в SQL. Внедрить SQL через LINQ невозможно.</span>
+<span class="kw">var</span> username = request.Username;  <span class="cmt">// может быть "admin' OR '1'='1" — не важно</span>
+
+<span class="kw">var</span> user = <span class="kw">await</span> _uow.UserRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">FirstOrDefaultAsync</span>(u => u.Username == username);
+
+<span class="cmt">// EF Core генерирует:
+// SELECT u.Id, u.Username, ... FROM Users AS u
+// WHERE u.Username = @p0          ← @p0 = "admin' OR '1'='1"
+// LIMIT 1
+//
+// БД получает СТРОКУ как данные, а не как SQL-код.
+// Инъекция невозможна независимо от содержимого username.</span></pre>
+
+<pre><span class="cmt">// WebMessenger — ContactsService.GetUserContactsAsync: параметр query тоже безопасен</span>
+<span class="kw">return await</span> _unitOfWork.ContactRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(x => x.OwnerUserId == currentUserId
+        &amp;&amp; x.ContactUser!.Username.<span class="mth">ToLower</span>().<span class="mth">Contains</span>(query.<span class="mth">ToLower</span>()))
+    .<span class="mth">Include</span>(x => x.ContactUser)
+    .<span class="mth">ToListAsync</span>();
+<span class="cmt">// query — строка поиска от пользователя. EF транслирует в:
+// WHERE LOWER(u.Username) LIKE LOWER(CONCAT('%', @p1, '%'))
+// @p1 получает значение query как параметр — инъекция невозможна.</span></pre>
+
+<!-- 10.2 -->
+<h2>10.2 Риски сырого SQL &#8212; конкатенация строк</h2>
+
+<p>
+  <code>FromSqlRaw()</code> и <code>ExecuteSqlRawAsync()</code> позволяют
+  выполнять произвольный SQL. При <strong>конкатенации</strong> пользовательского
+  ввода в строку запроса возникает классическая SQL-инъекция.
+</p>
+
+<pre><span class="cmt">// ОПАСНО: конкатенация пользовательского ввода → SQL-инъекция</span>
+<span class="kw">var</span> username = request.Username;  <span class="cmt">// "'; DROP TABLE Users; --"</span>
+
+<span class="cmt">// ❌ Итоговый SQL: SELECT * FROM Users WHERE Username = ''; DROP TABLE Users; --'
+// БД выполнит DROP TABLE!</span>
+<span class="kw">var</span> users = <span class="kw">await</span> context.Users
+    .<span class="mth">FromSqlRaw</span>(<span class="str">"SELECT * FROM Users WHERE Username = '"</span> + username + <span class="str">"'"</span>)
+    .<span class="mth">ToListAsync</span>();</pre>
+
+<pre><span class="cmt">// БЕЗОПАСНО: параметры через placeholders в FromSqlRaw</span>
+<span class="kw">var</span> users = <span class="kw">await</span> context.Users
+    .<span class="mth">FromSqlRaw</span>(<span class="str">"SELECT * FROM Users WHERE Username = {0}"</span>, username)
+    .<span class="mth">ToListAsync</span>();
+<span class="cmt">// {0} → @p0 = username. БД получает значение как данные, не как код.</span>
+
+<span class="cmt">// БЕЗОПАСНО: интерполированная строка в FromSqlInterpolated
+// EF Core распознаёт C#-интерполяцию и автоматически превращает {username} в @p0</span>
+<span class="kw">var</span> users = <span class="kw">await</span> context.Users
+    .<span class="mth">FromSqlInterpolated</span>(<span class="str">$"SELECT * FROM Users WHERE Username = {username}"</span>)
+    .<span class="mth">ToListAsync</span>();
+<span class="cmt">// ВНИМАНИЕ: FormattableString, не обычная string!
+// Если передать обычную интерполированную string — это конкатенация → инъекция:</span>
+<span class="kw">string</span> sql = <span class="str">$"SELECT * FROM Users WHERE Username = {username}"</span>;
+<span class="kw">var</span> bad = <span class="kw">await</span> context.Users.<span class="mth">FromSqlRaw</span>(sql).<span class="mth">ToListAsync</span>();  <span class="cmt">// ❌ инъекция!</span></pre>
+
+<h3>FromSqlRaw vs FromSqlInterpolated</h3>
+<table>
+  <tr><th></th><th>FromSqlRaw</th><th>FromSqlInterpolated</th></tr>
+  <tr>
+    <td><strong>Тип аргумента</strong></td>
+    <td><code>string</code> + <code>params object[]</code></td>
+    <td><code>FormattableString</code> (только C# $-interpolation)</td>
+  </tr>
+  <tr>
+    <td><strong>Параметризация</strong></td>
+    <td>Вручную через <code>{0}</code>, <code>{1}</code></td>
+    <td>Автоматически из <code>{переменная}</code></td>
+  </tr>
+  <tr>
+    <td><strong>Риск инъекции</strong></td>
+    <td>Высокий при конкатенации; безопасен при <code>{0}</code></td>
+    <td>Безопасен &#8212; невозможно передать строку напрямую</td>
+  </tr>
+  <tr>
+    <td><strong>Когда использовать</strong></td>
+    <td>Динамические части SQL (имена таблиц, ORDER BY), которые нельзя параметризовать</td>
+    <td>Запросы с условиями по значениям &#8212; предпочтительный выбор</td>
+  </tr>
+</table>
+
+<!-- 10.3 -->
+<h2>10.3 Правило минимума данных</h2>
+
+<p>
+  Безопасность включает не только защиту от инъекций, но и
+  <strong>минимизацию передаваемых данных</strong>: не возвращать клиенту
+  поля, которые он не должен видеть.
+</p>
+
+<pre><span class="cmt">// Плохо: возвращаем всю сущность User, включая PasswordHash</span>
+<span class="kw">var</span> user = <span class="kw">await</span> _uow.UserRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">FirstOrDefaultAsync</span>(u => u.Id == userId);
+<span class="kw">return</span> user;  <span class="cmt">// PasswordHash утечёт в ответ API если нет явного маппинга</span>
+
+<span class="cmt">// Хорошо: проекция через Expression — только безопасные поля
+// WebMessenger.Api/Projections/Users/UserProjections.cs</span>
+<span class="kw">public static readonly</span> <span class="cls">Expression</span>&lt;<span class="cls">Func</span>&lt;<span class="cls">User</span>, <span class="cls">UserProfileDto</span>&gt;&gt; ToProfileDto =
+    u => <span class="kw">new</span> <span class="cls">UserProfileDto</span>
+    {
+        Id        = u.Id,
+        Username  = u.Username,
+        FirstName = u.FirstName,
+        LastName  = u.LastName,
+        AvatarUrl = u.AvatarUrl,
+        IsOnline  = u.IsOnline
+        <span class="cmt">// PasswordHash не включён — никогда не уходит клиенту</span>
+    };
+
+<span class="cmt">// Проекция применяется прямо в SQL:
+// SELECT Id, Username, FirstName, LastName, AvatarUrl, IsOnline FROM Users WHERE ...</span>
+<span class="kw">var</span> profile = <span class="kw">await</span> _uow.UserRepository.<span class="mth">GetAll</span>()
+    .<span class="mth">Where</span>(u => u.Id == userId)
+    .<span class="mth">Select</span>(<span class="cls">UserProjections</span>.ToProfileDto)
+    .<span class="mth">FirstOrDefaultAsync</span>();</pre>
+
+<!-- 10.4 -->
+<h2>10.4 Итоговая таблица: безопасные и опасные паттерны</h2>
+
+<table>
+  <tr><th>Паттерн</th><th>Безопасность</th><th>Рекомендация</th></tr>
+  <tr>
+    <td>LINQ-запросы (<code>Where</code>, <code>Select</code>)</td>
+    <td>&#10003; Полностью безопасны</td>
+    <td>Основной инструмент — всегда предпочтительнее сырого SQL</td>
+  </tr>
+  <tr>
+    <td><code>FromSqlInterpolated($"... {value}")</code></td>
+    <td>&#10003; Безопасен</td>
+    <td>Когда LINQ не справляется — использовать вместо <code>FromSqlRaw</code></td>
+  </tr>
+  <tr>
+    <td><code>FromSqlRaw("... {0}", value)</code></td>
+    <td>&#10003; Безопасен при правильном использовании</td>
+    <td>Допустимо; следить чтобы не было конкатенации</td>
+  </tr>
+  <tr>
+    <td><code>FromSqlRaw("... " + userInput)</code></td>
+    <td>&#10005; SQL-инъекция</td>
+    <td>Запрещено</td>
+  </tr>
+  <tr>
+    <td><code>FromSqlRaw($"... {userInput}")</code> (обычная string)</td>
+    <td>&#10005; SQL-инъекция</td>
+    <td>Запрещено — выглядит как <code>FromSqlInterpolated</code>, но это не так</td>
+  </tr>
+  <tr>
+    <td>Проекция только нужных полей</td>
+    <td>&#10003; Предотвращает утечку данных</td>
+    <td>Всегда использовать DTO/проекции в публичных API</td>
+  </tr>
+  <tr>
+    <td><code>EnableSensitiveDataLogging()</code> в Production</td>
+    <td>&#10005; Утечка секретов в логи</td>
+    <td>Только в Development</td>
+  </tr>
+</table>
+
+<hr>
+<hr>
 </body>
 </html>
